@@ -1,0 +1,37 @@
+@startuml UC-61
+skinparam dpi 150
+' ===== النمط الموحّد =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-61 — معالجة تعارضات الجدول ومؤشر الجودة\n<size:13><color:#455A64>الفاعل: منسق الجداول والموارد</color></size>
+
+start
+:يفتح لوحة التعارضات
+لنسخة الجدول;
+if (هل في النسخة تعارضات؟) then (لا)
+  :يطّلع على مؤشر الجودة
+  وخلو النسخة من التعارضات;
+  stop
+else (نعم)
+  repeat :يختار تعارضاً من القائمة;
+    :يطّلع على الحلول المقترحة
+    وأثر كل حل على مؤشر الجودة;
+    :يطبّق الحل المناسب بنقرة
+    أو ينقل المحاضرة يدوياً;
+  repeat while (هل بقيت تعارضات صلبة\nأو المؤشر دون حدّه الأدنى؟) is (نعم) not (لا)
+  stop
+endif
+@enduml

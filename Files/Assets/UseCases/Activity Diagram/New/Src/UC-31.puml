@@ -1,0 +1,42 @@
+@startuml UC-31
+skinparam dpi 150
+' ===== النمط الموحّد =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-31 — اعتماد الجدول ونشره
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|منسق الجداول والموارد|
+|موظف الشؤون الأكاديمية|
+start
+:يفتح نسخة الجدول
+المرسلة للاعتماد;
+:يراجع محاضراتها وقائمة التحقق
+ويقارنها بالنسخة السارية;
+while (هل لديه ملاحظات على النسخة؟) is (نعم)
+  :يكتب ملاحظاته على المحاضرات
+  ويُرجع النسخة إلى المنسق;
+  |منسق الجداول والموارد|
+  :يعالج الملاحظات
+  ويعيد إرسال النسخة;
+  |موظف الشؤون الأكاديمية|
+  :يراجع النسخة من جديد;
+endwhile (لا)
+:يعتمد النسخة;
+:ينشر الجدول
+للمدرّسين والطلاب;
+stop
+@enduml

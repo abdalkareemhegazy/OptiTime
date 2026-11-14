@@ -1,0 +1,43 @@
+@startuml UC-27
+skinparam dpi 150
+' ===== النمط الموحّد =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-27 — إدخال أوقات التفرّغ\n<size:13><color:#455A64>الفاعل: عضو هيئة التدريس</color></size>
+
+start
+:يفتح صفحة أوقات التفرّغ;
+:يختار الفصل الدراسي;
+if (هل نافذة إدخال التفرّغ مفتوحة؟) then (لا)
+  :يطّلع على أسبوعه
+  للقراءة فقط;
+  stop
+else (نعم)
+  :يحدد على شبكة الأسبوع
+  أوقاته المفضّلة والمتاحة والمغلقة;
+  :يختار سبب كل وقت مغلق
+  ويكتب ملاحظة للمنسق إن رغب;
+  if (هل اكتمل أسبوعه؟) then (نعم)
+    :يسلّم الأسبوع
+    إلى المنسق;
+    stop
+  else (لا)
+    :يحفظ الأسبوع مسودة
+    ليكمله لاحقاً;
+    stop
+  endif
+endif
+@enduml
