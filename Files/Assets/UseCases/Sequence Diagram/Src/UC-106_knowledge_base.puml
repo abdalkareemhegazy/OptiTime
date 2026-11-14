@@ -1,0 +1,92 @@
+@startuml UC-106_knowledge_base
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-106 — إدارة قاعدة معرفة اللوائح
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "بوابة الذكاء\nAiGateway" as GW
+end box
+box "خدمة الذكاء الاصطناعي" #F3FAF3
+  participant "خدمة الذكاء\nFastAPI" as AIS
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "مزوّد النماذج\nاللغوية" as LLM
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+ACO -> UI : فتح قاعدة معرفة اللوائح
+UI -> API : الوثائق\n""GET /api/ai/knowledge/documents""
+API -> API : التحقق من الرمز والصلاحية\n""ai.knowledge.manage""
+API --> UI : الوثائق وإصداراتها وتواريخ نفاذها\nوحالة فهرستها\n""200 OK""
+ACO -> UI : الملف ورقم الإصدار وتاريخ النفاذ
+UI -> API : رفع الإصدار\n""POST /api/ai/knowledge/documents/{id}/versions""
+alt #FFEBEE نوع الملف أو حجمه أو فحصه مرفوض
+  API --> UI : رفض الطلب\n""422 GEN_FILE_REJECTED""
+  UI --> ACO : رسالة رُفض الملف
+else #FFEBEE رقم إصدار مكرر أو تاريخ غير صالح
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ACO : رسالة بعض البيانات المدخلة غير صالحة
+else #E8F5E9 الملف والبيانات صالحة
+  API -> DB : حفظ الإصدار بحالة قيد الفهرسة
+  API --> UI : الإصدار\n""202 Accepted""
+  API -> GW : طلب الفهرسة في الخلفية
+  GW -> AIS : الإصدار المحفوظ\n""HMAC""
+  AIS -> AIS : استخراج النص وتقطيعه حسب المواد
+  AIS -> LLM : تحويل المقاطع إلى تضمينات
+  alt #FFEBEE تعذّر استخراج النص أو التضمينات
+    AIS -> DB : تعليم الإصدار فشلت الفهرسة مع السبب
+    API --> ACO : إشعار بفشل الفهرسة لإعادة المحاولة
+  else #E8F5E9 فهرسة ناجحة
+    LLM --> AIS : التضمينات
+    AIS -> DB : حفظ المقاطع وتضميناتها\nوتعليم الإصدار مفهرساً
+    API --> ACO : إشعار بانتهاء الفهرسة
+  end
+end
+opt #FFF8E1 تجربة سؤال على الإصدار
+  ref over UI, DB : UC-105 محادثة المساعد الذكي\nإجابة من الإصدار النافذ مع المادة ورقم الإصدار
+end
+opt #FFF8E1 إيقاف إصدار قديم
+  ACO -> UI : إيقاف الإصدار
+  UI -> API : الإيقاف\n""POST /api/ai/knowledge/versions/{id}/retire""
+  API -> DB : إخراج الإصدار من نطاق الإجابة دون حذفه
+end
+note over AIS, DB
+  يُجاب في كل تاريخ من الإصدار النافذ فيه
+  فيبقى الإصدار ذو النفاذ القادم خارج الإجابات حتى يحل تاريخه
+end note
+@enduml

@@ -1,0 +1,98 @@
+@startuml UC-105_ai_assistant
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-105 — محادثة المساعد الذكي
+
+actor "المستخدم\nبحسب دوره" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "بوابة الذكاء\nAiGateway" as GW
+end box
+box "خدمة الذكاء الاصطناعي" #F3FAF3
+  participant "خدمة الذكاء\nFastAPI" as AIS
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "مزوّد النماذج\nاللغوية" as LLM
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+U -> UI : فتح نافذة المساعد من أي شاشة
+UI -> API : الأسئلة المقترحة\n""GET /api/ai/suggestions""
+API --> UI : أسئلة بحسب دوره ومرحلة الفصل\n""200 OK""
+U -> UI : كتابة السؤال أو اختيار سؤال مقترح
+UI -> API : إرسال السؤال\n""POST /api/ai/conversations/{id}/messages""
+API -> GW : فحص تفعيل الميزة لدوره وحصته اليومية
+alt #FFEBEE الميزة غير مفعّلة لدوره أو الطبقة موقوفة
+  API --> UI : رفض الطلب\n""403""
+  UI --> U : المساعد غير متاح
+else #FFEBEE نفدت الحصة اليومية
+  API --> UI : رفض الطلب\n""429""
+  UI --> U : نفدت حصتك اليومية مع موعد تجددها
+else #E8F5E9 الطلب مسموح
+  GW -> AIS : السؤال وسياقه من الدور والنطاق والفصل\n""HMAC""
+  AIS -> LLM : السؤال مع وصف الأدوات المتاحة
+  LLM --> AIS : استدعاء أداة فحص الأهلية\nوأداة بحث اللوائح
+  AIS -> API : الأداة برمز المستخدم نفسه\n""GET /api/me/registration/eligibility""
+  API -> API : طبقات الصلاحية الثلاث كأي طلب
+  alt #FFEBEE البيانات خارج صلاحياته أو نطاقه
+    API --> AIS : رفض الأداة\n""403 GEN_FORBIDDEN_SCOPE""
+  else #E8F5E9 ضمن صلاحياته
+    API --> AIS : نتيجة الأداة\n""200 OK""
+  end
+  AIS -> DB : أقرب المقاطع من الإصدار النافذ للوائح
+  AIS -> LLM : صياغة الإجابة من النتائج والمقاطع
+  alt #FFEBEE تعذّرت الخدمة أو المزوّد
+    AIS --> API : خطأ في الصياغة
+    API --> UI : المساعد غير متاح حالياً\n""503""
+    UI --> U : بيان ذلك مع بقاء الشاشات اليدوية
+  else #E8F5E9 إجابة
+    LLM --> AIS : الإجابة بالبث التدريجي
+    AIS --> API : بث الإجابة مع مصدرها\nوبطاقة الإجراء المقترح
+    API --> UI : بث الإجابة\n""200 OK""
+    API -> DB : حفظ الرسائل واستدعاءات الأدوات\nوالرموز والكلفة
+    UI --> U : الإجابة بمصدرها موسومة\nبأنها مولّدة بالذكاء الاصطناعي
+    opt #FFF8E1 بطاقة إجراء
+      U -> UI : الضغط على البطاقة
+      UI --> U : فتح الشاشة المختصة ليؤكد الإجراء بمسارها
+    end
+  end
+end
+opt #FFF8E1 تقييم الإجابة
+  U -> UI : إعجاب أو عدم إعجاب مع ملاحظة
+  UI -> API : التقييم\n""POST /api/ai/messages/{id}/feedback""
+  API -> DB : حفظ التقييم
+end
+@enduml

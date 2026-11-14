@@ -1,0 +1,88 @@
+@startuml UC-96_installments_scholarships
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-96 — إدارة الأقساط والمنح والاسترداد
+
+actor "الموظف المالي" as FIN
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "مراجعة المنح\nReviewScholarshipEligibilityJob" as SCH
+  participant "حساب الاسترداد\nRefundCalculator" as REF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "الطالب" as STU
+
+== التقسيط ==
+STU -> API : طلب تقسيط إلكتروني يوجَّه إلى الموظف المالي
+FIN -> UI : مراجعة الطلب والرصيد\nوإنشاء خطة بعدد الأقساط ومواعيدها
+UI -> API : إنشاء الخطة\n""POST /api/finance/installment-plans""
+API -> API : التحقق من الرمز والصلاحية\n""finance.installments.manage""
+alt #FFEBEE المجموع لا يساوي المستحق أو موعد قبل اليوم
+  API --> UI : رفض الطلب\n""422 FIN_AMOUNT_INVALID""
+  UI --> FIN : رسالة المبلغ غير صالح
+else #E8F5E9 الخطة صالحة
+  API -> DB : فواتير الأقساط وقيدها في الدفتر
+  API --> STU : إشعار بخطة التقسيط
+  API --> UI : الخطة\n""201 Created""
+end
+
+== المنح بعد نشر الدرجات ==
+SCH -> DB : معدلات أصحاب المنح المشروطة
+alt #FFF3E0 نزل المعدل عن شرط المنحة
+  SCH -> DB : تعليق المنحة
+  SCH --> STU : إشعار بتعليق المنحة
+else #E8F5E9 الشرط مستوفى
+  SCH -> DB : إبقاء المنحة
+end
+
+== الاسترداد عند الانسحاب ==
+REF -> DB : أسبوع الانسحاب المقبول والجدول الزمني
+REF -> DB : طلب استرداد بالمبلغ المحسوب
+FIN -> UI : مراجعة الاسترداد والموافقة
+UI -> API : الموافقة\n""POST /api/finance/refunds/{id}/approve""
+API -> API : التحقق من الصلاحية\n""finance.refunds.manage""
+alt #FFEBEE الاسترداد غير مسموح لهذه الدفعة
+  API --> UI : رفض الطلب\n""409 FIN_REFUND_NOT_ALLOWED""
+  UI --> FIN : رسالة الاسترداد غير مسموح
+else #E8F5E9 الاسترداد مسموح
+  API -> DB : صرف الاسترداد وقيده في الدفتر
+  API --> STU : إشعار بالاسترداد
+end
+note over API, DB
+  تُصدر الغرامات ومنها غرامات المكتبة وتُحوَّل إلى فواتير
+  ""POST /api/finance/fines""
+end note
+@enduml

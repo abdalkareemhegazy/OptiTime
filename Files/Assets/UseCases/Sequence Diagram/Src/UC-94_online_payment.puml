@@ -1,0 +1,88 @@
+@startuml UC-94_online_payment
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-94 — عرض الرصيد والدفع الإلكتروني
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "معالجة الإشعار\nHandleGatewayWebhookAction" as WH
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "بوابة الدفع\nالإلكتروني" as PG
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+STU -> UI : فتح الرصيد
+UI -> API : الملخص والفواتير\n""GET /api/me/finance/summary""\n""GET /api/me/invoices""
+API -> API : التحقق من الرمز والصلاحية\n""finance.self""
+API --> UI : الرصيد والفواتير والحركات\n""200 OK""
+STU -> UI : ادفع الآن لفاتورة بمبلغ محدد
+UI -> API : بدء الدفع بمفتاح تكرار آمن\n""POST /api/me/payments/checkout""
+alt #FFEBEE الفاتورة مدفوعة أو ملغاة أو المبلغ غير صالح
+  API --> UI : رفض الطلب\n""409 FIN_INVOICE_NOT_PAYABLE""\n""422 FIN_AMOUNT_INVALID""
+  UI --> STU : رسالة تبيّن السبب
+else #E8F5E9 الدفع ممكن
+  API -> PG : إنشاء معاملة معرّفة
+  PG --> API : رابط الدفع
+  API -> DB : حفظ المعاملة معلّقة
+  API --> UI : رابط البوابة\n""200 OK""
+  UI --> STU : التحويل إلى بوابة الدفع
+  STU -> PG : إتمام الدفع
+  alt #FFEBEE خطأ من البوابة أو إلغاء
+    PG --> UI : العودة بفشل الدفع
+    UI --> STU : رسالة أعادت بوابة الدفع خطأً
+  else #E8F5E9 دفعة ناجحة
+    PG -> API : إشعار حالة الدفع الموقّع\n""POST /api/webhooks/payments/{gateway}""
+    API -> WH : التحقق من التوقيع والنافذة الزمنية
+    alt #FFEBEE توقيع غير صالح أو خارج النافذة
+      WH -> DB : تسجيل الإشعار المرفوض للتدقيق
+      WH --> PG : رفض\n""401 FIN_WEBHOOK_SIGNATURE_INVALID""
+    else #FFF3E0 الإشعار معالج سابقاً
+      WH --> PG : قبول دون أثر مضاعف\n""200 OK""
+    else #E8F5E9 إشعار جديد صالح
+      WH -> DB : تسجيل الدفعة وتطبيقها على الفاتورة\nوقيدها في الدفتر
+      WH -> DB : رفع العائق المالي عند السداد الكامل
+      WH --> PG : استلام\n""200 OK""
+      API --> STU : إشعار بإتمام الدفع مع الإيصال
+    end
+  end
+end
+note over API, DB
+  تستعلم مهمة تسوية كل خمس عشرة دقيقة
+  عن الدفعات المعلّقة تحسّباً لضياع الإشعار
+end note
+@enduml

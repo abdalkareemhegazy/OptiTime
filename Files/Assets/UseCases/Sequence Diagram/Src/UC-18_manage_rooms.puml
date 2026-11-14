@@ -1,0 +1,100 @@
+@startuml UC-18_manage_rooms
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-18 — إدارة القاعات
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح نموذج القاعة ==
+CRD -> UI : الضغط على قاعة جديدة أو فتح قاعة قائمة لتعديلها
+UI -> API : تحميل المباني وفهرس الميزات\n""GET /api/buildings""\n""GET /api/features""
+API --> UI : المباني والميزات
+UI --> CRD : عرض نموذج القاعة بأقسامه\nالقاعة والموقع والمقاعد والاستخدام وما تقدّمه
+
+== إدخال بيانات القاعة ==
+CRD -> UI : إدخال اسم القاعة بالعربية والإنجليزية واختيار نوعها
+CRD -> UI : اختيار المبنى والطابق وإدخال الجناح أو الوصف
+UI -> UI : اقتراح رمز القاعة من رمز المبنى ورقمها\nواستنتاج الطابق من رقمها
+CRD -> UI : قبول الرمز المقترح أو تعديله
+ref over CRD, UI : UC-19 تحديد سعة الامتحان\nمقاعد التدريس ومقاعد الامتحان وخريطة المقاعد
+CRD -> UI : تحديد حالة القاعة وظهورها في الجدول الأسبوعي\nوقابلية حجزها وتهيئتها لذوي الإعاقة
+CRD -> UI : اختيار ميزات القاعة من الفهرس مع عدد كل ميزة
+CRD -> UI : الضغط على إضافة القاعة أو حفظ التغييرات
+
+== التحقق والحفظ ==
+alt #E8F5E9 قاعة جديدة
+  UI -> API : طلب إنشاء القاعة\n""POST /api/admin/rooms""
+else #FFF8E1 تعديل قاعة قائمة
+  UI -> API : طلب حفظ التعديلات\n""PUT /api/admin/rooms/{id}""
+end
+API -> API : التحقق من الرمز والصلاحية\n""rooms.create""\n""rooms.update""
+alt #FFEBEE اسم ناقص أو نوع أو حالة غير مختارة أو مقاعد خارج المجال
+  API --> UI : أخطاء الحقول\n""422""
+  UI --> CRD : رسالة الخطأ تحت الحقل
+else #FFEBEE رمز القاعة مستخدم أو بصيغة غير صحيحة
+  API -> DB : فحص تفرّد رمز القاعة
+  API --> UI : رفض الطلب\n""422""
+  UI --> CRD : رسالة هذا الرمز لقاعة أخرى
+else #E8F5E9 البيانات صالحة
+  API -> API : إكمال بيانات القاعة\nرمزها وكليتها ومقاعد الامتحان الافتراضية
+  API -> DB : حفظ القاعة وربط ميزاتها في عملية واحدة
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : بيانات القاعة\n""201 Created""
+  UI --> CRD : رسالة أُضيفت القاعة أو حُفظت القاعة مع رمزها
+end
+
+== مسار بديل: حذف قاعة ==
+opt #FFF8E1 حذف قاعة
+  CRD -> UI : الضغط على حذف القاعة
+  UI --> CRD : نافذة التأكيد مع عدد وحدات المعدات\nالتي ستعود إلى المستودع
+  CRD -> UI : تأكيد الحذف
+  UI -> API : طلب حذف القاعة\n""DELETE /api/admin/rooms/{id}""
+  API -> DB : عدّ المحاضرات المجدولة في القاعة
+  alt #FFEBEE في القاعة محاضرات مجدولة
+    API --> UI : رفض الحذف\n""422 has_dependents""
+    UI --> CRD : رسالة تقترح جعل القاعة قيد الصيانة\nأو خارج الخدمة بدلاً من حذفها
+  else #E8F5E9 لا محاضرات في القاعة
+    API -> DB : حذف القاعة وعودة معداتها إلى المستودع
+    API -> DB : تسجيل العملية في سجل التدقيق
+    API --> UI : تم الحذف\n""200 OK""
+    UI --> CRD : تحديث قائمة القاعات
+  end
+end
+@enduml

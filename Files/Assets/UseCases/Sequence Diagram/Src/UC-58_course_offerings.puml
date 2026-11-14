@@ -1,0 +1,98 @@
+@startuml UC-58_course_offerings
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-58 — طرح المقررات وتقدير الطلب
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "تقدير الطلب\nForecastDemandAction" as FC
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "موظف الشؤون\nالأكاديمية" as ACO
+
+== التقدير ==
+CRD -> UI : اختيار الفصل في طرح المقررات
+UI -> API : طلب الطرح\n""GET /api/offerings""
+API -> API : التحقق من الرمز والصلاحية\n""offerings.view""
+API --> UI : الطروح وحالاتها\n""200 OK""
+CRD -> UI : الضغط على تقدير الطلب
+UI -> API : معاينة التقدير\n""POST /api/offerings/forecast""
+API -> API : التحقق من الصلاحية\n""offerings.manage""
+API -> FC : حساب الطلب لكل مقرر
+FC -> DB : طلاب الخطط الذين يأتي المقرر في فصلهم\nوالراسبون الذين لم ينجحوا بعد
+FC -> FC : المتوقعون مقسومين على مقاعد الشعبة\nلكل نوع مع التقريب للأعلى
+API --> UI : معاينة مجمّعة بالإجراء\nمع آخر ثلاث دورات منشورة\n""200 OK""
+alt #FFF3E0 لا ترسل الخطط أحداً ولا راسبين
+  UI --> CRD : رسالة لا ترسل الخطط أحداً إلى أي مقرر
+else #E8F5E9 توجد مقترحات
+  CRD -> UI : تعديل النسبة أو المقاعد واستبعاد مقررات\nثم تطبيق التقدير
+  UI -> API : تطبيق التقدير\n""POST /api/offerings/forecast""
+  alt #FFEBEE الفصل مغلق
+    API --> UI : رفض الطلب\n""409 OFR_TERM_CLOSED""
+    UI --> CRD : رسالة هذا الفصل مغلق
+  else #E8F5E9 الفصل مفتوح
+    API -> DB : حفظ الطروح مسودة مع إبقاء الأرقام اليدوية\nوتسجيل ذلك في سجل التدقيق
+    API --> UI : أعداد ما أُضيف وما حُدّث\n""200 OK""
+    UI --> CRD : رسالة أُضيفت المقررات
+  end
+end
+
+== تعديل يدوي ==
+CRD -> UI : تعديل أرقام مقرر أو طرح مقرر يدوياً
+UI -> API : حفظ الأرقام\n""PATCH /api/offerings/{id}""
+alt #FFEBEE المقرر مطروح بالفعل أو أرقامه معتمدة\nأو طرحه ملغى
+  API --> UI : رفض الطلب\n""409 OFR_CONFIRMED""
+  UI --> CRD : رسالة تبيّن السبب
+else #E8F5E9 التعديل مسموح
+  API -> DB : حفظ الأرقام ووسمها يدوي
+  UI --> CRD : رسالة حُفظت أرقام المقرر
+end
+
+== الاعتماد ==
+ACO -> UI : اعتماد المسودات ثم التأكيد
+UI -> API : اعتماد الطرح\n""POST /api/offerings/confirm""
+API -> API : التحقق من الصلاحية\n""offerings.confirm""
+alt #FFF3E0 لا مسودات تنتظر الاعتماد
+  API --> UI : لا شيء للاعتماد\n""200 OK""
+  UI --> ACO : رسالة لا مسودات تنتظر الاعتماد
+else #E8F5E9 توجد مسودات
+  API -> DB : اعتماد المسودات وقفلها\nوتسجيل ذلك في سجل التدقيق
+  API -> DB : إشعار المنسقين بالاعتماد
+  API --> UI : عدد ما اعتُمد\n""200 OK""
+  UI --> ACO : رسالة اعتُمدت المقررات
+end
+@enduml

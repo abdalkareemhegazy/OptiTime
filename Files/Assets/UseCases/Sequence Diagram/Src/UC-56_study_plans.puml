@@ -1,0 +1,90 @@
+@startuml UC-56_study_plans
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-56 — إعداد الخطة الدراسية واعتمادها
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== إنشاء الخطة ==
+ACO -> UI : خطة جديدة بالبرنامج والرمز والاسمين\nوسنة السريان والساعات
+UI -> API : إنشاء الخطة\n""POST /api/study-plans""
+API -> API : التحقق من الصلاحية\n""study_plans.create""
+alt #FFEBEE بيانات ناقصة أو الرمز مستخدم
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ACO : رسالة تبيّن الخطأ
+else #E8F5E9 البيانات صالحة
+  API -> DB : إنشاء الخطة مسودة
+  API --> UI : الخطة\n""201 Created""
+  UI --> ACO : محرر الخطة بعرضيه وتقريرها
+end
+
+== التحرير والحفظ ==
+ACO -> UI : إضافة المجموعات بحدودها والمقررات\nوتوزيعها على الفصول
+UI -> UI : حساب ساعات كل مجموعة وتحديث التقرير\nبالأخطاء والتنبيهات
+ACO -> UI : الضغط على حفظ
+UI -> API : حفظ المحتوى كاملاً بطلب واحد\n""PUT /api/study-plans/{id}/content""
+API -> API : التحقق من الصلاحية\n""study_plans.update""
+alt #FFEBEE الخطة لم تعد مسودة
+  API --> UI : رفض الطلب\n""409 CUR_PLAN_LOCKED""
+  UI --> ACO : رسالة أنشئ نسخة جديدة لتعديلها
+else #FFEBEE مقرر مكرر أو مفقود أو قيمة خارج الحدود
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ACO : رسالة أصلح ما عُلّم في الخطة ثم احفظ
+else #E8F5E9 المحتوى صالح
+  API -> DB : حفظ المجموعات والمقررات\nوتسجيلها في سجل التدقيق
+  API --> UI : الخطة وتقريرها\n""200 OK""
+  UI --> ACO : رسالة حُفظت الخطة
+end
+
+== الاعتماد ==
+ACO -> UI : اعتماد الخطة ثم التأكيد
+UI -> API : اعتماد الخطة\n""POST /api/study-plans/{id}/activate""
+API -> API : التحقق من الصلاحية\n""study_plans.activate""
+API -> DB : إعادة حساب تقرير الخطة
+alt #FFEBEE في التقرير أخطاء تمنع الاعتماد
+  API --> UI : رفض الطلب\n""422 CUR_PLAN_INVALID""
+  UI --> ACO : رسالة في الخطة أخطاء تمنع اعتمادها\nمع التقرير
+else #E8F5E9 لا أخطاء مانعة
+  API -> DB : تفعيل الخطة وأرشفة السارية\nللبرنامج وسنة السريان نفسيهما
+  API -> DB : تسجيل الاعتماد في سجل التدقيق
+  API --> UI : الخطة المعتمدة\n""200 OK""
+  UI --> ACO : رسالة اعتُمدت الخطة وأُرشفت السابقة
+end
+@enduml

@@ -1,0 +1,100 @@
+@startuml UC-39_impersonate_user
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-39 — الدخول باسم مستخدم آخر
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الجلسات\nSessionService" as SES
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== بدء الدخول باسم المستخدم ==
+ADM -> UI : فتح الحساب من إدارة المستخدمين\nثم قسم الأمان
+UI --> ADM : إجراء الدخول باسمه مع تنبيه\nبأن كل خطوة تُسجَّل باسم المدير
+ADM -> UI : الضغط على الدخول باسمه
+UI -> API : طلب بدء الانتحال\n""POST /api/auth/impersonate/{userId}""
+API -> API : التحقق من الرمز والصلاحية\n""users.impersonate""
+opt #FFF8E1 لم يؤكد المدير هويته خلال المدة المحددة
+  API --> UI : طلب تأكيد الهوية\n""403 AUTH_STEP_UP_REQUIRED""
+  UI --> ADM : نافذة أكّد هويتك للمتابعة
+  ADM -> UI : إدخال كلمة المرور أو رمز التحقق الثنائي
+  UI -> API : إرسال التأكيد\n""POST /api/auth/step-up""
+  alt #FFEBEE التأكيد غير صحيح أو أُلغي
+    API --> UI : رفض التأكيد\n""422 AUTH_STEP_UP_INVALID""
+    UI --> ADM : رسالة التأكيد غير صحيح
+  else #E8F5E9 التأكيد صحيح
+    API --> UI : تم التأكيد لمدة محددة\n""200 OK""
+    UI -> API : إعادة طلب بدء الانتحال\n""POST /api/auth/impersonate/{userId}""
+  end
+end
+API -> DB : قراءة الحساب المستهدف وجلسة المدير الحالية
+alt #FFEBEE المدير منتحل أصلاً أو الهدف حسابه\nأو المؤسِّس أو معطّل أو مدير نظام آخر
+  API --> UI : رفض الطلب\n""403 AUTH_IMPERSONATION_NOT_ALLOWED""
+  UI --> ADM : رسالة لا يمكنك الدخول باسم هذا الحساب
+else #E8F5E9 الدخول مسموح
+  API -> SES : إصدار جلسة باسم المستخدم\nموسومة باسم المدير
+  SES -> DB : حفظ رمز الدخول مع هوية المنتحِل
+  API -> DB : تسجيل بدء الانتحال في سجل التدقيق
+  API --> UI : رمز الجلسة وصلاحيات المستخدم المستهدف\n""200 OK""
+  UI --> ADM : لوحة المستخدم مع لافتة دائمة\nأنت تتصفح النظام باسمه
+end
+
+== التصفح والإنهاء ==
+ADM -> UI : تصفح الشاشات كما يراها المستخدم
+note over UI, API
+  تُسجَّل كل الإجراءات أثناء الجلسة باسم المدير
+  وتُمنع العمليات الحساسة مثل تغيير كلمة المرور
+  وإدارة الأدوار وحذف الحسابات واعتماد الدرجات
+end note
+ADM -> UI : الضغط على العودة إلى حسابي
+UI -> API : طلب إنهاء الانتحال\n""POST /api/auth/impersonate/stop""
+alt #FFEBEE الجلسة الحالية ليست جلسة انتحال
+  API --> UI : رفض الطلب\n""409 AUTH_NOT_IMPERSONATING""
+  UI --> ADM : رسالة أنت لست داخلاً باسم حساب آخر
+else #E8F5E9 جلسة انتحال قائمة
+  API -> DB : حذف الجلسة المستعارة\nوتسجيل إنهاء الانتحال في سجل التدقيق
+  alt #FFEBEE عُطّل حساب المدير أثناء الانتحال
+    API --> UI : خروج دون جلسة جديدة\n""200 OK""
+    UI --> ADM : التحويل إلى صفحة تسجيل الدخول
+  else #E8F5E9 حساب المدير مفعّل
+    API -> SES : إصدار جلسة جديدة للمدير
+    API --> UI : رمز جلسة المدير\n""200 OK""
+    UI --> ADM : العودة إلى حساب المدير\nمع رسالة عدت إلى حسابك
+  end
+end
+@enduml

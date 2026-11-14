@@ -1,0 +1,98 @@
+@startuml UC-25_process_resource_requests
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-25 — معالجة طلبات الموارد
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "عضو هيئة\nالتدريس" as INS
+
+== مراجعة الطلب ==
+CRD -> UI : اختيار طلب من قائمة بانتظار الرد
+UI -> API : طلب تفاصيل الطلب\n""GET /api/resource-requests/{id}""
+API -> API : التحقق من الرمز والصلاحية\n""resource_requests.view""
+API -> DB : قراءة المحاضرة ومواعيد الطلب\nوالقاعات أو القطع الشاغرة في كل المواعيد القادمة
+API --> UI : لوحة المراجعة\n""200 OK""
+UI --> CRD : عرض المحاضرة ومواعيد الطلب وسببه\nوالقاعات أو القطع الشاغرة الأنسب أولاً
+opt #FFEBEE لا قاعة شاغرة من النوع المطلوب أو لا قطعة متاحة
+  UI --> CRD : رسالة لا قاعة من هذا النوع شاغرة في كل المواعيد\nويتابع المنسق بالرفض
+end
+
+== قرار المنسق ==
+alt #E8F5E9 قبول الطلب
+  CRD -> UI : اختيار القاعة أو القطع وكتابة كلمة للمدرّس\nثم الضغط على اقبله
+  UI -> API : طلب القبول مع التخصيص\n""POST /api/resource-requests/{id}/approve""
+  API -> API : التحقق من الرمز والصلاحية\n""resource_requests.review""
+  API -> DB : قفل القاعة أو القطع والتحقق من أنها ما زالت شاغرة\nفي كل المواعيد القادمة
+  alt #FFEBEE لم يُختر شيء أو لم تعد القاعة أو القطع شاغرة
+    API --> UI : رفض الطلب\n""422""
+    UI --> CRD : رسالة لم تعد تلك القاعة شاغرة\nأُعيدت قراءة القائمة فاختر غيرها
+  else #FFEBEE ردّ مستخدم آخر على الطلب أو سحبه المدرّس
+    API --> UI : رفض الطلب\n""409 GEN_INVALID_TRANSITION""
+    UI --> CRD : رسالة ردّ أحد آخر على هذا الطلب\nأعد تحميله لترى أين وصل
+  else #E8F5E9 المورد ما زال شاغراً
+    API -> DB : تخصيص القاعة لتلك المواعيد أو حجز القطع\nوتغيير حالة الطلب إلى مقبول
+    API -> DB : تسجيل الخطوة في سجل الطلب
+    API -> NTF : إشعار المدرّس بالقبول\nوإبلاغ طلاب الشعبة إن انتقلت محاضراتهم القادمة
+    NTF --> INS : إشعار القبول مع القاعة أو العدد وكلمة المنسق
+    API --> UI : الطلب بعد القبول\n""200 OK""
+    UI --> CRD : رسالة قُبل الطلب وأُعلم المدرّس
+  end
+else #FFF8E1 رفض الطلب
+  CRD -> UI : كتابة سبب الرفض ثم الضغط على ارفضه وأعلم المدرّس
+  UI -> API : طلب الرفض مع السبب\n""POST /api/resource-requests/{id}/reject""
+  API -> DB : تغيير الحالة إلى مرفوض وتسجيل السبب
+  API -> NTF : إشعار المدرّس بالرفض مع سببه
+  NTF --> INS : إشعار الرفض
+  API --> UI : الطلب بعد الرفض\n""200 OK""
+end
+
+== الإنجاز ==
+opt #FFF8E1 عدّ الطلب المقبول منجزاً
+  CRD -> UI : الضغط على عُدّه منجزاً
+  UI -> API : طلب الإنجاز\n""POST /api/resource-requests/{id}/fulfil""
+  API -> DB : تغيير الحالة إلى منجز
+end
+note over UI, DB
+  يُعدّ الطلب منجزاً تلقائياً بعد انتهاء مواعيده
+  ويُعلَّم الطلب المقبول إن خرجت قاعته من الاستخدام
+  أو لم تعد محاضرته في الجدول
+end note
+@enduml

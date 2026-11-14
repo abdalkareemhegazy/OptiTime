@@ -1,0 +1,77 @@
+@startuml UC-64_degree_audit
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-64 — عرض التدقيق الأكاديمي
+
+actor "الطالب أو المرشد\nأو موظف الشؤون" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "التدقيق الأكاديمي\nDegreeAuditService" as AUD
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+alt #E8F5E9 الطالب لنفسه
+  U -> UI : فتح خطتي وتقدّمي
+  UI -> API : طلب خطتي\n""GET /api/me/study-plan""
+  API -> API : التحقق من الصلاحية\n""study_plan.view_own""
+else #FFF3E0 المرشد أو الموظف لطالب
+  U -> UI : فتح ملف الطالب ثم التدقيق الأكاديمي
+  UI -> API : طلب التدقيق\n""GET /api/students/{id}/degree-audit""
+  API -> API : التحقق من الصلاحية والنطاق\n""students.view""
+end
+alt #FFEBEE الطالب خارج نطاق المستخدم
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN_SCOPE""
+  UI --> U : رسالة هذا خارج نطاق دورك
+else #E8F5E9 الاطلاع مسموح
+  API -> AUD : تدقيق الطالب
+  AUD -> DB : الخطة السارية لبرنامجه وسنة قبوله
+  alt #FFEBEE لا خطة سارية
+    AUD --> API : لا خطة
+    API --> UI : لا خطة سارية\n""404 GEN_NOT_FOUND""
+    UI --> U : بيان أنه لا خطة سارية لبرنامجه وسنته
+  else #E8F5E9 توجد خطة
+    AUD -> DB : المقررات الناجحة والمعادلة والجارية
+    AUD -> AUD : مقابلتها بالمجموعات\nمع احتساب المعادل مستوفى
+    AUD --> API : المنجز والجاري والمتبقي لكل مجموعة
+    API --> UI : التدقيق والملخص\n""200 OK""
+    UI --> U : المجموعات بحدودها وحالة كل مقرر\nوالساعات المنجزة والمعدل ونسبة الإنجاز
+  end
+end
+opt #FFF8E1 تنزيل التدقيق
+  U -> UI : تنزيل الملف
+  UI --> U : ملف التدقيق
+end
+@enduml

@@ -1,0 +1,93 @@
+@startuml UC-78_grade_sheet_entry
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-78 — رصد كشف الدرجات وإرساله للمراجعة
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "حساب الدرجات\nGradeCalculator" as GC
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+INS -> UI : فتح كشف الدرجات للشعبة
+UI -> API : طلب الكشف\n""GET /api/sections/{id}/grade-sheet""
+API -> API : التحقق من الرمز والصلاحية\n""grades.enter""
+API --> UI : الطلاب والمكوّنات والمجاميع والحالة\nورقم إصدار الكشف\n""200 OK""
+
+== الرصد والحفظ ==
+alt #E8F5E9 الإدخال اليدوي
+  INS -> UI : إدخال العلامات على المكوّنات
+else #FFF3E0 الاستيراد من ملف
+  INS -> UI : رفع ملف العلامات
+  UI -> API : رفع ومطابقة بالأرقام الجامعية\n""POST /api/grade-sheets/{id}/import""
+  API --> UI : معاينة المطابق وغير المطابق\n""200 OK""
+  INS -> UI : اعتماد الاستيراد
+  UI -> API : اعتماد\n""POST /api/grade-sheets/{id}/import/{importId}/commit""
+end
+INS -> UI : الضغط على حفظ
+UI -> API : حفظ جماعي برقم الإصدار\n""PUT /api/grade-sheets/{id}/marks""
+alt #FFEBEE الكشف ليس مسودة ولا معاداً
+  API --> UI : رفض الطلب\n""409 GRD_SHEET_NOT_EDITABLE""
+  UI --> INS : رسالة لا يمكن تعديل الكشف في مرحلته الحالية
+else #FFEBEE علامة خارج حدود مكوّنها
+  API --> UI : رفض الطلب\n""422 GRD_MARK_OUT_OF_RANGE""
+  UI --> INS : وسم الخانة ورسالة العلامة خارج النطاق
+else #FFEBEE تغيّر الكشف منذ فتحه
+  API --> UI : رفض الطلب\n""409 GEN_STALE_VERSION""
+  UI --> INS : رسالة عدّل مستخدم آخر هذا العنصر في الأثناء
+else #E8F5E9 الحفظ مقبول
+  API -> DB : حفظ العلامات وتسجيلها في سجل تاريخ الكشف
+  API --> UI : الكشف بإصداره الجديد\n""200 OK""
+end
+INS -> UI : حساب المجاميع
+UI -> API : معاينة\n""POST /api/grade-sheets/{id}/compute""
+API -> GC : المجموع والتقدير على سلّم برنامج كل طالب
+API --> UI : المعاينة\n""200 OK""
+
+== الإرسال للمراجعة ==
+INS -> UI : إرسال للمراجعة
+UI -> API : الإرسال\n""POST /api/grade-sheets/{id}/submit""
+alt #FFEBEE علامات ناقصة غير معلّمة
+  API --> UI : رفض الطلب\n""422 GRD_INCOMPLETE_MARKS""
+  UI --> INS : رسالة توجد علامات ناقصة مع الطلاب المعنيين
+else #E8F5E9 الكشف مكتمل
+  API -> DB : نقل الكشف إلى مرسل للمراجعة وقفله\nوتسجيل الانتقال بصاحبه ووقته
+  API -> DB : إشعار رئيس القسم
+  API --> UI : الحالة الجديدة\n""200 OK""
+  UI --> INS : الكشف مرسل للمراجعة
+end
+@enduml

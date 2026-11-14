@@ -1,0 +1,99 @@
+@startuml UC-11_edit_user
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-11 — تعديل مستخدم
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح الحساب ==
+ADM -> UI : فتح الحساب المطلوب من قائمة الحسابات
+UI -> API : طلب تفاصيل الحساب\n""GET /api/admin/users/{id}""
+API -> DB : قراءة الحساب وأدواره
+API --> UI : بيانات الحساب\n""200 OK""
+UI --> ADM : عرض نموذج تعديل الحساب ببياناته الحالية
+
+== التعديل والحفظ ==
+ADM -> UI : تعديل الاسم أو البريد أو الهاتف أو القسم\nأو الوحدة أو الحالة أو كلمة المرور
+UI --> ADM : شريط تغييرات غير محفوظة\nوتنبيه إلى أن تعطيل الحساب ينهي جلساته
+ADM -> UI : الضغط على حفظ التغييرات
+UI -> API : إرسال التعديلات\n""PUT /api/admin/users/{id}""
+API -> API : التحقق من الرمز والصلاحية\n""users.update""
+alt #FFEBEE حقل غير صالح أو قيمة مكررة
+  API --> UI : رفض الطلب\n""422""
+  UI --> ADM : رسالة الخطأ تحت الحقل المعني
+else #FFEBEE محاولة تعطيل الحساب المؤسِّس أو نقله إلى دور آخر
+  API --> UI : رفض الطلب\n""422 USR_PROTECTED_ACCOUNT""
+  UI --> ADM : رسالة الحساب المؤسِّس محمي
+else #FFEBEE محاولة المدير تعطيل حسابه أو تغيير دوره
+  API --> UI : رفض الطلب\n""422 USR_SELF_TARGET""
+  UI --> ADM : رسالة لا يمكنك إيقاف حسابك أو تغيير دوره
+else #FFEBEE التعديل يُخرج آخر مدير نظام مفعّل
+  API -> DB : فحص عدد مديري النظام المفعّلين
+  API --> UI : رفض الطلب\n""422 USR_LAST_ADMIN""
+  UI --> ADM : رسالة هذا هو المسؤول النشط الوحيد
+else #E8F5E9 التعديل مسموح
+  API -> DB : حفظ التعديلات في عملية واحدة
+  opt #FFF8E1 تعيين كلمة مرور جديدة
+    API -> DB : حفظ كلمة المرور مجزّأة وإضافتها إلى السجل\nوجعلها مؤقتة إن كان الحساب لغير المدير
+  end
+  opt #FFF8E1 أصبحت الحالة معطّلة أو موقوفة
+    API -> DB : إنهاء جلسات الحساب فوراً
+  end
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : بيانات الحساب بعد التحديث\n""200 OK""
+  UI --> ADM : رسالة تم حفظ التغييرات
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 تغيير أدوار الحساب ونطاقاتها
+  ref over ADM, DB : UC-13 تعيين الأدوار
+end
+note over UI, DB
+  مسارات بديلة من قسم الأمان في الحساب
+  رفع قفل الحساب
+  ""POST /api/admin/users/{id}/unlock""
+  إرسال رمز إعادة تعيين كلمة المرور
+  ""POST /api/admin/users/{id}/reset-password""
+  إنهاء جلسات الحساب على كل أجهزته
+  ""DELETE /api/admin/users/{id}/sessions""
+  إعادة ضبط التحقق الثنائي بعد تأكيد الهوية
+  ""DELETE /api/admin/users/{id}/two-factor""
+end note
+@enduml

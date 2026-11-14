@@ -1,0 +1,78 @@
+@startuml UC-06_otp_verification
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-06 — التحقق الثنائي برمز التحقق
+
+actor "المستخدم" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "خدمة المصادقة\nAuth service" as AUTH
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== إدخال الرمز ==
+U -> U : قراءة الرمز المكوّن من 6 أرقام من رسالة البريد
+U -> UI : إدخال الرمز في حقل رمز التحقق ثم الضغط على متابعة
+UI -> UI : التحقق من أن الرمز مكوّن من 6 أرقام
+alt #FFEBEE الحقل فارغ أو الرمز ليس من 6 أرقام
+  UI --> U : رسالة يجب أن يكون رمز التحقق مكوناً من 6 أرقام
+else #E8F5E9 صيغة الرمز صحيحة
+  UI -> UI : حفظ الرمز مؤقتاً وفتح خطوة كلمة مرور جديدة
+  ref over U, UI : UC-07 تغيير كلمة المرور\nإدخال كلمة المرور الجديدة وتأكيدها
+
+  == التحقق لدى خدمة المصادقة ==
+  UI -> AUTH : إرسال البريد والرمز وكلمة المرور الجديدة\n""POST /api/auth/forgot-password/reset""
+  AUTH -> DB : قراءة آخر رمز صادر لهذا البريد
+  DB --> AUTH : الرمز المجزّأ وعدد المحاولات وتاريخ الانتهاء
+  alt #FFEBEE لا يوجد رمز أو انتهت صلاحيته
+    AUTH --> UI : رفض الطلب\n""422 AUTH_OTP_EXPIRED""
+    UI --> U : رسالة انتهت صلاحية الرمز اطلب رمزاً جديداً
+  else #FFEBEE بلغ عدد المحاولات الخاطئة خمس محاولات
+    AUTH -> DB : حذف الرمز
+    AUTH --> UI : رفض الطلب\n""422 AUTH_OTP_ATTEMPTS_EXCEEDED""
+    UI --> U : رسالة تجاوزت عدد المحاولات المسموح بها
+  else #FFEBEE الرمز لا يطابق الرمز المخزّن
+    AUTH -> DB : زيادة عدّاد المحاولات الخاطئة
+    AUTH --> UI : رفض الطلب\n""422 AUTH_OTP_INVALID""
+    UI --> U : رسالة رمز التحقق غير صحيح
+  else #E8F5E9 الرمز مطابق
+    AUTH -> DB : حذف الرمز حتى لا يُستخدم مرة أخرى
+    AUTH -> DB : حفظ كلمة المرور الجديدة مجزّأة\nورفع قفل الحساب وإنهاء جلساته على كل الأجهزة
+    AUTH -> DB : تسجيل العملية في سجل التدقيق
+    AUTH --> UI : تمت إعادة التعيين\n""200 OK""
+    UI --> U : رسالة تمت إعادة تعيين كلمة المرور بنجاح\nوالتحويل إلى صفحة تسجيل الدخول
+  end
+end
+@enduml

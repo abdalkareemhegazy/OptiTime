@@ -1,0 +1,87 @@
+@startuml UC-73_absence_deprivation
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-73 — متابعة الغياب واعتماد الحرمان
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الحرمان\nDeprivationService" as DEP
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "الطالب" as STU
+
+== الإنذارات ==
+DEP -> DB : بعد كل حفظ للحضور\nإعادة حساب نسبة غياب الطالب في المادة
+opt #FFF8E1 بلغت النسبة عتبة إنذار
+  DEP -> NTF : إطلاق الإنذار الأول أو الثاني
+  NTF --> STU : إنذار غياب في المادة
+end
+
+== اعتماد الحرمان ==
+ACO -> UI : فتح الحرمان واختيار الفصل
+UI -> API : طلب القوائم المبدئية\n""GET /api/attendance/deprivations""
+API -> API : التحقق من الرمز والصلاحية\n""attendance.manage""
+API -> DEP : من تجاوز عتبة الحرمان في كل مادة
+API --> UI : القوائم بالنسب والأعذار المقبولة\n""200 OK""
+alt #FFF3E0 لا طلاب تجاوزوا العتبة
+  UI --> ACO : بيان خلو القوائم
+else #E8F5E9 توجد قوائم
+  ACO -> UI : مراجعة القوائم واستبعاد أصحاب الأعذار\nثم اعتماد الحرمان والتأكيد
+  UI -> API : اعتماد جماعي\n""POST /api/attendance/deprivations/approve""
+  API -> DB : فحص مرحلة الفصل
+  alt #FFEBEE المرحلة لا تسمح بالاعتماد
+    API --> UI : رفض الطلب\n""409 GEN_INVALID_TRANSITION""
+    UI --> ACO : رسالة هذا الانتقال في الحالة غير مسموح
+  else #E8F5E9 المرحلة تسمح
+    API -> DB : تعليم المحرومين ورصد رمز الحرمان في كشوفهم\nواستبعادهم من توزيع مقاعد الامتحان
+    API -> DB : تسجيل الاعتماد في سجل التدقيق
+    API -> NTF : إشعار المحرومين ومدرّسيهم
+    API --> UI : عدد المحرومين\n""200 OK""
+    UI --> ACO : تأكيد الاعتماد
+  end
+end
+opt #FFF8E1 رفع الحرمان بعذر موثّق
+  ACO -> UI : رفع الحرمان عن طالب مع العذر
+  UI -> API : رفع الحرمان\n""POST /api/attendance/deprivations/{id}/revoke""
+  API -> DB : حذف الرمز وإعادة الطالب إلى الامتحان
+end
+note over UI, API
+  يطّلع الطالب على حضوره ونسبه وإنذاراته
+  ""GET /api/me/attendance""
+end note
+@enduml

@@ -1,0 +1,85 @@
+@startuml UC-109_demand_forecast
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-109 — التنبؤ بالطلب على المقررات
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "تقدير الطلب\nForecastDemandAction" as FC
+end box
+box "خدمة الذكاء الاصطناعي" #F3FAF3
+  participant "خدمة التحليلات\nFastAPI" as AIS
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "موظف الشؤون الأكاديمية\nأو الإدارة العليا" as REV
+
+== التوقع بجانب المعادلة ==
+CRD -> UI : الضغط على تقدير الطلب في طرح المقررات
+UI -> API : التقدير\n""POST /api/offerings/forecast""
+API -> API : التحقق من الرمز والصلاحية\n""offerings.manage""
+API -> FC : التقدير بالمعادلة من الخطط والراسبين
+FC -> DB : الخطط والراسبون لكل مقرر
+API -> AIS : توقع النموذج المفعّل لكل مقرر\n""HMAC""
+alt #FFF3E0 تعذّرت الخدمة أو البيانات التاريخية قليلة
+  API --> UI : تقدير المعادلة وحده مع سبب غياب التوقع\n""200 OK""
+else #E8F5E9 التوقع متاح
+  AIS -> DB : بيانات الفصول السابقة للمقررات
+  AIS --> API : التوقع مع مجال الثقة
+  API --> UI : التوقع بجانب تقدير المعادلة\n""200 OK""
+end
+CRD -> UI : اعتماد الرقم الذي يراه لكل مقرر
+ref over CRD, DB : UC-58 طرح المقررات وتقدير الطلب
+
+== إعادة التدريب والتفعيل ==
+loop #FFFFFF بنهاية كل فصل
+  AIS -> DB : إعادة تدريب النموذج وحفظ نسخة جديدة\nبمقاييس دقتها
+end
+REV -> UI : فتح نماذج التنبؤ
+UI -> API : النماذج ومقاييسها\n""GET /api/ai/models""
+API -> API : التحقق من الصلاحية\n""ai.models.manage""
+API --> UI : مقاييس النسخة الجديدة مقارنة\nبالحالية وبالخط الأساسي\n""200 OK""
+REV -> UI : الضغط على تفعيل
+UI -> API : التفعيل\n""POST /api/ai/models/{id}/activate""
+alt #FFEBEE لم تتفوق على الخط الأساسي بالفارق المطلوب
+  API --> UI : رفض التفعيل مع المقاييس\n""422""
+  UI --> REV : بيان المقاييس وسبب الرفض
+else #E8F5E9 النسخة متفوقة
+  API -> DB : تفعيل النسخة وتسجيل ذلك في سجل التدقيق
+  API --> UI : النسخة المفعّلة\n""200 OK""
+end
+note over API, DB : لا تُفعَّل نسخة لم يقل خطؤها عن الخط الأساسي\nبخمسة عشر بالمئة على الأقل
+@enduml

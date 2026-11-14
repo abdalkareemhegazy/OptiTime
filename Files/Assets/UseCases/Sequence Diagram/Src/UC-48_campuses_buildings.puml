@@ -1,0 +1,103 @@
+@startuml UC-48_campuses_buildings
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-48 — إدارة الفروع والمباني
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== عرض الفروع والمباني ==
+ADM -> UI : فتح صفحة الفروع والمباني
+UI -> API : طلب الفروع والمباني\n""GET /api/campuses""\n""GET /api/buildings""
+API -> API : التحقق من الرمز والصلاحية\n""campuses.view""
+API -> DB : قراءة الفروع والمباني وأعداد القاعات
+API --> UI : الفروع والمباني\n""200 OK""
+UI --> ADM : كل فرع ببطاقات مبانيه\nوتنبيه القاعات التي بلا مبنى
+
+== إنشاء مبنى ==
+ADM -> UI : الضغط على مبنى جديد وإدخال بياناته ثم حفظ
+UI -> UI : فحص الحقول المطلوبة وصيغة الرمز\nوالطوابق والموقع
+alt #FFEBEE حقل ناقص أو صيغة غير صحيحة
+  UI --> ADM : رسالة تحت الحقل
+else #E8F5E9 الحقول صالحة
+  UI -> API : إنشاء المبنى\n""POST /api/buildings""
+  API -> API : التحقق من الصلاحية\n""buildings.create""
+  alt #FFEBEE الرمز مستخدم
+    API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+    UI --> ADM : رسالة هذا الرمز مستخدم
+  else #E8F5E9 الرمز متاح
+    API -> DB : حفظ المبنى وتسجيله في سجل التدقيق
+    API --> UI : المبنى الجديد\n""201 Created""
+    UI --> ADM : رسالة تم الإنشاء
+  end
+end
+
+== وضع القاعات أو إغلاق المبنى ==
+ADM -> UI : وضع قاعات في المبنى أو تغيير حالته إلى مغلق
+opt #FFF8E1 إغلاق المبنى
+  UI --> ADM : تحذير بأن قاعاته تخرج من الجدول\nوتظهر محاضراتها تعارضات
+end
+UI -> API : حفظ المبنى وقاعاته\n""PUT /api/buildings/{id}""
+API -> API : التحقق من الصلاحية\n""buildings.update""
+alt #FFEBEE إحدى القاعات لم تعد موجودة
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ADM : رسالة إحدى القاعات لم تعد موجودة
+else #E8F5E9 الطلب صالح
+  API -> DB : نقل القاعات أو إغلاق المبنى\nوتسجيل ذلك في سجل التدقيق
+  API --> UI : المبنى بعد الحفظ\n""200 OK""
+  UI --> ADM : رسالة حُفظت التغييرات
+end
+note over API, DB
+  المبنى في الخدمة ما دام هو وفرعه نشطين
+  وقاعات المبنى المغلق تخرج من التوليد والحجز
+  وتعود كما كانت عند إعادة فتحه
+end note
+
+== حذف مبنى ==
+ADM -> UI : حذف المبنى ثم التأكيد
+UI -> API : حذف المبنى\n""DELETE /api/buildings/{id}""
+alt #FFEBEE في المبنى قاعات
+  API --> UI : رفض الحذف\n""422 ORG_HAS_DEPENDENTS""
+  UI --> ADM : رسالة لا يمكن حذفه الآن\nمع ما يجب نقله أولاً
+else #E8F5E9 المبنى فارغ
+  API -> DB : حذف المبنى وتسجيل ذلك
+  API --> UI : تم الحذف\n""200 OK""
+  UI --> ADM : رسالة حُذف المبنى
+end
+@enduml

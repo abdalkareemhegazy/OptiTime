@@ -1,0 +1,86 @@
+@startuml UC-100_leave_request
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-100 — تقديم طلب إجازة
+
+actor "الموظف أو عضو\nهيئة التدريس" as EMP
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "حساب أيام الإجازة\nLeaveDaysCalculator" as LDC
+  participant "تقديم الإجازة\nSubmitLeaveRequestAction" as SUB
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "المدير المباشر" as MGR
+
+EMP -> UI : فتح إجازاتي
+UI -> API : الأرصدة والطلبات\n""GET /api/me/leaves/balances""\n""GET /api/me/leaves""
+API -> API : التحقق من الرمز والصلاحية\n""hr.self""
+API --> UI : أرصدة الأنواع والطلبات بحالاتها\n""200 OK""
+EMP -> UI : نوع الإجازة وتاريخا البدء والانتهاء\nوالسبب والمستند إن لزم
+UI -> API : حساب الأيام\n""GET /api/me/leaves/calculate-days""
+API -> LDC : استبعاد العطل وأيام العطلة الأسبوعية
+alt #FFEBEE الانتهاء قبل البدء
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> EMP : بيان الخطأ
+else #E8F5E9 التاريخان صالحان
+  API --> UI : عدد أيام الإجازة\n""200 OK""
+  EMP -> UI : الضغط على تقديم
+  UI -> API : حفظ الطلب ثم تقديمه\n""POST /api/me/leaves""\n""POST /api/me/leaves/{id}/submit""
+  API -> SUB : فحص الرصيد والتداخل ومدة الإشعار
+  alt #FFEBEE الرصيد غير كافٍ
+    API --> UI : رفض الطلب\n""422 HR_INSUFFICIENT_BALANCE""
+    UI --> EMP : رسالة رصيد الإجازة غير كافٍ
+  else #FFEBEE تتداخل مع إجازة أخرى
+    API --> UI : رفض الطلب\n""409 HR_LEAVE_OVERLAP""
+    UI --> EMP : رسالة تتداخل مع إجازة أخرى
+  else #FFEBEE أقل من مدة الإشعار المطلوبة
+    API --> UI : رفض الطلب\n""422 HR_NOTICE_PERIOD""
+    UI --> EMP : رسالة أقل من مدة الإشعار المطلوبة
+  else #E8F5E9 الطلب صالح
+    SUB -> DB : تحديد المدير المباشر لمقدّم الطلب\nوتسجيل الطلب بانتظاره دون خصم الرصيد
+    SUB -> NTF : إشعار المدير المباشر
+    NTF --> MGR : طلب إجازة بانتظار قرارك
+    API --> UI : الطلب بحالته\n""201 Created""
+    UI --> EMP : الطلب بانتظار المدير المباشر
+  end
+end
+opt #FFF8E1 إلغاء الطلب قبل الموافقة النهائية
+  EMP -> UI : الضغط على إلغاء
+  UI -> API : الإلغاء\n""POST /api/me/leaves/{id}/cancel""
+  API -> DB : تعليم الطلب ملغى
+end
+@enduml

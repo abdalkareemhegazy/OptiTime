@@ -1,0 +1,96 @@
+@startuml UC-24_request_resources
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-24 — طلب موارد إضافية
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "منسق الجداول\nوالموارد" as CRD
+
+== فتح نموذج الطلب ==
+INS -> UI : الضغط على طلب جديد\nأو على طلب مورد من تفاصيل المحاضرة
+UI -> API : تحميل خيارات الطلب\nالأصناف المحمولة والميزات وأنواع القاعات\n""GET /api/instructor/resource-requests/options""
+API --> UI : الخيارات
+UI --> INS : عرض نموذج طلب مورد
+
+== تعبئة الطلب ==
+INS -> UI : اختيار المحاضرة وما يحتاجه\nمن قاعة أو تجهيزات أو شيء آخر
+INS -> UI : تحديد التفاصيل بحسب النوع
+UI --> INS : عرض مواعيد المحاضرة القادمة التي يمكن الطلب لها\nدون العطل وأسابيع الامتحانات والمواعيد الملغاة
+INS -> UI : تحديد موعد واحد أو عدة أسابيع وكتابة سبب الحاجة
+INS -> UI : الضغط على أرسل الطلب
+
+== التحقق والتسجيل ==
+UI -> API : إرسال الطلب\n""POST /api/instructor/resource-requests""
+API -> API : التحقق من الرمز والصلاحية\n""instructor.resource_requests.create""
+alt #FFEBEE حقل ناقص أو عدد غير صحيح أو لم يُذكر السبب
+  API --> UI : أخطاء الحقول\n""422""
+  UI --> INS : رسالة الخطأ والعودة إلى النموذج
+else #FFEBEE المحاضرة ليست في جدول منشور أو لا مواعيد في التواريخ المختارة
+  API -> DB : التحقق من الجدول المنشور ومن مواعيد المحاضرة
+  API --> UI : رفض الطلب\n""422""
+  UI --> INS : رسالة السبب والعودة إلى اختيار الموعد
+else #FFEBEE العدد المطلوب أكبر من القطع الموجودة
+  API -> DB : عدّ الوحدات المتاحة من هذا النوع
+  API --> UI : رفض الطلب\n""422""
+  UI --> INS : رسالة لا يوجد هذا العدد من القطع من هذا النوع
+else #FFEBEE طلب مماثل ما زال بانتظار الرد
+  API --> UI : رفض الطلب\n""409 RES_REQUEST_EXISTS""
+  UI --> INS : رسالة سبق أن طلبت هذا مع رقمه المرجعي
+else #E8F5E9 الطلب صالح
+  API -> DB : تسجيل الطلب برقم مرجعي بحالة بانتظار الرد
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API -> NTF : إشعار المنسقين بالطلب\nوبشكل أعجل إن كان أول موعد خلال ثلاثة أيام
+  NTF --> CRD : إشعار بطلب مورد جديد
+  API --> UI : الطلب برقمه المرجعي\n""201 Created""
+  UI --> INS : رسالة أُرسل الطلب إلى المنسّق
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 تعديل الطلب أو سحبه ما دام بانتظار الرد
+  INS -> UI : اختيار تعديل الطلب أو سحبه
+  UI -> API : طلب تعديل الطلب\n""PATCH /api/instructor/resource-requests/{id}""
+  UI -> API : طلب سحب الطلب\n""POST /api/instructor/resource-requests/{id}/cancel""
+  API -> DB : حفظ التعديل أو تحويل الحالة إلى مسحوب
+end
+opt #FFF8E1 متابعة الرد
+  ref over INS, CRD : UC-25 معالجة طلبات الموارد
+end
+@enduml

@@ -1,0 +1,99 @@
+@startuml UC-26_book_room
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-26 — حجز قاعة دراسية
+
+actor "المستخدم\nصاحب الحجز" as USR
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "منسق الجداول\nوالموارد" as CRD
+
+== اختيار القاعة ==
+ref over USR, UI : UC-23 عرض الموارد\nالبحث عن قاعة شاغرة
+USR -> UI : الضغط على احجز أو اطلب الحجز أمام القاعة المطلوبة
+UI -> API : طلب يوم القاعة\n""GET /api/room-reservations/rooms/{roomId}/day""
+API --> UI : محاضرات القاعة وحجوزاتها وصيانتها في ذلك اليوم
+UI --> USR : عرض نموذج حجز قاعة\nمع شريط اليوم الكامل والوقت المختار
+
+== إدخال بيانات الحجز ==
+USR -> UI : كتابة المناسبة واختيار الغرض وعدد الحضور
+USR -> UI : اختيار التكرار\nهذا اليوم فقط أو أسبوعياً حتى تاريخ محدد
+USR -> UI : كتابة ملاحظات للمنسق اختيارياً\nثم الضغط على احجز أو أرسل الطلب
+
+== التحقق والحجز ==
+UI -> API : إرسال طلب الحجز\n""POST /api/room-reservations""
+API -> API : التحقق من الرمز والصلاحية\n""room_reservations.create""
+alt #FFEBEE تاريخ مضى أو مدة أكثر من 12 ساعة أو مناسبة فارغة أو حضور فوق السعة
+  API --> UI : أخطاء الحقول\n""422""
+  UI --> USR : رسالة الخطأ والعودة إلى بيانات الحجز
+else #FFEBEE القاعة خارج الخدمة
+  API --> UI : رفض الطلب\n""422""
+  UI --> USR : رسالة القاعة خارج الخدمة
+else #E8F5E9 البيانات صالحة
+  API -> DB : قفل القاعة والتحقق من خلوها من محاضرة أو حجز أو صيانة\nفي كل التواريخ المطلوبة
+  alt #FFEBEE القاعة مشغولة في ذلك الوقت
+    API --> UI : رفض الطلب مع ما يشغل القاعة\n""409 RES_ROOM_TAKEN""
+    UI --> USR : رسالة القاعة محجوزة حينها مع بيان ما يشغلها\nومع زر حجز الأسابيع الشاغرة في الحجز الأسبوعي
+  else #E8F5E9 القاعة خالية
+    alt #E8F5E9 القاعة قابلة للحجز
+      API -> DB : تسجيل الحجز برقم مرجعي بحالة مؤكَّد
+    else #FFF8E1 القاعة تحتاج موافقة
+      API -> DB : تسجيل الحجز برقم مرجعي بحالة بانتظار التأكيد
+      API -> NTF : إشعار المنسقين بطلب الحجز
+      NTF --> CRD : إشعار بحجز ينتظر التأكيد
+    end
+    API --> UI : الحجز أو الحجوزات\n""201 Created""
+    UI --> USR : رسالة حُجزت القاعة مع المرجع\nأو أُرسل طلب الحجز وسيردّ المنسق
+  end
+end
+
+== حجز ينتظر التأكيد ==
+opt #FFF8E1 رد المنسق على الحجز
+  CRD -> UI : فتح حجوزات القاعات\nثم تأكيد الحجز أو رفضه مع سبب إلزامي
+  UI -> API : طلب التأكيد\n""POST /api/room-reservations/{id}/approve""
+  UI -> API : طلب الرفض\n""POST /api/room-reservations/{id}/decline""
+  API -> NTF : إشعار صاحب الحجز بالرد
+  NTF --> USR : إشعار بتأكيد الحجز أو رفضه
+end
+note over UI, DB
+  يُسجَّل الحضور بدءاً من ربع ساعة قبل بداية الحجز في قاعات الدراسة
+  وإن لم يُسجَّل بعد ربع ساعة من البدء حُرّرت القاعة لغيره
+  ويلغي المستخدم حجزاً واحداً أو كل الأسابيع المتبقية من حجوزاتي
+end note
+@enduml

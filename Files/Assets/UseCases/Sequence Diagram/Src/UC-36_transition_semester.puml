@@ -1,0 +1,93 @@
+@startuml UC-36_transition_semester
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-36 — نقل الفصل الدراسي بين مراحله
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "إجراء نقل الفصل\nTransitionSemesterAction" as ACT
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح مراحل الفصل ==
+ACO -> UI : فتح صفحة السنوات والفصول الدراسية\nمن مجموعة الشؤون الأكاديمية
+ACO -> UI : الضغط على المراحل في بطاقة الفصل المطلوب
+UI -> API : طلب مراحل الفصل وانتقالاته\n""GET /api/semesters/{id}/transitions""
+API -> API : التحقق من الرمز والصلاحية\n""semesters.view""
+API -> DB : قراءة الانتقالات المتاحة من المرحلة الحالية\nوفحص شروط كل انتقال وسجل ما مرّ به الفصل
+API --> UI : الانتقالات وشروطها وسجل الفصل\n""200 OK""
+UI --> ACO : عرض نافذة مراحل الفصل\nالمراحل السبع على مسار والانتقالات المتاحة وسجل الفصل
+
+== اختيار المرحلة ==
+ACO -> UI : اختيار المرحلة التالية
+UI --> ACO : عرض الشروط الملزمة والتنبيهات لهذا الانتقال
+opt #FFF8E1 الرجوع إلى مرحلة سابقة
+  ACO -> UI : كتابة سبب الرجوع
+end
+ACO -> UI : الضغط على زر الانتقال بعد قراءة الشروط والتنبيهات
+
+== تنفيذ الانتقال ==
+UI -> API : طلب نقل الفصل\n""POST /api/semesters/{id}/transition""
+API -> API : التحقق من الرمز والصلاحية\n""semesters.transition""
+API -> ACT : تنفيذ الانتقال إلى المرحلة المطلوبة
+ACT -> DB : قفل صف الفصل حتى لا ينقله مستخدمان معاً
+alt #FFEBEE الانتقال غير مسموح من المرحلة الحالية
+  ACT --> API : رفض الانتقال
+  API --> UI : رفض الطلب\n""409 GEN_INVALID_TRANSITION""
+  UI --> ACO : رسالة لا يمكن الانتقال إلى هذه المرحلة\nمن مرحلته الحالية
+else #FFEBEE رجوع إلى مرحلة سابقة بلا سبب
+  ACT --> API : رفض الانتقال
+  API --> UI : رفض الطلب\n""422 CAL_REASON_REQUIRED""
+  UI --> ACO : رسالة اكتب سبب الرجوع
+else #FFEBEE شرط ملزم من شروط المرحلة لم يتحقق
+  ACT -> DB : فحص الشروط الملزمة للمرحلة الجديدة
+  ACT --> API : رفض الانتقال مع نتيجة كل شرط
+  API --> UI : رفض الطلب\n""409 CAL_TRANSITION_BLOCKED""
+  UI --> ACO : رسالة لم يتحقق أحد شروط هذه المرحلة بعد\nمع بيان الشرط
+else #E8F5E9 الانتقال مسموح
+  ACT -> DB : نقل الفصل إلى المرحلة الجديدة وتسجيل الانتقال\nمن نقله ومتى والتنبيهات التي مرّ بها
+  ACT -> DB : تسجيل العملية في سجل التدقيق
+  ACT --> API : الفصل بعد الانتقال
+  API --> UI : بيانات الفصل\n""200 OK""
+  UI --> ACO : تحديث بطاقة الفصل ورسالة بنجاح الانتقال
+end
+note over UI, DB
+  الرجوع إلى مرحلة سابقة لا شروط له لكنه يحتاج إلى سبب
+  ولا يجوز تخطي مرحلة
+  ولا يُعدَّل الفصل المغلق قبل إعادة فتحه من مراحله
+end note
+@enduml

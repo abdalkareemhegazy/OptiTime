@@ -1,0 +1,95 @@
+@startuml UC-33_lecture_request
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-33 — تقديم طلب اعتذار أو تعويض عن محاضرة
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "منسق الجداول\nوالموارد" as CRD
+
+== اختيار المحاضرة ونوع الطلب ==
+INS -> UI : اختيار المحاضرة من جدوله الأسبوعي
+UI --> INS : عرض تفاصيل المحاضرة وإجراءاتها\nاعتذار عن موعد واقتراح محاضرة تعويضية
+INS -> UI : اختيار نوع الطلب
+UI --> INS : عرض نموذج الطلب\nللاعتذار موعد قادم على يوم المحاضرة\nوللتعويض تاريخ ووقتا بدء وانتهاء وقاعة اختيارية
+INS -> UI : تحديد التاريخ والوقت والقاعة للتعويض\nواختيار السبب وكتابة كلمة للمنسق
+INS -> UI : الضغط على إرسال الطلب
+
+== التحقق والتسجيل ==
+UI -> API : إرسال الطلب\n""POST /api/instructor/lecture-requests""
+API -> API : التحقق من الرمز والصلاحية\n""instructor.requests.create""
+alt #FFEBEE التاريخ غير صالح
+  API --> UI : رفض الطلب مع رمز السبب\n""422 requested_date_not_future""\n""422 outside_semester""\n""422 on_holiday""\n""422 during_exams""\n""422 day_mismatch""
+  UI --> INS : رسالة تبيّن السبب والعودة إلى تحديد التاريخ
+else #FFEBEE طلب مماثل قيد الانتظار
+  API -> DB : البحث عن طلب مماثل لهذه المحاضرة وهذا التاريخ
+  API --> UI : رفض الطلب\n""422 duplicate""
+  UI --> INS : رسالة هناك طلب مماثل قيد الانتظار
+else #FFEBEE وقت التعويض أو قاعته غير صالحين
+  API -> DB : فحص يوم التدريس وتعارض محاضرات المدرّس\nوحالة القاعة وإشغالها
+  API --> UI : رفض الطلب\n""422 makeup_not_teachable""\n""422 makeup_clashes_own_lecture""\n""422 makeup_room_unavailable""\n""422 makeup_room_busy""
+  UI --> INS : رسالة تبيّن السبب والعودة إلى تحديد الوقت
+else #E8F5E9 الطلب صالح
+  API -> DB : تسجيل الطلب بحالة قيد الانتظار
+  API -> NTF : إشعار المنسقين بطلب جديد
+  NTF --> CRD : إشعار طلب محاضرة جديد
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : الطلب بعد التسجيل\n""201 Created""
+  UI --> INS : عرض الطلب في طلباتي للمحاضرات\nبحالة بانتظار مراجعة المنسق
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 تعديل الطلب أو سحبه ما دام قيد الانتظار
+  INS -> UI : اختيار تعديل الطلب أو سحبه
+  UI -> API : طلب التعديل أو السحب\n""PUT /api/instructor/lecture-requests/{id}""\n""DELETE /api/instructor/lecture-requests/{id}""
+end
+opt #FFF8E1 بتّ المنسق في الطلب
+  CRD -> UI : فتح طلبات المحاضرات وفحص الطلب\nثم قبوله أو رفضه مع ملاحظة
+  UI -> API : طلب القرار\n""PUT /api/coordinator/lecture-requests/{id}""
+  API -> API : التحقق من الرمز والصلاحية\n""lecture_requests.update""
+  alt #FFEBEE سبق البتّ في الطلب
+    API --> UI : رفض الطلب\n""422 not_pending""
+  else #E8F5E9 الطلب قيد الانتظار
+    API -> DB : تحديث الحالة إلى مقبول أو مرفوض وحفظ الملاحظة
+    API -> NTF : إشعار المدرّس بالقرار\nوإبلاغ طلاب الشعبة عند القبول
+    NTF --> INS : إشعار بقرار المنسق
+  end
+end
+@enduml

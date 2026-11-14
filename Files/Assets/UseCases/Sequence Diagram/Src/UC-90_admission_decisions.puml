@@ -1,0 +1,91 @@
+@startuml UC-90_admission_decisions
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-90 — المفاضلة وإصدار قرارات القبول
+
+actor "موظف القبول" as ADO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "العلامة المركّبة\nCompositeScoreCalculator" as SC
+  participant "توزيع المقاعد\nAllocateSeatsAction" as AL
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "المتقدّمون" as APL
+
+ADO -> UI : فتح طلبات الدورة وتصفيتها
+UI -> API : الطلبات\n""GET /api/admission/applications""
+API -> API : التحقق من الرمز والصلاحية\n""admission.applications.view""
+ADO -> UI : حساب العلامات
+UI -> API : حساب العلامة المركّبة\n""POST /api/admission/applications/{id}/score""
+API -> SC : بمعادلة الدورة لكل طلب مكتمل
+SC -> DB : حفظ العلامات واستبعاد الناقص مع بيانه
+ADO -> UI : ترتيب المفاضلة لبرنامج
+UI -> API : الترتيب\n""GET /api/admission/cycles/{id}/ranking""
+API --> UI : المتقدمون تنازلياً بعلاماتهم ورغباتهم\n""200 OK""
+ADO -> UI : توزيع المقاعد
+UI -> API : التوزيع الآلي\n""POST /api/admission/cycles/{id}/allocate""
+API -> AL : التوزيع بالترتيب والرغبات والسعات
+AL -> DB : القبول ثم قوائم الانتظار للباقين
+API --> UI : نتيجة التوزيع\n""200 OK""
+opt #FFF8E1 تعديل قرار فردي
+  ADO -> UI : تعديل قرار متقدّم
+  UI -> API : قرار فردي\n""POST /api/admission/applications/{id}/decision""
+  alt #FFEBEE يتجاوز سعة البرنامج
+    API --> UI : رفض الطلب\n""409 ADM_CAPACITY_REACHED""
+    UI --> ADO : رسالة اكتملت سعة البرنامج
+  else #E8F5E9 ضمن السعة
+    API -> DB : حفظ القرار
+  end
+end
+
+== النشر ==
+ADO -> UI : نشر القرارات مع مهلة قبول العرض
+UI -> API : النشر\n""POST /api/admission/cycles/{id}/decisions/publish""
+API -> API : التحقق من الصلاحية\n""admission.decide""
+alt #FFEBEE القرارات تتجاوز سعة برنامج
+  API --> UI : رفض الطلب\n""409 ADM_CAPACITY_REACHED""
+  UI --> ADO : البرامج المعنية
+else #E8F5E9 ضمن السعات
+  API -> DB : نشر القرارات وتسجيلها في سجل التدقيق
+  API --> APL : إشعار كل متقدّم بقراره ومهلته
+  API --> UI : تم النشر\n""200 OK""
+end
+opt #FFF8E1 التحويل الجماعي
+  ADO -> UI : تحويل من قبلوا العروض
+  UI -> API : التحويل\n""POST /api/admission/cycles/{id}/enroll""
+  API --> UI : قُبل للتنفيذ\n""202 Accepted""
+end
+@enduml

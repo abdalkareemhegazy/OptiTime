@@ -1,0 +1,106 @@
+@startuml UC-22_manage_maintenance
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-22 — إدارة الصيانة
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== تسجيل البلاغ ==
+CRD -> UI : الضغط على الإبلاغ عن عطل
+UI --> CRD : عرض نموذج بلاغ جديد
+CRD -> UI : اختيار القاعة أو الجهاز بالبحث بالرمز\nأو رقم الأصل أو الاسم
+CRD -> UI : كتابة المشكلة وتحديد النوع والأولوية والتفاصيل\nوهل يوقف البلاغ الاستخدام ومتى يبدأ ومتى يُتوقع أن ينتهي
+CRD -> UI : الضغط على سجّل البلاغ
+UI -> API : إرسال البلاغ\n""POST /api/maintenance-logs""
+API -> API : التحقق من الرمز والصلاحية\n""maintenance_logs.create""
+alt #FFEBEE لم تُختر القاعة أو الجهاز أو لم تُكتب المشكلة
+  API --> UI : أخطاء الحقول\n""422""
+  UI --> CRD : رسالة اختر القاعة أو الجهاز أو اكتب المشكلة
+else #FFEBEE العودة المتوقعة قبل بدء الاستخدام الموقوف
+  API --> UI : رفض الطلب\n""422""
+  UI --> CRD : رسالة لا يعود قبل أن يبدأ
+else #FFEBEE الجهاز المختار مُخرج من الخدمة
+  API --> UI : رفض الطلب\n""422""
+  UI --> CRD : رسالة هذا الجهاز مُخرج من الخدمة
+else #E8F5E9 البلاغ صالح
+  API -> DB : تسجيل البلاغ برقم مرجعي بحالة مبلَّغ عنه
+  opt #FFF8E1 البلاغ مانع للاستخدام وحان وقته
+    API -> DB : إخراج القاعة أو الجهاز من الاستخدام\nمع حفظ حالته السابقة
+    API -> NTF : إبلاغ المنسقين
+  end
+  API --> UI : البلاغ برقمه المرجعي\n""201 Created""
+  UI --> CRD : عرض المحاضرات التي يضعها الجدول المنشور في القاعة\nمع قاعات شاغرة تناسب كلاً منها
+end
+
+== المتابعة والإصلاح ==
+CRD -> UI : الضغط على تولَّ العمل عليه
+UI -> API : طلب بدء العمل\n""POST /api/maintenance-logs/{id}/start""
+API -> DB : تحويل الحالة إلى يُعمل عليه وتسجيل الانتقال
+API --> UI : البلاغ بعد التحديث\n""200 OK""
+CRD -> UI : الضغط على أُصلح وكتابة ما أُنجز
+UI -> API : طلب إغلاق البلاغ\n""POST /api/maintenance-logs/{id}/resolve""
+alt #FFEBEE البلاغ مغلق أو نقله مستخدم آخر إلى مرحلة أخرى
+  API --> UI : رفض الطلب\n""409 RES_MAINTENANCE_CLOSED""
+  UI --> CRD : رسالة هذا البلاغ مغلق وتنتهي الحالة
+else #E8F5E9 البلاغ قائم
+  API -> DB : إغلاق البلاغ وتسجيل الانتقال
+  API -> DB : إعادة القاعة أو الجهاز إلى حالته السابقة\nما لم يُبقِه بلاغ آخر خارج الاستخدام
+  API --> UI : البلاغ المغلق\n""200 OK""
+  UI --> CRD : رسالة أُغلق البلاغ بالإصلاح
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 بلاغ مدرّس عن قاعة محاضرته
+  NTF --> CRD : إشعار عاجل وظهور المحاضرة بانتظار قرار
+  CRD -> UI : اختيار نقل موعد المحاضرة إلى قاعة شاغرة\nأو إلغائه أو إبقائها في قاعتها
+  UI -> API : طلب تنفيذ القرار\n""POST /api/maintenance-logs/{id}/decide""
+  API -> DB : تنفيذ القرار على المحاضرة وتسجيله
+  API -> NTF : إبلاغ المدرّس والطلاب بالقرار
+end
+opt #FFF8E1 إعادة البلاغ إلى الانتظار أو إلغاؤه
+  UI -> API : طلب الإعادة\n""POST /api/maintenance-logs/{id}/put-back""\n""POST /api/maintenance-logs/{id}/cancel""
+end
+note over UI, DB
+  البلاغ المخطط يأخذ القاعة أو الجهاز تلقائياً عند حلول وقته
+  والبلاغ المغلق لا يُفتح ثانية
+  والعطل العائد يُبلَّغ عنه ببلاغ جديد
+end note
+@enduml

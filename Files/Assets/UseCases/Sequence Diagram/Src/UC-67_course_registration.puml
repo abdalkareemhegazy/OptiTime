@@ -1,0 +1,98 @@
+@startuml UC-67_course_registration
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-67 — تسجيل المقررات
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "تأكيد السلة\nCheckoutCartAction" as CO
+  participant "إدارة المقاعد\nSeatManager" as SEAT
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== الأهلية والكتالوج ==
+STU -> UI : فتح التسجيل
+UI -> API : قائمة فحص الأهلية\n""GET /api/me/registration/eligibility""
+API -> API : التحقق من الرمز والصلاحية\n""enrollment.self""
+API --> UI : النافذة والدور والحالة والعوائق\nوالتصريح وحدود الساعات\n""200 OK""
+alt #FFEBEE مانع في قائمة الفحص
+  UI --> STU : سبب المنع مثل نافذة التسجيل مغلقة\nأو يوجد عائق مالي
+else #E8F5E9 الطالب مؤهل
+  UI -> API : طلب الكتالوج\n""GET /api/catalog""
+  API --> UI : المقررات وشعبها والمقاعد الحية\nوحالة متطلبات الطالب\n""200 OK""
+  loop #FFFFFF حتى تكتمل السلة
+    STU -> UI : اختيار مقرر وشعبة من كل مكوّن\nثم أضف إلى السلة
+    UI -> API : إضافة إلى السلة\n""POST /api/me/cart/items""
+    ref over API, DB : UC-68 التحقق من أهلية التسجيل
+    alt #FFEBEE فشلت قاعدة على الإضافة
+      API --> UI : نتيجة التحقق\n""422 ENR_TIME_CONFLICT""
+      UI --> STU : القاعدة الفاشلة والإجراء المقترح\nوالشعب البديلة
+    else #E8F5E9 الإضافة مقبولة
+      API -> SEAT : حجز مؤقت للمقعد
+      API --> UI : السلة ومعاينة الجدول\n""200 OK""
+      UI --> STU : تحديث السلة والجدول الأسبوعي\nوتمييز التعارض
+    end
+  end
+end
+
+== التأكيد الذرّي ==
+STU -> UI : الضغط على تأكيد التسجيل
+UI -> API : تأكيد السلة بمفتاح تكرار آمن\n""POST /api/me/cart/checkout""
+ref over API, DB : UC-68 التحقق الشامل على السلة كلها
+alt #FFEBEE فشلت قاعدة أو أكثر أو انتهت صلاحية السلة
+  API --> UI : نتائج القواعد كلها\n""422 ENR_CART_EXPIRED""
+  UI --> STU : كل قاعدة فاشلة وإجراؤها المقترح
+else #FFF3E0 الطلب نفسه أُرسل سابقاً
+  API --> UI : النتيجة السابقة دون تكرار\n""200 OK""
+else #E8F5E9 السلة صالحة
+  API -> CO : تأكيد السلة
+  CO -> DB : بدء معاملة وأقفال مرتبة
+  CO -> SEAT : حجز كل مقعد بتحديث شرطي على السعة
+  alt #FFEBEE امتلأت شعبة قبل لحظة التأكيد
+    SEAT --> CO : فشل الحجز
+    CO -> DB : التراجع عن المعاملة كلها
+    API --> UI : رفض الطلب\n""409 ENR_SECTION_FULL""
+    UI --> STU : رسالة لا توجد مقاعد متاحة مع البدائل
+  else #E8F5E9 حُجزت المقاعد كلها
+    CO -> DB : إنشاء التسجيلات ودفعة برقم تأكيد
+    CO -> DB : حساب الرسوم وإصدار الفاتورة
+    CO -> DB : إنهاء المعاملة وتسجيلها في سجل التدقيق
+    API --> UI : رقم التأكيد والجدول\n""201 Created""
+    UI --> STU : صفحة التأكيد مع إمكانية تنزيلها
+  end
+end
+@enduml

@@ -1,0 +1,92 @@
+@startuml UC-01_login
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-01 — تسجيل الدخول
+
+actor "المستخدم" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح صفحة الدخول ==
+U -> UI : فتح صفحة تسجيل الدخول
+UI --> U : عرض نموذج الدخول
+note over U, UI
+  أزرار الدخول السريع للتجربة فقط
+  وتملأ الحقول بحساب تجريبي حسب الدور
+end note
+
+== إدخال البيانات والتحقق منها ==
+U -> UI : إدخال البريد الإلكتروني أو الرقم الجامعي\nأو الوظيفي مع كلمة المرور ثم زر الدخول
+UI -> UI : التحقق من تعبئة الحقلين وصيغتهما
+alt #FFEBEE حقل فارغ أو بريد بصيغة غير صحيحة
+  UI --> U : رسالة الخطأ تحت الحقل
+else #E8F5E9 الحقول صالحة
+  UI -> API : إرسال بيانات الدخول\n""POST /api/auth/login""
+  API -> DB : البحث عن الحساب بالمعرّف المُدخل
+  DB --> API : بيانات الحساب
+  alt #FFEBEE الحساب غير موجود أو كلمة المرور خاطئة
+    API -> DB : تسجيل المحاولة الفاشلة وزيادة عدّاد الأخطاء
+    API --> UI : رفض الدخول\n""401 AUTH_INVALID_CREDENTIALS""
+    UI --> U : رسالة بيانات الدخول غير صحيحة\nمع عدد المحاولات المتبقية
+  else #FFEBEE الحساب مقفل أو بلغ حد المحاولات الخاطئة
+    API -> DB : قفل الحساب مؤقتاً عند بلوغ الحد\nوتسجيل الحدث في سجل التدقيق
+    API --> UI : رفض الدخول\n""423 AUTH_ACCOUNT_LOCKED""
+    UI --> U : رسالة القفل ومدة الانتظار
+  else #FFEBEE الحساب أو دوره معطّل أو النظام في الصيانة
+    API --> UI : رفض الدخول مع السبب\n""403 AUTH_ACCOUNT_INACTIVE""\n""403 AUTH_ROLE_INACTIVE""\n""503 GEN_MAINTENANCE""
+    UI --> U : رسالة توضح سبب المنع
+  else #E8F5E9 بيانات الاعتماد صحيحة
+    API -> DB : تصفير عدّاد الأخطاء وتحميل الأدوار والصلاحيات
+    opt #FFF8E1 التحقق الثنائي مفعّل على الحساب
+      API --> UI : طلب رمز التطبيق مع رمز تحدٍّ مؤقت\n""requires_2fa""
+      UI --> U : عرض حقل رمز التحقق
+      U -> UI : إدخال الرمز المؤقت من تطبيق المصادقة
+      UI -> API : إرسال الرمز\n""POST /api/auth/2fa/challenge""
+      API -> API : مطابقة الرمز مع المفتاح السري\nأو مع أحد رموز الاسترداد
+    end
+    API -> DB : إصدار رمز الدخول لهذا الجهاز\nوتسجيل آخر دخول وسجل التدقيق
+    API --> UI : بيانات الجلسة والدور والصلاحيات والرمز\n""200 OK""
+    UI -> UI : حفظ الجلسة والصلاحيات في المتصفح
+    UI --> U : التحويل إلى لوحة التحكم أو الصفحة المطلوبة\nمع رسالة نجاح العملية
+  end
+end
+note over UI, API
+  عند تعذّر الوصول إلى الخادم تعرض الواجهة
+  رسالة تطلب المحاولة لاحقاً وتبقى في نموذج الدخول
+end note
+@enduml

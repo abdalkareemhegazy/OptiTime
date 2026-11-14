@@ -1,0 +1,107 @@
+@startuml UC-43_import_data
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-43 — استيراد البيانات من ملف
+
+actor "المستخدم\nبحسب صلاحياته" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "مدير الاستيراد\nImportManager" as IMP
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== النوع والملف ==
+U -> UI : فتح مركز الاستيراد
+UI -> API : طلب الأنواع المتاحة\n""GET /api/imports/types""
+API -> API : التحقق من الرمز والصلاحية\n""imports.manage""
+API --> UI : الأنواع التي يملك المستخدم إنشاءها\n""200 OK""
+alt #FFEBEE لا يسمح الدور باستيراد أي نوع
+  UI --> U : رسالة لا يسمح دورك باستيراد أي نوع
+else #E8F5E9 توجد أنواع
+  U -> UI : اختيار النوع ورفع الملف
+  opt #FFF8E1 تنزيل القالب أولاً
+    UI -> API : طلب القالب\n""GET /api/imports/templates/{type}""
+  end
+  UI -> API : رفع الملف\n""POST /api/imports""
+  API -> IMP : فحص الصيغة والمحتوى والحجم وعدد الصفوف
+  alt #FFEBEE ملف غير مقروء أو فارغ أو أكبر من الحد
+    API --> UI : رفض الملف\n""422 IMP_UNREADABLE""\n""422 IMP_EMPTY""\n""422 IMP_TOO_MANY_ROWS""
+    UI --> U : رسالة تبيّن سبب الرفض
+  else #E8F5E9 الملف مقروء
+    IMP -> DB : حفظ الاستيراد بحالة بانتظار ربط الأعمدة
+    API --> UI : مطابقة مقترحة للأعمدة وأول عشرة صفوف\n""201 Created""
+    UI --> U : المطابقة المقترحة ومعاينة الصفوف
+  end
+end
+
+== المطابقة والفحص ==
+U -> UI : مراجعة المطابقة واختيار معالجة الموجود\nوالصفوف الخاطئة ثم افحص الملف
+UI -> API : حفظ المطابقة وفحص الصفوف\n""POST /api/imports/{id}/mapping""
+alt #FFEBEE حقل مطلوب غير مربوط أو عمود مكرر
+  API --> UI : رفض المطابقة\n""422 IMP_MAPPING_INCOMPLETE""\n""422 IMP_MAPPING_DUPLICATE""
+  UI --> U : رسالة اربط كل الأعمدة المطلوبة
+else #E8F5E9 المطابقة مكتملة
+  API -> IMP : فحص كل صف دون كتابة
+  IMP -> DB : حفظ نتيجة الفحص ومشكلات الصفوف
+  API --> UI : نتيجة الفحص والمشكلات\n""200 OK""
+  UI --> U : الصفوف الصالحة وما فيه أخطاء\nبالصف والحقل والقيمة والسبب
+end
+
+== الاستيراد ==
+U -> UI : الضغط على استورد الصفوف
+UI -> API : اعتماد الاستيراد\n""POST /api/imports/{id}/commit""
+alt #FFEBEE لا توجد صفوف صالحة
+  API --> UI : رفض الطلب\n""422 IMP_NO_VALID_ROWS""
+  UI --> U : رسالة لا توجد صفوف صالحة للاستيراد
+else #E8F5E9 توجد صفوف صالحة
+  API -> IMP : إعادة فحص الصفوف وكتابتها داخل معاملة
+  alt #FFEBEE الكل أو لا شيء وفي الملف خطأ أو تعذّر حفظ صف
+    IMP -> DB : التراجع عن المعاملة كلها
+    API --> UI : الاستيراد لم يكتمل\n""200 OK""
+    UI --> U : رسالة لم يكتمل الاستيراد ولم يُحفظ شيء منه
+  else #E8F5E9 كُتبت الصفوف الصالحة
+    IMP -> DB : إنشاء السجلات أو تحديثها
+    API -> DB : تسجيل الاستيراد في سجل التدقيق
+    API --> UI : أعداد ما أُضيف وما حُدّث وما رُفض\n""200 OK""
+    UI --> U : اكتمل الاستيراد مع الأعداد
+  end
+end
+opt #FFF8E1 تقرير الأخطاء
+  U -> UI : تنزيل تقرير الأخطاء
+  UI -> API : طلب التقرير\n""GET /api/imports/{id}/errors""
+  API --> UI : ملف الصفوف المرفوضة وأسبابها\n""200 OK""
+end
+@enduml

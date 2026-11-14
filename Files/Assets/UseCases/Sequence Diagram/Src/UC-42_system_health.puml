@@ -1,0 +1,102 @@
+@startuml UC-42_system_health
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-42 — مراقبة صحة النظام
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "المجدول الدوري\nsystem:health-check" as CRON
+  participant "فاحص الصحة\nHealthChecker" as HC
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== الفحص الدوري ==
+loop #FFFFFF كل خمس دقائق
+  CRON -> HC : تشغيل الفحوص كلها
+  HC -> DB : حفظ نتيجة كل فحص بزمنه
+end
+
+== عرض الصحة ==
+ADM -> UI : فتح صفحة صحة النظام من مجموعة النظام
+UI -> API : طلب نتائج الفحوص والمهام الخلفية\n""GET /api/admin/health""\n""GET /api/admin/queues""
+API -> API : التحقق من الرمز والصلاحية\n""system.health""
+alt #FFEBEE لا يملك صلاحية صحة النظام
+  API --> UI : رفض الطلب\n""403""
+  UI --> ADM : التحويل إلى صفحة لا صلاحية
+else #FFEBEE تعذّر التحميل لانقطاع الاتصال أو خطأ في الخادم
+  UI --> ADM : رسالة تعذّر الوصول إلى الخادم\nمع زر إعادة المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : قراءة آخر النتائج ونتائج آخر يوم\nوالمهام المنتظرة والفاشلة
+  API --> UI : النتائج والحالة العامة\n""200 OK""
+  UI --> ADM : الحالة العامة وبطاقة لكل فحص\nبحالته وسطر يشرحها
+end
+
+== الفحص الفوري ==
+ADM -> UI : الضغط على افحص الآن
+UI -> API : تشغيل الفحوص\n""POST /api/admin/health/run""
+API -> HC : تشغيل الفحوص كلها فوراً
+HC -> DB : حفظ النتائج
+alt #FFEBEE تعذّر إجراء أحد الفحوص
+  HC --> API : الفحص بحالة عطل مع سببه
+else #E8F5E9 اكتملت الفحوص
+  HC --> API : نتائج الفحوص
+end
+API -> DB : تسجيل الفحص اليدوي في سجل التدقيق
+API --> UI : النتائج الجديدة\n""200 OK""
+UI --> ADM : تحديث البطاقات\nورسالة اكتمل الفحص
+
+== المهام الخلفية الفاشلة ==
+alt #E8F5E9 إعادة المهام
+  ADM -> UI : الضغط على إعادة أو إعادة الكل
+  UI -> API : إعادة المهام إلى الطابور\n""POST /api/admin/queues/retry""
+  API -> DB : إعادة المهام وتسجيل ذلك في سجل التدقيق
+  API --> UI : عدد المهام المعادة\n""200 OK""
+  UI --> ADM : رسالة أُعيد تشغيل المهام
+else #FFF3E0 تجاهل المهام
+  ADM -> UI : الضغط على تجاهل أو تجاهل الكل ثم التأكيد
+  UI -> API : حذف المهام من القائمة\n""POST /api/admin/queues/forget""
+  API -> DB : حذف المهام الفاشلة وتسجيل ذلك
+  API --> UI : عدد المهام المحذوفة\n""200 OK""
+  UI --> ADM : رسالة حُذفت المهام من القائمة
+end
+note over UI, API
+  عند فشل فحص يصل المدير إشعار فوري بالعطل
+  ونقطتا فحص الحياة والجاهزية متاحتان لأدوات المراقبة
+  ""GET /api/health""
+  ""GET /api/ready""
+end note
+@enduml

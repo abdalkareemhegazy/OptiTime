@@ -1,0 +1,86 @@
+@startuml UC-77_course_evaluation
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-77 — تقييم المقرر والمدرّس
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "عضو هيئة\nالتدريس" as INS
+
+NTF --> STU : دعوة إلى تقييم المقررات عند فتح النافذة
+STU -> UI : فتح التقييمات المطلوبة واختيار مقرر
+UI -> API : طلب الاستبانة\n""GET /api/me/evaluations/{invitationId}""
+API -> API : التحقق من الرمز والصلاحية\n""evaluations.submit""
+API --> UI : الأسئلة مع تنبيه إخفاء الهوية\n""200 OK""
+STU -> UI : الإجابة ثم إرسال
+UI -> API : إرسال الاستبانة\n""POST /api/me/evaluations/{invitationId}/submit""
+alt #FFEBEE الاستبانة مغلقة
+  API --> UI : رفض الطلب\n""409 EVL_CLOSED""
+  UI --> STU : رسالة الاستبانة مغلقة
+else #FFEBEE قيّم الطالب المقرر سابقاً
+  API --> UI : رفض الطلب\n""409 EVL_ALREADY_SUBMITTED""
+  UI --> STU : رسالة سبق أن قدّمت هذا التقييم
+else #FFEBEE سؤال إلزامي بلا إجابة
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> STU : وسم السؤال الناقص
+else #E8F5E9 الاستبانة صالحة
+  API -> DB : تخزين الإجابات دون أي رابط بالهوية
+  API -> DB : تعليم مشاركة الطالب فقط
+  API --> UI : تم\n""200 OK""
+  UI --> STU : رسالة شكر وإخراج المقرر من المطلوب
+end
+
+== النتائج ==
+INS -> UI : فتح نتائج تقييمي بعد نشر الدرجات
+UI -> API : طلب النتائج\n""GET /api/me/evaluation-results""
+API -> API : التحقق من الصلاحية\n""evaluations.results.own""
+API -> DB : فحص نشر الدرجات وعدد الاستجابات
+alt #FFEBEE الدرجات غير منشورة أو الاستجابات دون الحد
+  API --> UI : رفض الطلب\n""409 EVL_INSUFFICIENT_RESPONSES""
+  UI --> INS : رسالة الاستجابات أقل من الحد الأدنى\nأو النتائج بعد نشر الدرجات
+else #E8F5E9 الشرطان متحققان
+  API --> UI : المتوسطات لكل سؤال والتعليقات دون هوية\n""200 OK""
+  UI --> INS : النتائج المجمّعة
+end
+note over UI, API
+  يطّلع رئيس القسم والعميد على نتائج نطاقهما
+  ""GET /api/evaluations/results""
+end note
+@enduml

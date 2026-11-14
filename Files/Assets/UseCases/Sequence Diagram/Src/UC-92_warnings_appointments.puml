@@ -1,0 +1,86 @@
+@startuml UC-92_warnings_appointments
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-92 — متابعة الإنذارات ومواعيد الإرشاد
+
+actor "المرشد الأكاديمي" as ADV
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "حجز المواعيد\nBookAppointmentAction" as BOOK
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "الطالب" as STU
+
+== الإنذارات ==
+API --> ADV : إشعار بإنذار أكاديمي لأحد طلابه\nأو ارتفاع مؤشر تعثّره
+ADV -> UI : فتح الإنذارات ومراجعة الإنذار
+UI -> API : الإنذارات\n""GET /api/academic-warnings""
+API -> API : التحقق من الرمز والصلاحية\n""advising.warnings.view""
+ADV -> UI : مُطّلَع عليه ثم معالج مع ملاحظة
+UI -> API : المعالجة\n""POST /api/academic-warnings/{id}/resolve""
+API -> DB : حفظ حالة الإنذار
+
+== المواعيد ==
+ADV -> UI : تحديد فترات المواعيد المتاحة
+UI -> API : الفترات\n""POST /api/advising/slots""
+STU -> UI : اختيار فترة وكتابة الموضوع ثم الحجز
+UI -> API : الحجز\n""POST /api/me/advising/appointments""
+API -> BOOK : قفل جدول المرشد داخل معاملة
+BOOK -> DB : فحص خلو الفترة وعدم تداخلها
+alt #FFEBEE حُجزت الفترة أو تتداخل مع موعد للطالب
+  BOOK --> API : الفترة غير متاحة
+  API --> UI : رفض الطلب\n""409 GEN_CONFLICT""
+  UI --> STU : بيان أن الفترة لم تعد متاحة\nمع تحديث الفترات
+else #E8F5E9 الفترة متاحة
+  BOOK -> DB : حجز الموعد
+  API --> STU : تأكيد الحجز والتذكير قبله
+  API --> ADV : إشعار بموعد جديد
+end
+ADV -> UI : بعد اللقاء تمّ أو لم يحضر
+UI -> API : إتمام الموعد\n""POST /api/advising/appointments/{id}/complete""
+
+== الملاحظات ==
+ADV -> UI : ملاحظة إرشاد بمستوى رؤيتها
+UI -> API : حفظ الملاحظة\n""POST /api/advising/advisees/{studentId}/notes""
+API -> API : التحقق من الصلاحية\n""advising.notes.manage""
+alt #FFEBEE الملاحظة فارغة
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ADV : رسالة بعض البيانات غير صالحة
+else #E8F5E9 الملاحظة صالحة
+  API -> DB : حفظ الملاحظة مشفّرة بمستوى رؤيتها
+  API --> UI : تم\n""201 Created""
+end
+@enduml

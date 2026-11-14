@@ -1,0 +1,81 @@
+@startuml UC-91_advising_clearance
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-91 — مراجعة الخطة الفصلية ومنح تصريح التسجيل
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "مقترح الخطة\nSuggestedPlanGenerator" as SPG
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "المرشد الأكاديمي" as ADV
+
+== الطالب يقدّم خطته ==
+STU -> UI : فتح خطتي للفصل
+UI -> API : طلب الخطة\n""GET /api/me/advising/clearance""
+API -> API : التحقق من الرمز والصلاحية\n""advising.self""
+API -> SPG : خطة مقترحة من الخطة والمتطلبات المستوفاة\nوالمطروح وحد الساعات مع أولوية الراسبة
+API --> UI : الخطة المقترحة\n""200 OK""
+STU -> UI : التعديل ثم التقديم للمرشد
+UI -> API : التقديم\n""POST /api/me/advising/clearance/submit""
+alt #FFEBEE نافذة الإرشاد مغلقة
+  API --> UI : رفض الطلب\n""409 GEN_WINDOW_CLOSED""
+  UI --> STU : رسالة الفترة المخصصة لهذا مغلقة
+else #FFEBEE الخطة تتجاوز حد الساعات
+  API --> UI : رفض الطلب\n""422 ENR_CREDIT_MAX_EXCEEDED""
+  UI --> STU : رسالة يتجاوز هذا الحد الأعلى لساعاتك
+else #E8F5E9 الخطة صالحة
+  API -> DB : حفظ الخطة مقدّمة وإشعار المرشد
+  API --> UI : تم التقديم\n""200 OK""
+end
+
+== المرشد يراجع ==
+ADV -> UI : فتح تصاريح التسجيل ثم خطة الطالب
+UI -> API : تفاصيل الخطة\n""GET /api/advising/clearances/{id}""
+API -> API : التحقق من الصلاحية والنطاق\n""advising.clearance.approve""
+API --> UI : الخطة مع التدقيق الأكاديمي ومؤشرات الخطر\n""200 OK""
+ADV -> UI : منح التصريح أو الإعادة بملاحظات
+UI -> API : القرار\n""POST /api/advising/clearances/{id}/approve""
+alt #FFEBEE الطالب ليس من طلابه أو الخطة لم تعد بانتظار المراجعة
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN_SCOPE""\n""409 GEN_INVALID_TRANSITION""
+  UI --> ADV : رسالة تبيّن السبب
+else #E8F5E9 القرار صالح
+  API -> DB : تسجيل التصريح ليستعمله خط التحقق\nأو إعادة الخطة بالملاحظات
+  API --> STU : إشعار بالتصريح أو بالملاحظات
+  API --> UI : تم\n""200 OK""
+end
+@enduml

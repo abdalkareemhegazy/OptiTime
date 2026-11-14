@@ -1,0 +1,87 @@
+@startuml UC-21_manage_labs
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-21 — إدارة المختبرات
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== عرض المختبرات ==
+CRD -> UI : فتح صفحة إدارة القاعات\nوتصفية القاعات بنوع مختبرات وورش
+UI -> API : طلب القاعات\n""GET /api/admin/rooms""
+API -> API : التحقق من الرمز والصلاحية\n""rooms.view""
+API -> DB : قراءة القاعات وميزاتها ونسبة المحجوز من أسبوع كل منها
+DB --> API : القاعات
+API --> UI : قائمة القاعات\n""200 OK""
+UI --> CRD : عرض المختبرات وحدها\nبمقاعدها وحالتها وميزاتها ونسبة المحجوز
+
+== فتح المختبر وتعديله ==
+CRD -> UI : فتح مختبر قائم أو إضافة قاعة جديدة بنوع مختبر
+UI -> API : تحميل فهرس الميزات\n""GET /api/features""
+API --> UI : الميزات
+UI --> CRD : عرض نموذج القاعة مع تنبيهات خاصة بالمختبرات
+CRD -> UI : تعديل مقاعد المختبر وحالته
+CRD -> UI : تسجيل ما يقدمه المختبر من الفهرس مع العدد\nحواسيب وطاولات مخبرية ونقاط شبكة وجهاز عرض
+CRD -> UI : الضغط على حفظ التغييرات
+UI -> API : إرسال بيانات المختبر\n""PUT /api/admin/rooms/{id}""
+API -> API : التحقق من الرمز والصلاحية\n""rooms.update""
+alt #FFEBEE اسم ناقص أو مقاعد أو عدد ميزة خارج المجال
+  API --> UI : أخطاء الحقول\n""422""
+  UI --> CRD : رسالة الخطأ تحت الحقل
+else #E8F5E9 البيانات صالحة
+  API -> DB : حفظ المختبر وميزاته في عملية واحدة
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : بيانات المختبر\n""200 OK""
+  UI --> CRD : رسالة حُفظت القاعة مع رمزها
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 الإبلاغ عن عطل في هذه القاعة
+  CRD -> UI : الضغط على أبلغ عن عطل في هذه القاعة
+  ref over CRD, DB : UC-22 إدارة الصيانة
+  note over UI, API
+    إن أوقف البلاغ الاستخدام خرج المختبر
+    من الجدول والحجوزات حتى يُغلق
+  end note
+end
+opt #FFF8E1 عرض معدات المختبر
+  CRD -> UI : الضغط على اعرضها
+  UI --> CRD : فتح صفحة الأجهزة والمعدات مصفّاة على وحدات المختبر
+end
+@enduml

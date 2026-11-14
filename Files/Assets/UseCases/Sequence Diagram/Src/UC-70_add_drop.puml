@@ -1,0 +1,87 @@
+@startuml UC-70_add_drop
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-70 — السحب والإضافة
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "إدارة المقاعد\nSeatManager" as SEAT
+  participant "تقدير الرسوم\nFeeAssessmentService" as FEE
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+STU -> UI : فتح تسجيلاتي للفصل
+UI -> API : طلب التسجيلات\n""GET /api/me/enrollments""
+API --> UI : المقررات والشعب والساعات وحالة النافذة\n""200 OK""
+alt #E8F5E9 حذف مقرر
+  STU -> UI : حذف مقرر
+  UI -> API : طلب الحذف\n""POST /api/me/enrollments/{id}/drop""
+  API -> API : فحص النافذة والحد الأدنى للساعات
+  alt #FFEBEE النافذة مغلقة
+    API --> UI : رفض الطلب\n""409 ENR_DROP_WINDOW_CLOSED""
+    UI --> STU : رسالة انتهت فترة الحذف\nمع إمكانية تقديم طلب انسحاب
+  else #FFEBEE الحذف ينزل تحت الحد الأدنى
+    API --> UI : رفض الطلب\n""422 ENR_DROP_BELOW_MIN""
+    UI --> STU : رسالة الحذف سينزل بك تحت الحد الأدنى
+  else #E8F5E9 الحذف مسموح
+    API -> SEAT : تحرير المقعد وترقية أول المنتظرين
+    API -> FEE : إشعار دائن على الفاتورة
+    API -> DB : حذف التسجيل وتسجيله في سجل التدقيق
+    API --> UI : التسجيلات بعد الحذف\n""200 OK""
+    UI --> STU : تحديث الجدول ورسالة النجاح
+  end
+else #FFF3E0 تبديل الشعبة
+  STU -> UI : تبديل الشعبة واختيار شعبة أخرى
+  UI -> API : طلب التبديل\n""POST /api/me/enrollments/{id}/swap""
+  ref over API, DB : UC-68 التحقق من أهلية التسجيل
+  alt #FFEBEE فشلت قاعدة على الشعبة الجديدة
+    API --> UI : نتيجة التحقق\n""422 ENR_TIME_CONFLICT""
+    UI --> STU : القاعدة الفاشلة وسببها
+  else #E8F5E9 التحقق ناجح
+    API -> SEAT : حجز الجديد وتحرير القديم في معاملة واحدة
+    alt #FFEBEE امتلأت الشعبة الجديدة في الأثناء
+      SEAT -> DB : التراجع وبقاء الشعبة الأصلية
+      API --> UI : رفض الطلب\n""409 ENR_SECTION_FULL""
+      UI --> STU : رسالة لا توجد مقاعد متاحة
+    else #E8F5E9 تم التبديل
+      API -> FEE : فاتورة تعديل إن تغيّرت الرسوم
+      API --> UI : التسجيل الجديد\n""200 OK""
+      UI --> STU : تحديث الجدول ورسالة النجاح
+    end
+  end
+end
+@enduml

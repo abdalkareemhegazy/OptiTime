@@ -1,0 +1,94 @@
+@startuml UC-50_academic_programs
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-50 — إدارة البرامج الأكاديمية
+
+actor "مدير النظام\nأو موظف الشؤون" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+U -> UI : فتح البرامج الأكاديمية
+UI -> API : طلب البرامج\n""GET /api/programs""
+API -> API : التحقق من الرمز والصلاحية\n""programs.view""
+API -> DB : قراءة البرامج بأعداد طلابها وخططها
+API --> UI : البرامج\n""200 OK""
+UI --> U : البرامج بحسب الأقسام\nوتنبيه الأقسام التي لا تمنح برنامجاً
+
+== إنشاء برنامج أو تعديل لوائحه ==
+U -> UI : إدخال القسم والاسمين والرمز والدرجة\nوالساعات والمدة وبدايات السنوات ثم حفظ
+UI -> UI : فحص الحقول وبدايات السنوات
+alt #FFEBEE حقل ناقص أو قيمة خارج الحدود\nأو بدايات سنوات غير متصاعدة
+  UI --> U : رسالة تحت الحقل\nمثل السنة الأولى تبدأ من الصفر
+else #E8F5E9 الحقول صالحة
+  alt #E8F5E9 برنامج جديد من مدير النظام
+    UI -> API : إنشاء البرنامج\n""POST /api/programs""
+    API -> API : التحقق من الصلاحية\n""programs.create""
+  else #FFF3E0 تعديل اللوائح من موظف الشؤون
+    UI -> API : تعديل البرنامج\n""PUT /api/programs/{id}""
+    API -> API : التحقق من الصلاحية\n""programs.update""
+  end
+  alt #FFEBEE الرمز مستخدم لبرنامج آخر
+    API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+    UI --> U : رسالة هذا الرمز مستخدم لبرنامج آخر
+  else #FFEBEE نقل برنامج فيه طلاب إلى قسم آخر
+    API --> UI : رفض الطلب\n""422 ORG_PROGRAM_HAS_STUDENTS""
+    UI --> U : رسالة في البرنامج طلاب مسجلون\nفيبقى في قسمه
+  else #E8F5E9 الطلب صالح
+    API -> DB : حفظ البرنامج وتسجيله في سجل التدقيق
+    API --> UI : البرنامج المحفوظ\n""200 OK""
+    UI --> U : رسالة أُنشئ البرنامج أو حُفظت التغييرات
+  end
+end
+
+== حذف برنامج ==
+U -> UI : حذف البرنامج ثم التأكيد
+UI -> API : حذف البرنامج\n""DELETE /api/programs/{id}""
+API -> API : التحقق من الصلاحية\n""programs.delete""
+alt #FFEBEE في البرنامج طلاب أو خطط دراسية
+  API --> UI : رفض الحذف\n""422 ORG_HAS_DEPENDENTS""
+  UI --> U : رسالة لا يُحذف أغلقه بدلاً من ذلك
+  U -> UI : تغيير الحالة إلى مغلق
+  UI -> API : إغلاق البرنامج\n""PUT /api/programs/{id}""
+  API -> DB : إغلاق البرنامج أمام الطلاب الجدد
+  UI --> U : رسالة أُغلق البرنامج أمام الطلاب الجدد
+else #E8F5E9 البرنامج فارغ
+  API -> DB : حذف البرنامج وتسجيل ذلك
+  API --> UI : تم الحذف\n""200 OK""
+  UI --> U : رسالة حُذف البرنامج
+end
+@enduml

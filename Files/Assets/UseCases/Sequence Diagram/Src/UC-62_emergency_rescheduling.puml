@@ -1,0 +1,89 @@
+@startuml UC-62_emergency_rescheduling
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-62 — الإعادة الطارئة للجدولة واقتراح البدلاء
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "اقتراحات الطوارئ\nEmergencySuggestionService" as EMG
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "المدرّس والطلاب\nالمتأثرون" as AFF
+
+== اقتراح البدائل ==
+CRD -> UI : فتح الجلسة المتأثرة واختيار نوع التغيير\nإلغاء أو نقل أو تغيير قاعة أو تعويض
+UI -> API : طلب أفضل البدائل\n""GET /api/emergency/suggestions""
+API -> API : التحقق من الرمز والصلاحية\n""scheduling.emergency""
+alt #FFEBEE الفصل مغلق أو الجدول غير منشور
+  API --> UI : رفض الطلب\n""409 SCH_TERM_CLOSED""
+  UI --> CRD : رسالة هذا الفصل مغلق لا تتغير نسخ جدوله
+else #E8F5E9 الجدول منشور
+  API -> EMG : إصلاح سريع يثبّت الجدول كله\nعدا العنصر المتأثر
+  EMG -> DB : قراءة الشواغر للقاعات والمدرّس والطلاب
+  EMG --> API : أفضل خمسة بدائل مرتبة
+  API --> UI : البدائل وأثر كل منها\n""200 OK""
+  alt #FFEBEE لا بديل صالحاً
+    UI --> CRD : بيان أنه لا بديل متاحاً\nمع اقتراح الإلغاء والتعويض لاحقاً
+  else #E8F5E9 توجد بدائل
+    CRD -> UI : اختيار بديل وكتابة السبب ثم التأكيد
+    UI -> API : نقل الجلسة\n""POST /api/class-sessions/{id}/reschedule""
+    API -> DB : قفل الجلسة وفحص التداخل داخل معاملة
+    alt #FFEBEE حُجز البديل لغيره في الأثناء
+      API --> UI : رفض الطلب\n""409 SCH_ROOM_OCCUPIED""\n""409 SCH_INSTRUCTOR_BUSY""
+      UI --> CRD : رسالة تبيّن التداخل مع تحديث البدائل
+    else #E8F5E9 البديل خالٍ
+      API -> DB : حجز القاعة وتسجيل التغيير بنوعه وسببه ومنفّذه\nوربطه بالبلاغ أو الطلب المرتبط
+      API -> NTF : إشعار المتأثرين بالتغيير
+      NTF --> AFF : إشعار بنقل الجلسة وتحديث الجداول
+      API --> UI : الجلسة بعد التغيير\n""200 OK""
+      UI --> CRD : تأكيد التغيير
+    end
+  end
+end
+
+== بديل عند اعتماد إجازة ==
+opt #FFF8E1 اعتُمدت إجازة مدرّس له جلسات في مدتها
+  CRD -> UI : فتح الجلسات المتأثرة بالإجازة
+  UI -> API : طلب المرشحين\n""GET /api/substitutions/candidates""
+  API -> DB : المؤهَّلون للمقرر المتاحون بلا تعارض
+  API --> UI : المرشحون مرتبين بالملاءمة\n""200 OK""
+  CRD -> UI : اختيار البديل وتأكيده
+  UI -> API : تأكيد البديل\n""POST /api/substitutions/{id}/confirm""
+  API -> NTF : إشعار البديل والطلاب
+end
+@enduml

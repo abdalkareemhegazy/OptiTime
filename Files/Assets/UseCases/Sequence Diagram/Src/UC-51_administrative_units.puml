@@ -1,0 +1,99 @@
+@startuml UC-51_administrative_units
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-51 — إدارة الوحدات الإدارية
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+ADM -> UI : فتح الوحدات الإدارية
+UI -> API : طلب شجرة الوحدات\n""GET /api/administrative-units""
+API -> API : التحقق من الرمز والصلاحية\n""administrative_units.view""
+API --> UI : الوحدات ومديروها وعدد العاملين\n""200 OK""
+UI --> ADM : شجرة الوحدات\nوتنبيه الوحدات التي لا يديرها أحد
+
+== حفظ وحدة ==
+ADM -> UI : وحدة جديدة تحت وحدة أم\nمع الاسمين والرمز والمبنى والبريد والهاتف
+UI -> API : البحث عن الموظفين لاختيار المدير\n""GET /api/organization/staff""
+API --> UI : الموظفون\n""200 OK""
+ADM -> UI : اختيار المدير ثم حفظ
+UI -> API : إنشاء الوحدة\n""POST /api/administrative-units""
+API -> API : التحقق من الصلاحية\n""administrative_units.create""
+alt #FFEBEE حقل ناقص أو رمز أو بريد أو هاتف غير صالح\nأو رمز مستخدم
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ADM : رسالة تحت الحقل
+else #FFEBEE الوحدة تحت نفسها أو تحت إحدى تابعاتها
+  API --> UI : رفض الطلب\n""422 ORG_UNIT_CYCLE""
+  UI --> ADM : رسالة لا توضع وحدة تحت نفسها\nأو تحت وحدة تابعة لها
+else #FFEBEE العمق يتجاوز ستة مستويات
+  API --> UI : رفض الطلب\n""422 ORG_UNIT_TOO_DEEP""
+  UI --> ADM : رسالة سيصبح الهيكل أعمق من المسموح
+else #FFEBEE المدير ليس موظفاً قادراً على الدخول
+  API --> UI : رفض الطلب\n""422 ORG_UNIT_MANAGER_INELIGIBLE""
+  UI --> ADM : رسالة لا يدير الوحدة إلا موظف قادر على الدخول
+else #E8F5E9 البيانات صالحة
+  API -> DB : حفظ الوحدة وتسجيلها في سجل التدقيق
+  API --> UI : الوحدة الجديدة\n""201 Created""
+  UI --> ADM : رسالة أُنشئت الوحدة
+end
+
+== العاملون في الوحدة ==
+ADM -> UI : إضافة العاملين بالبحث ثم حفظ
+UI -> API : حفظ العاملين\n""PUT /api/administrative-units/{id}/members""
+API -> API : التحقق من الصلاحيتين\n""administrative_units.update""\n""users.update""
+alt #FFEBEE أحد العاملين ليس حساب موظف أو لم يعد موجوداً
+  API --> UI : رفض الطلب\n""422 ORG_UNIT_MEMBER_INELIGIBLE""
+  UI --> ADM : رسالة لا يعمل في الوحدة إلا حسابات الموظفين
+else #E8F5E9 العاملون صالحون
+  API -> DB : ربط الحسابات بالوحدة\nدون تغيير أقسامها الأكاديمية
+  API --> UI : الوحدة بعامليها\n""200 OK""
+  UI --> ADM : رسالة حُفظت التغييرات
+end
+opt #FFF8E1 حذف الوحدة
+  ADM -> UI : حذف الوحدة ثم التأكيد
+  UI -> API : حذف الوحدة\n""DELETE /api/administrative-units/{id}""
+  alt #FFEBEE تحتها وحدات أو يعمل فيها موظفون
+    API --> UI : رفض الحذف\n""422 ORG_HAS_DEPENDENTS""
+    UI --> ADM : رسالة انقلهم أولاً أو أغلقها
+  else #E8F5E9 الوحدة فارغة
+    API -> DB : حذف الوحدة
+    UI --> ADM : رسالة حُذفت الوحدة
+  end
+end
+@enduml

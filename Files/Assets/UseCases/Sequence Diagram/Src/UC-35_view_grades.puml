@@ -1,0 +1,95 @@
+@startuml UC-35_view_grades
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-35 — عرض الدرجات
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح صفحة درجاتي ==
+STU -> UI : فتح صفحة درجاتي من مجموعة مساحتي
+UI -> API : طلب الفصول وسلّم تقديرات البرنامج\n""GET /api/student/semesters""\n""GET /api/student/grading-scale""
+API -> API : التحقق من الرمز والصلاحية\n""student.grades.view""
+alt #FFEBEE لا يملك صلاحية عرض الدرجات
+  API --> UI : رفض الطلب\n""403""
+  UI --> STU : التحويل إلى صفحة لا صلاحية
+else #FFEBEE تعذّر التحميل بسبب خطأ في الخادم
+  UI --> STU : رسالة تعذّر تحميل الدرجات\nمع زر إعادة المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : قراءة الفصول التي للطالب مقررات فيها\nوسلّم تقديرات برنامجه
+  API --> UI : الفصول والسلّم\n""200 OK""
+  alt #FFF3E0 لا فصول مسجَّلة باسم الطالب
+    UI --> STU : رسالة لا فصول مسجّلة باسمك\nفلا توجد درجات تُعرض
+  else #E8F5E9 توجد فصول مسجَّلة
+    UI -> API : طلب درجات أحدث فصل\n""GET /api/student/grades""
+    API -> DB : قراءة مقررات الفصل ومكوّنات كل مقرر وعلامات الطالب
+    API --> UI : الدرجات\n""200 OK""
+    UI --> STU : عرض المعدّل والمقررات المصحّحة وما بانتظار الرصد\nوعدد المقررات الناجحة مع سلّم تقديرات برنامجه
+  end
+end
+
+== فصل آخر وتفصيل المقرر ==
+STU -> UI : اختيار فصل آخر عند الحاجة
+UI -> API : طلب درجات الفصل المختار\n""GET /api/student/grades""
+API --> UI : درجات الفصل\n""200 OK""
+alt #FFF3E0 لا مقررات في الفصل المختار
+  UI --> STU : رسالة لا مقررات في هذا الفصل جرّب فصلاً آخر
+else #E8F5E9 توجد مقررات
+  UI --> STU : عرض المقررات مرتبة من الأعلى علامةً إلى الأدنى\nوما لم يُرصد في آخر القائمة
+end
+STU -> UI : فتح مقرر لعرض تفصيل علامته
+UI --> STU : عرض مكوّنات المقرر\nوزن كل مكوّن وعلامة الطالب فيه من علامته العظمى\nوتاريخ رصده وما لم يُرصد بعد
+
+== تنزيل ملف الدرجات ==
+STU -> UI : الضغط على تنزيل ملف الدرجات
+UI -> API : طلب ملف الدرجات\n""GET /api/student/grades/pdf""
+API -> API : التحقق من صلاحية التصدير\n""student.grades.export""
+alt #FFEBEE فشل إنشاء الملف أو تنزيله
+  API --> UI : رفض الطلب\n""500""
+  UI --> STU : رسالة تعذّر تنزيل ملف الدرجات
+else #E8F5E9 الملف جاهز
+  API --> UI : ملف الدرجات\n""200 OK""
+  UI --> STU : تنزيل الملف
+end
+note over UI, API
+  المقرر المرصود جزئياً يعرض المكوّنات المرصودة
+  والباقي لم يُرصد بعد ولا يُحتسب تقديره قبل اكتمال علامته
+  وعند اكتمال علامات مقرر يصل الطالب إشعار بدرجة جديدة
+end note
+@enduml

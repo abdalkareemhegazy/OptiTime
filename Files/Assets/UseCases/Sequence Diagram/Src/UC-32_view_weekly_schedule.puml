@@ -1,0 +1,95 @@
+@startuml UC-32_view_weekly_schedule
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-32 — عرض الجدول الأسبوعي
+
+actor "الطالب أو عضو\nهيئة التدريس" as USR
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح الجدول ==
+USR -> UI : فتح صفحة جدولي الأسبوعي من مجموعة مساحتي
+UI -> API : طلب الجدول الأسبوعي\n""GET /api/student/weekly-schedule""\n""GET /api/instructor/weekly-schedule""
+API -> API : التحقق من الرمز والصلاحية\n""student.schedule.view""\n""instructor.schedule.view""
+alt #FFEBEE لا يملك صلاحية عرض جدوله
+  API --> UI : رفض الطلب\n""403""
+  UI --> USR : التحويل إلى صفحة لا صلاحية
+else #FFEBEE تعذّر التحميل بسبب خطأ في الخادم
+  UI --> USR : رسالة تعذّر تحميل الجدول\nمع زر إعادة المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : تحديد الفصل النشط\nوتحميل الجدول المنشور لمحاضرات المستخدم
+  DB --> API : الفصل والمحاضرات
+  alt #FFF3E0 لا فصل نشط أو لم يُنشر الجدول أو لا محاضرات باسم المستخدم
+    API --> UI : حالة فارغة مع سببها\n""200 OK""
+    UI --> USR : رسالة تبيّن السبب\nولا فصل نشط أو لم يُنشر الجدول بعد أو لا محاضرات باسمك
+  else #E8F5E9 توجد محاضرات
+    API --> UI : الفصل والمحاضرات وشبكة الأسبوع\n""200 OK""
+    UI --> USR : عرض الأرقام الإجمالية والمحاضرة التالية\nوالجدول الأسبوعي مع تعليم اليوم الحالي وتسمية العطلة
+  end
+end
+
+== تفاصيل المحاضرة ==
+USR -> UI : اختيار محاضرة
+UI --> USR : عرض المقرر والشعبة والمدرّس والقاعة واليوم والوقت\nوما طرأ على موعد بعينه من نقل أو إلغاء
+
+== تنزيل ملف الجدول ==
+USR -> UI : الضغط على تنزيل ملف الجدول
+UI -> API : طلب ملف الجدول\n""GET /api/student/weekly-schedule/pdf""\n""GET /api/instructor/weekly-schedule/pdf""
+alt #FFEBEE فشل إنشاء الملف أو تنزيله
+  API --> UI : رفض الطلب\n""500""
+  UI --> USR : رسالة تعذّر تنزيل ملف الجدول
+else #E8F5E9 الملف جاهز
+  API --> UI : ملف الجدول\n""200 OK""
+  UI --> USR : تنزيل الملف
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 اشتراك التقويم
+  USR -> UI : فتح التقويم الأكاديمي واختيار اشترك أو نزّل
+  UI -> API : طلب رابط الاشتراك\n""POST /api/calendar/feed""
+  API --> UI : رابط يتحدّث تلقائياً في تقويمه الشخصي\n""201 Created""
+end
+opt #FFF8E1 إجراءات عضو هيئة التدريس على المحاضرة
+  ref over USR, DB : UC-33 تقديم طلب اعتذار أو تعويض عن محاضرة
+  ref over USR, DB : UC-24 طلب موارد إضافية
+end
+note over UI, API
+  عند نشر نسخة جديدة أو نقل محاضرة أو إلغاء موعدها
+  يصل المستخدم إشعار فوري ويتحدّث جدوله
+end note
+@enduml

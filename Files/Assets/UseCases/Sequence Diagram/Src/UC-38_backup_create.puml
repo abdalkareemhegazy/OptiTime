@@ -1,0 +1,77 @@
+@startuml UC-38_backup_create
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-38 (1/2) — إنشاء نسخة احتياطية
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة النسخ الاحتياطي\nBackupService" as BKP
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== اختيار نوع النسخة ==
+ADM -> UI : فتح صفحة النسخ الاحتياطي من مجموعة النظام
+UI --> ADM : عرض قائمة النسخ الحالية والاستعادات السابقة
+ADM -> UI : اختيار نوع النسخة\nكاملة أو البيانات أو الملفات
+ADM -> UI : الضغط على خذ نسخة الآن
+
+== إنشاء النسخة ==
+UI -> API : طلب إنشاء نسخة\n""POST /api/admin/backups""
+API -> API : التحقق من الرمز والصلاحية\n""system_backups.create""
+API -> BKP : إنشاء النسخة بالنوع المختار
+BKP -> DB : تسجيل النسخة بحالة جارية
+BKP -> DB : قراءة الجداول
+BKP -> BKP : بناء أرشيف الجداول والملفات المرفوعة بحسب النوع\nمع توقيع للتحقق ثم تشفيره وحفظه على الخادم
+BKP --> API : النسخة بحالتها النهائية
+API -> DB : تسجيل العملية في سجل التدقيق
+alt #FFEBEE تعذّر إكمال النسخة الاحتياطية
+  BKP -> DB : تحويل النسخة إلى فشلت
+  API --> UI : رفض الطلب\n""500 SYS_BACKUP_FAILED""
+  UI --> ADM : رسالة تعذّر إكمال النسخة الاحتياطية\nوتظهر النسخة بحالة فشلت
+else #E8F5E9 اكتملت النسخة
+  BKP -> DB : تحويل النسخة إلى اكتملت مع حجمها وتوقيعها
+  API --> UI : بيانات النسخة\n""201 Created""
+  UI --> ADM : عرض النسخة في القائمة بحالة اكتملت\nمع حجمها وعدد جداولها وصفوفها
+end
+note over UI, API
+  تنزيل نسخة أو حذفها بعد تأكيد الهوية
+  ""GET /api/admin/backups/{id}/download""
+  ""DELETE /api/admin/backups/{id}""
+  وينشئ المجدول نسخاً تلقائية بحسب إعدادات النسخ الاحتياطي
+  ويحتفظ بعدد محدد منها
+end note
+@enduml

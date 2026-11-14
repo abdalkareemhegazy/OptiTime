@@ -1,0 +1,90 @@
+@startuml UC-108_schedule_explainer
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-108 — شرح نتيجة الجدولة
+
+actor "المنسق أو عضو\nهيئة التدريس" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "بوابة الذكاء\nAiGateway" as GW
+end box
+box "خدمة الذكاء الاصطناعي" #F3FAF3
+  participant "خدمة الذكاء\nFastAPI" as AIS
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "مزوّد النماذج\nاللغوية" as LLM
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== شرح نتيجة التوليد ==
+U -> UI : فتح نتيجة توليد والضغط على اشرح النتيجة
+UI -> API : الشرح\n""GET /api/ai/explain/generation-runs/{id}""
+API -> API : التحقق من الرمز والصلاحية\n""schedules.view""
+API -> GW : فحص تفعيل الميزة لدوره وحصته
+API -> DB : تقرير التوليد بالشعب غير المجدولة وأسبابها\nوفحص الكفاية والقيود المرنة الأكثر مخالفة
+alt #FFEBEE التوليد ما زال جارياً أو لا تقرير له
+  API --> UI : رفض الطلب\n""409""
+  UI --> U : الشرح يتاح بعد انتهاء التوليد
+else #E8F5E9 التقرير موجود
+  GW -> AIS : التقرير المهيكل وحده\n""HMAC""
+  AIS -> LLM : صياغة شرح من التقرير\nمع إجراءات مقترحة
+  alt #FFEBEE تعذّرت الخدمة
+    API --> UI : التقرير المهيكل دون نص مولّد\n""200 OK""
+  else #E8F5E9 الشرح جاهز
+    LLM --> AIS : نص الشرح
+    AIS -> AIS : مطابقة كل رقم في النص بالتقرير
+    alt #FFF3E0 رقم غير وارد في التقرير
+      AIS -> LLM : إعادة الصياغة مرة واحدة
+      AIS --> API : التقرير المهيكل إن تكرر الخطأ
+    else #E8F5E9 الأرقام كلها من التقرير
+      AIS --> API : الشرح والإجراءات المقترحة
+    end
+    API --> UI : الشرح موسوماً بأنه مولّد بالذكاء الاصطناعي\n""200 OK""
+  end
+end
+
+== لماذا هنا ==
+U -> UI : الضغط على محاضرة واختيار لماذا هنا
+UI -> API : الشرح\n""GET /api/ai/explain/lectures/{id}""
+API -> API : التحقق من الصلاحية\n""schedules.view""\n""instructor.schedule.view""
+alt #FFEBEE المحاضرة ليست من محاضرات المدرّس
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN_SCOPE""
+  UI --> U : رسالة هذا خارج نطاق دورك
+else #E8F5E9 ضمن نطاقه
+  API -> DB : القيود والتفضيلات التي حددت الموضع\nمن تقرير المحرك
+  API --> UI : تفرّغ المدرّس وسعة القاعة ونوعها\nوقواعد الجدولة المؤثرة\n""200 OK""
+end
+@enduml

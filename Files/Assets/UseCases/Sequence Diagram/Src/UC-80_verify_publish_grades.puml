@@ -1,0 +1,91 @@
+@startuml UC-80_verify_publish_grades
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-80 — الإدخال المزدوج واعتماد الكشوف ونشرها
+
+actor "موظف شؤون\nالامتحانات" as EXM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "نشر الكشوف\nPublishGradeSheetsAction" as PUB
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== الإدخال المزدوج ==
+EXM -> UI : فتح الكشوف المراجَعة وإدخال علامة النهائي\nأو استيراد ملف التحقق
+UI -> API : حفظ الإدخال المستقل\n""PUT /api/grade-sheets/{id}/verification-marks""
+API -> API : التحقق من الرمز والصلاحية\n""grades.verify""
+alt #FFEBEE الكشف ليس بحالة تسمح بالتحقق
+  API --> UI : رفض الطلب\n""409 GRD_SHEET_NOT_EDITABLE""
+  UI --> EXM : رسالة لا يمكن تعديل الكشف في مرحلته الحالية
+else #E8F5E9 الحالة تسمح
+  API -> DB : حفظ الإدخال المستقل
+  UI -> API : جدول الفروقات\n""GET /api/grade-sheets/{id}/comparison""
+  API --> UI : الطالب والعلامتان والفرق\n""200 OK""
+  loop #FFFFFF لكل فرق
+    EXM -> UI : اختيار العلامة الصحيحة مع ملاحظة
+    UI -> API : حل الفرق\n""POST /api/grade-sheets/{id}/resolve-mismatch""
+  end
+end
+
+== الاعتماد ==
+EXM -> UI : اعتماد الكشف
+UI -> API : الاعتماد\n""POST /api/grade-sheets/{id}/approve""
+API -> API : التحقق من الصلاحية\n""grades.approve""
+alt #FFEBEE بقيت فروقات غير محلولة
+  API --> UI : رفض الطلب\n""422 GRD_MISMATCH_UNRESOLVED""
+  UI --> EXM : رسالة فروقات الإدخال المزدوج غير محلولة
+else #E8F5E9 لا فروقات
+  API -> DB : نقل الكشف إلى معتمد وتسجيل الانتقال
+end
+
+== النشر ==
+EXM -> UI : اختيار الكشوف المعتمدة لقسم أو كلية ثم نشر
+UI -> API : نشر جماعي بمفتاح تكرار آمن\n""POST /api/grade-sheets/publish-batch""
+API -> API : التحقق من الصلاحية وتأكيد الهوية\n""grades.publish""
+alt #FFEBEE التأكيد غير صحيح
+  API --> UI : رفض\n""422 AUTH_STEP_UP_INVALID""
+  UI --> EXM : رسالة التأكيد غير صحيح
+else #FFEBEE المفتاح نفسه بمحتوى مختلف
+  API --> UI : رفض الطلب\n""409 GEN_IDEMPOTENCY_CONFLICT""
+  UI --> EXM : رسالة أُرسل هذا الطلب سابقاً بمحتوى مختلف
+else #E8F5E9 الطلب مقبول
+  API --> UI : قُبل الطلب للتنفيذ\n""202 Accepted""
+  API -> PUB : النشر في الخلفية
+  PUB -> DB : نقل الكشوف إلى منشور وتخطي المنشور مسبقاً
+  ref over PUB, DB : UC-81 حساب المعدل والوضع الأكاديمي
+  PUB -> DB : الإنذارات ثم مراجعة أهلية المنح\nثم إشعار الطلاب بدرجة جديدة
+end
+@enduml

@@ -1,0 +1,85 @@
+@startuml UC-69_waitlist
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-69 — الانضمام إلى قائمة الانتظار وقبول المقعد
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "قوائم الانتظار\nWaitlistService" as WL
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+STU -> UI : انضم إلى قائمة الانتظار عند شعبة ممتلئة
+UI -> API : الانضمام\n""POST /api/sections/{id}/waitlist""
+API -> API : التحقق من الصلاحية\n""enrollment.self""
+API -> WL : فحص سعة القائمة وحد الطالب
+alt #FFEBEE القائمة ممتلئة أو بلغ الطالب الحد
+  API --> UI : رفض الطلب\n""409 ENR_WAITLIST_FULL""\n""409 ENR_WAITLIST_LIMIT""
+  UI --> STU : رسالة تبيّن السبب
+else #E8F5E9 الانضمام مسموح
+  WL -> DB : إضافة الطالب بترتيبه
+  API --> UI : الترتيب المتوقع\n""201 Created""
+  UI --> STU : القائمة في قوائمي بترتيبه
+end
+
+== تحرر مقعد ==
+WL -> DB : عند تحرر مقعد ترقية أول المنتظرين\nبعرض ومهلة
+WL -> NTF : إشعار الطالب بالعرض
+NTF --> STU : عُرض عليك مقعد حتى نهاية المهلة
+STU -> UI : فتح العرض والضغط على قبول
+UI -> API : قبول العرض\n""POST /api/me/waitlists/{id}/accept""
+alt #FFEBEE انتهت مهلة العرض
+  API --> UI : رفض الطلب\n""409 ENR_WAITLIST_OFFER_EXPIRED""
+  UI --> STU : رسالة انتهت مهلة عرض المقعد
+else #E8F5E9 العرض قائم
+  ref over API, DB : UC-68 التحقق من أهلية التسجيل
+  alt #FFEBEE فشلت قاعدة كتعارض جديد
+    API --> UI : نتيجة التحقق\n""422 ENR_TIME_CONFLICT""
+    UI --> STU : سبب الرفض ويبقى العرض حتى نهاية مهلته
+  else #E8F5E9 التحقق ناجح
+    API -> DB : تسجيل الطالب ذرّياً وتحديث فاتورته
+    API -> NTF : إشعار بتأكيد التسجيل
+    API --> UI : التسجيل\n""200 OK""
+    UI --> STU : تأكيد التسجيل في الشعبة
+  end
+end
+note over WL, DB
+  عند الرفض أو انتهاء المهلة يُعرض المقعد على من يليه
+  وتُغلق القوائم بانتهاء نافذة التسجيل
+end note
+@enduml

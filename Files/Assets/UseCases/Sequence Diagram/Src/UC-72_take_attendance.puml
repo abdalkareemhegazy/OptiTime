@@ -1,0 +1,89 @@
+@startuml UC-72_take_attendance
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-72 — تسجيل حضور الجلسة
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "رموز الحضور\nQrTokenService" as QR
+  participant "حساب الحضور\nAttendanceCalculator" as CALC
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "الطالب\nبجواله" as STU
+
+INS -> UI : فتح جلسات اليوم واختيار جلسة الشعبة
+UI -> API : طلب ورقة الحضور\n""GET /api/class-sessions/{id}/attendance""
+API -> API : التحقق من الرمز والصلاحية\n""attendance.take""
+alt #FFEBEE لا جلسة اليوم أو أُلغيت
+  API --> UI : رفض الطلب\n""404 GEN_NOT_FOUND""
+  UI --> INS : بيان أنه لا جلسة اليوم
+else #E8F5E9 الجلسة قائمة
+  API --> UI : طلاب الشعبة وحالاتهم\n""200 OK""
+  alt #E8F5E9 التحضير اليدوي
+    INS -> UI : تعليم حالة كل طالب ثم حفظ
+    UI -> API : حفظ جماعي\n""PUT /api/class-sessions/{id}/attendance""
+    alt #FFEBEE انتهت مهلة التعديل
+      API --> UI : رفض الطلب\n""423 ATT_SESSION_LOCKED""
+      UI --> INS : رسالة انتهت مهلة تعديل حضور هذه الجلسة
+    else #E8F5E9 الجلسة مفتوحة
+      API -> DB : حفظ الحالات للطلاب المسجلين فقط
+      API -> CALC : تحديث نسب الغياب والإنذارات
+      API --> UI : تم الحفظ\n""200 OK""
+      UI --> INS : رسالة بنجاح الحفظ
+    end
+  else #FFF3E0 التحضير برمز متغير
+    INS -> UI : تشغيل الرمز
+    UI -> API : بدء وضع الرمز\n""POST /api/class-sessions/{id}/qr/start""
+    loop #FFFFFF كل ثلاثين ثانية حتى الإيقاف
+      QR -> UI : رمز موقّع جديد مرتبط بالجلسة ونافذتها
+      STU -> API : مسح الرمز بالجوال\n""POST /api/attendance/check-in""
+      API -> QR : التحقق من التوقيع والنافذة\nوتسجيل الطالب في الشعبة
+      alt #FFEBEE رمز منتهٍ أو غير صالح أو طالب غير مسجّل
+        API --> STU : رفض\n""422 ATT_QR_EXPIRED""\n""422 ATT_QR_INVALID""\n""403 ATT_NOT_ENROLLED""
+      else #E8F5E9 الرمز صالح
+        API -> DB : تعليم الطالب حاضراً
+        API --> STU : تم تسجيل حضورك\n""200 OK""
+        API --> UI : ظهور اسم الطالب للمدرّس فوراً
+      end
+    end
+    INS -> UI : إيقاف الرمز
+    UI -> API : إيقاف وضع الرمز\n""POST /api/class-sessions/{id}/qr/stop""
+    API -> DB : تعليم من لم يمسح غائباً
+    API -> CALC : تحديث نسب الغياب والإنذارات
+  end
+end
+@enduml
