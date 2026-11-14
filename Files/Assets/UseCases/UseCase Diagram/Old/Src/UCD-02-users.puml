@@ -1,0 +1,65 @@
+@startuml UCD-02-users
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "مدير النظام\nADM" as ADM
+actor "الإدارة العليا\nEXE" as EXE
+
+package "المستخدمون والأدوار\nUsers and Roles" {
+  usecase "إدارة المستخدمين" as USERS
+  usecase "عرض المستخدمين\nUC-09" as UC09
+  usecase "إنشاء مستخدم\nUC-10" as UC10
+  usecase "تعديل مستخدم\nUC-11" as UC11
+  usecase "حذف مستخدم\nUC-12" as UC12
+  usecase "تعيين الأدوار\nUC-13" as UC13
+  usecase "عرض مصفوفة الصلاحيات\nRACI · UC-14" as UC14
+  usecase "إدارة الأدوار" as ROLES
+  usecase "إضافة دور\nUC-15" as UC15
+  usecase "تعديل دور\nUC-16" as UC16
+  usecase "حذف دور\nUC-17" as UC17
+}
+
+ADM -- USERS
+ADM -- UC13
+ADM -- UC14
+ADM -- ROLES
+EXE -- UC09 : عرض فقط
+EXE -- UC14 : عرض فقط
+
+USERS <.. UC09 : <<extend>>
+USERS <.. UC10 : <<extend>>
+USERS <.. UC11 : <<extend>>
+USERS <.. UC12 : <<extend>>
+UC13 <.. UC10 : <<include>>
+UC13 ..> UC11 : <<extend>>
+
+ROLES <.. UC15 : <<extend>>
+ROLES <.. UC16 : <<extend>>
+ROLES <.. UC17 : <<extend>>
+@enduml

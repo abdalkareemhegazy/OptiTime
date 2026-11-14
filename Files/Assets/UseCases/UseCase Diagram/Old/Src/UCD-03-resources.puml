@@ -1,0 +1,64 @@
+@startuml UCD-03-resources
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "منسق الجداول\nوالموارد\nCRD" as CRD
+actor "عضو هيئة التدريس\nINS" as INS
+actor "موظف\nEMP" as EMP
+actor "أمين المكتبة\nLIB" as LIB
+
+package "الموارد\nResources" {
+  usecase "إدارة القاعات\nUC-18" as UC18
+  usecase "تحديد سعة الامتحان\nUC-19" as UC19
+  usecase "إدارة الأجهزة\nUC-20" as UC20
+  usecase "إدارة الصيانة\nUC-22" as UC22
+  usecase "إدارة المختبرات\nUC-21" as UC21
+  usecase "معالجة طلبات الموارد\nUC-25" as UC25
+  usecase "طلب موارد إضافية\nUC-24" as UC24
+  usecase "حجز قاعة دراسية\nUC-26" as UC26
+  usecase "عرض الموارد\nUC-23" as UC23
+}
+
+CRD -- UC18
+CRD -- UC19
+CRD -- UC20
+CRD -- UC22
+CRD -- UC21
+CRD -- UC25
+UC18 .> UC19 : <<include>>
+UC20 <. UC22 : <<extend>>
+UC22 .> UC21 : <<extend>>
+
+UC24 ..> UC23 : <<extend>>
+UC26 ..> UC23 : <<extend>>
+UC23 -- INS
+UC23 -- EMP
+UC26 -- EMP
+UC26 -- LIB
+@enduml

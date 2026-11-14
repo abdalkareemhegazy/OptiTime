@@ -1,0 +1,60 @@
+@startuml UCD-11-learning
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "عضو هيئة التدريس\nINS" as INS
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+
+actor "الطالب\nSTU" as STU
+actor "رئيس القسم\nHOD" as HOD
+actor "عميد الكلية\nDEN" as DEN
+
+package "الحضور والتعلّم والتقييم\nAttendance, Learning and Evaluation" {
+  usecase "إنشاء كويز ونشره\nUC-75" as UC75
+  usecase "تسجيل حضور الجلسة\nUC-72" as UC72
+  usecase "إدارة محتوى المادة\nوإعلاناتها\nUC-74" as UC74
+  usecase "متابعة الغياب\nواعتماد الحرمان\nUC-73" as UC73
+  usecase "أداء الكويز\nUC-76" as UC76
+  usecase "تقييم المقرر والمدرّس\nUC-77" as UC77
+}
+
+INS -- UC75
+INS -- UC72
+INS -- UC74
+INS -- UC77
+ACO -- UC73
+
+UC72 -- STU
+UC74 -- STU
+UC73 -- STU
+UC76 -- STU
+UC77 -- STU
+UC77 -- HOD
+UC77 -- DEN
+@enduml

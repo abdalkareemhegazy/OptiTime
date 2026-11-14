@@ -1,0 +1,70 @@
+@startuml UCD-16-services
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف شؤون\nالامتحانات\nEXM" as EXM
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "أمين المكتبة\nLIB" as LIB
+actor "جهاز البصمة" as BIO
+actor "موظف شؤون\nالموظفين\nHRO" as HRO
+actor "المدير المباشر" as MGR
+
+actor "الطالب\nSTU" as STU
+actor "عضو هيئة التدريس\nINS" as INS
+actor "موظف\nEMP" as EMP
+
+package "المكتبة وشؤون الموظفين والطلبات\nLibrary, Staff Affairs and E-Requests" {
+  usecase "تقديم طلب إلكتروني\nومتابعته\nUC-102" as UC102
+  usecase "معالجة الطلبات\nالإلكترونية\nUC-103" as UC103
+  usecase "البحث في كتالوج المكتبة\nوحجز نسخة\nUC-97" as UC97
+  usecase "إعارة النسخ وإرجاعها\nUC-98" as UC98
+  usecase "تقديم طلب إجازة\nUC-100" as UC100
+  usecase "إدارة ملفات الموظفين\nوعقودهم\nUC-99" as UC99
+  usecase "اعتماد طلبات الإجازة\nUC-101" as UC101
+}
+
+usecase "الإعادة الطارئة للجدولة\nواقتراح البدلاء\nمن حزمة إعداد الجدولة\nUC-62" as UC62 #F5F5F5;line.dashed
+
+EXM -- UC103
+ACO -- UC103
+LIB -- UC98
+BIO -- UC99
+HRO -- UC99
+HRO -- UC101
+MGR -- UC101
+
+UC102 -- STU
+UC103 -- STU
+UC97 -- STU
+UC97 -- INS
+UC100 -- INS
+UC100 -- EMP
+UC99 -- EMP
+UC101 <.. UC62 : <<extend>>
+@enduml

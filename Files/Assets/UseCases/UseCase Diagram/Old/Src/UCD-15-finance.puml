@@ -1,0 +1,50 @@
+@startuml UCD-15-finance
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "الموظف المالي\nFIN" as FIN
+
+actor "الطالب\nSTU" as STU
+actor "بوابة الدفع\nالإلكتروني\nPayment Gateway" as PG
+
+package "المالية\nFinance" {
+  usecase "إدارة الرسوم والفواتير\nUC-93" as UC93
+  usecase "تسجيل دفعة في الصندوق\nUC-95" as UC95
+  usecase "إدارة الأقساط والمنح\nوالاسترداد\nUC-96" as UC96
+  usecase "عرض الرصيد\nوالدفع الإلكتروني\nUC-94" as UC94
+}
+
+FIN -- UC93
+FIN -- UC95
+FIN -- UC96
+
+UC96 -- STU
+UC94 -- STU
+UC94 -- PG
+@enduml

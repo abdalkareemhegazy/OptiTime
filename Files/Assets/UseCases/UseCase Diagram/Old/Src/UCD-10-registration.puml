@@ -1,0 +1,65 @@
+@startuml UCD-10-registration
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "الطالب\nSTU" as STU
+actor "مدير النظام\nADM" as ADM
+actor "موظف القبول\nADO" as ADO
+
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "المرشد الأكاديمي\nADV" as ADV
+
+package "سجلات الطلاب والتسجيل\nStudent Records and Registration" {
+  usecase "الانضمام إلى قائمة الانتظار\nوقبول المقعد\nUC-69" as UC69
+  usecase "تسجيل المقررات\nUC-67" as UC67
+  usecase "السحب والإضافة\nUC-70" as UC70
+  usecase "عرض التدقيق الأكاديمي\nUC-64" as UC64
+  usecase "إدارة سجلات الطلاب\nUC-63" as UC63
+  usecase "التحقق من أهلية التسجيل\nUC-68" as UC68
+  usecase "ترشيح المتخرجين\nواعتماد دفعة التخرج\nUC-65" as UC65
+  usecase "نشر كتالوج التسجيل\nوفتح أدواره\nUC-66" as UC66
+  usecase "منح استثناءات التسجيل\nوإدارة العوائق\nUC-71" as UC71
+}
+
+STU -- UC67
+STU -- UC70
+STU -- UC64
+ADM -- UC63
+ADO -- UC63
+UC67 <. UC69 : <<extend>>
+UC67 ..> UC68 : <<include>>
+UC70 ..> UC68 : <<include>>
+UC64 <.. UC65 : <<include>>
+
+UC66 -- ACO
+UC71 -- ACO
+UC65 -- ACO
+UC64 --- ACO
+UC64 --- ADV
+@enduml

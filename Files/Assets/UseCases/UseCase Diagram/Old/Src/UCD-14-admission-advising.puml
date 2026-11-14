@@ -1,0 +1,56 @@
+@startuml UCD-14-admission-advising
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف القبول\nADO" as ADO
+actor "المتقدّم\nAPL" as APL
+
+actor "بوابة الدفع\nالإلكتروني\nPayment Gateway" as PG
+actor "المرشد الأكاديمي\nADV" as ADV
+actor "الطالب\nSTU" as STU
+
+package "القبول والإرشاد\nAdmission and Advising" {
+  usecase "إدارة دورات القبول\nUC-88" as UC88
+  usecase "المفاضلة وإصدار\nقرارات القبول\nUC-90" as UC90
+  usecase "تقديم طلب القبول\nومتابعته\nUC-89" as UC89
+  usecase "مراجعة الخطة الفصلية\nومنح تصريح التسجيل\nUC-91" as UC91
+  usecase "متابعة الإنذارات\nومواعيد الإرشاد\nUC-92" as UC92
+}
+
+ADO -- UC88
+ADO -- UC90
+ADO -- UC89
+APL -- UC89
+
+UC89 -- PG
+UC91 -- ADV
+UC92 -- ADV
+UC91 -- STU
+UC92 -- STU
+@enduml

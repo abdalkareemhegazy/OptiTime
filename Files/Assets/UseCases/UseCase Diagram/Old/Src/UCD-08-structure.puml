@@ -1,0 +1,64 @@
+@startuml UCD-08-structure
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "مدير النظام\nADM" as ADM
+actor "عميد الكلية\nDEN" as DEN
+
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "منسق الجداول\nوالموارد\nCRD" as CRD
+
+package "الهيكل الأكاديمي والخطط\nAcademic Structure and Plans" {
+  usecase "إدارة الفروع والمباني\nUC-48" as UC48
+  usecase "إدارة الكليات والأقسام\nوقياداتها\nUC-49" as UC49
+  usecase "إدارة الوحدات الإدارية\nUC-51" as UC51
+  usecase "إدارة البرامج الأكاديمية\nUC-50" as UC50
+  usecase "إدارة النوافذ الزمنية والعطل\nوأدوار التسجيل\nUC-52" as UC52
+  usecase "إدارة سلالم الدرجات\nUC-55" as UC55
+  usecase "إعداد الخطة الدراسية\nواعتمادها\nUC-56" as UC56
+  usecase "إدارة المقررات وتوصيفها\nUC-53" as UC53
+  usecase "تحديد المتطلبات السابقة\nوالمعادلات\nUC-54" as UC54
+}
+
+ADM -- UC48
+ADM -- UC49
+ADM -- UC51
+ADM -- UC50
+DEN -- UC49
+
+UC50 -- ACO
+UC52 -- ACO
+UC55 -- ACO
+UC56 -- ACO
+UC53 -- ACO
+UC53 -- CRD
+UC53 <. UC54 : <<extend>>
+UC54 -- ACO
+UC54 -- CRD
+@enduml

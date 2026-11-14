@@ -1,0 +1,44 @@
+@startuml UCD-06-system
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "الإدارة العليا\nEXE" as EXE
+actor "مدير النظام\nADM" as ADM
+
+package "التقويم والتقارير والنظام\nCalendar, Reports and System" {
+  usecase "نقل الفصل الدراسي\nبين مراحله\nUC-36" as UC36
+  usecase "عرض تقارير الإدارة\nUC-37" as UC37
+  usecase "إنشاء نسخة احتياطية\nواستعادتها\nUC-38" as UC38
+}
+
+ACO -- UC36
+EXE -- UC37
+ADM -- UC38
+@enduml

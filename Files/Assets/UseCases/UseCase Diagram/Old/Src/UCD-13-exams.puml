@@ -1,0 +1,50 @@
+@startuml UCD-13-exams
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف شؤون\nالامتحانات\nEXM" as EXM
+
+actor "عضو هيئة التدريس\nمراقباً\nINS" as INS
+actor "الطالب\nSTU" as STU
+
+package "جدولة الامتحانات وتنفيذها\nExam Scheduling and Operations" {
+  usecase "جدولة الامتحانات\nUC-84" as UC84
+  usecase "توزيع القاعات والمقاعد\nوالمراقبين\nUC-85" as UC85
+  usecase "إدارة يوم الامتحان\nUC-87" as UC87
+  usecase "عرض جدول امتحاناتي\nوبطاقة الامتحان\nUC-86" as UC86
+}
+
+EXM -- UC84
+EXM -- UC85
+EXM -- UC87
+
+UC85 -- INS
+UC87 -- INS
+UC86 -- STU
+@enduml

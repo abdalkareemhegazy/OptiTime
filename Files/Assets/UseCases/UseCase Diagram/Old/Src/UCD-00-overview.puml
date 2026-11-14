@@ -1,0 +1,143 @@
+@startuml UCD-00-overview
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "الإدارة العليا\nEXE" as EXE
+actor "موظف القبول\nADO" as ADO
+actor "مدير النظام\nADM" as ADM
+actor "عميد الكلية\nDEN" as DEN
+actor "منسق الجداول\nوالموارد\nCRD" as CRD
+actor "موظف شؤون\nالامتحانات\nEXM" as EXM
+actor "رئيس القسم\nHOD" as HOD
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "أمين المكتبة\nLIB" as LIB
+actor "الموظف المالي\nFIN" as FIN
+actor "موظف شؤون\nالموظفين\nHRO" as HRO
+
+actor "خدمة المصادقة\nAuth Service" as AUTH
+actor "المستخدم\nAny User" as USER
+actor "مزوّد النماذج\nاللغوية\nLLM Provider" as LLM
+actor "خدمة الإشعارات\nالفورية\nFCM" as FCM
+actor "نظام خارجي\nExternal System" as EXT
+actor "عضو هيئة التدريس\nINS" as INS
+actor "الطالب\nSTU" as STU
+actor "المرشد الأكاديمي\nADV" as ADV
+actor "المتقدّم\nAPL" as APL
+actor "بوابة الدفع\nالإلكتروني\nPayment Gateway" as PG
+actor "موظف\nEMP" as EMP
+actor "جهاز البصمة" as BIO
+
+rectangle "OptiTime" {
+  usecase "المستخدمون والأدوار\nUC-09 … UC-17" as P2
+  usecase "المصادقة والملف الشخصي\nUC-01 … UC-08" as P1
+  usecase "الذكاء الاصطناعي والتحليلات\nUC-104 … UC-113" as P17
+  usecase "التقويم والتقارير والنظام\nUC-36 … UC-38" as P6
+  usecase "الإدارة والمتابعة\nUC-39 … UC-47" as P7
+  usecase "الهيكل الأكاديمي والخطط\nUC-48 … UC-56" as P8
+  usecase "إعداد الجدولة وتشغيلها\nUC-57 … UC-62" as P9
+  usecase "الحضور والتعلّم والتقييم\nUC-72 … UC-77" as P11
+  usecase "الجدولة\nUC-27 … UC-33" as P4
+  usecase "سير اعتماد الدرجات\nUC-78 … UC-83" as P12
+  usecase "سجلات الطلاب والتسجيل\nUC-63 … UC-71" as P10
+  usecase "الامتحانات والدرجات\nUC-34 … UC-35" as P5
+  usecase "جدولة الامتحانات وتنفيذها\nUC-84 … UC-87" as P13
+  usecase "الموارد\nUC-18 … UC-26" as P3
+  usecase "القبول والإرشاد\nUC-88 … UC-92" as P14
+  usecase "المالية\nUC-93 … UC-96" as P15
+  usecase "المكتبة وشؤون الموظفين\nوالطلبات\nUC-97 … UC-103" as P16
+}
+
+note right of USER
+  جميع الأدوار ترث
+  حالات المصادقة
+  والملف الشخصي
+end note
+
+EXE -- P2 : عرض فقط
+EXE -- P17
+EXE -- P6
+ADO -- P10
+ADO -- P14
+ADM -- P2
+ADM -- P17
+ADM -- P6
+ADM -- P7
+ADM -- P8
+DEN -- P4
+CRD -- P8
+CRD -- P9
+CRD -- P4
+CRD -- P3
+EXM -- P12
+EXM -- P5
+EXM -- P13
+HOD -- P4
+HOD -- P12
+ACO -- P6
+ACO -- P8
+ACO -- P9
+ACO -- P4
+ACO -- P10
+LIB -- P3
+LIB -- P16
+FIN -- P15
+HRO -- P16
+
+P1 -- AUTH
+P1 -- USER
+P17 -- USER
+P7 -- USER
+P17 -- LLM
+P7 -- FCM
+P7 -- EXT
+P11 -- INS
+P4 -- INS
+P12 -- INS
+P3 -- INS
+P11 -- STU
+P4 -- STU
+P10 -- STU
+P5 -- STU
+P13 -- STU
+P15 -- STU
+P16 -- STU
+P10 -- ADV
+P14 -- ADV
+P14 -- APL
+P14 -- PG
+P15 -- PG
+P3 -- EMP
+P16 -- EMP
+P16 -- BIO
+@enduml
