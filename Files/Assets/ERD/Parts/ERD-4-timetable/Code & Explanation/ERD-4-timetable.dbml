@@ -1,0 +1,411 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 4 من 8: الجدول الدراسي وإعداداته وجلساته
+// 19 جدولاً من هذا القسم، و7 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_4 {
+  database_type: 'MySQL'
+  Note: 'القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+// -------------------- الجدول الدراسي --------------------
+
+Table course_offerings {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  semester_id uuid [ref: > semesters.id]
+  is_active boolean
+  status varchar(15)
+  expected_students int
+  forecast_demand int
+  forecast_lower int
+  forecast_upper int
+  prediction_model_id uuid [ref: > prediction_models.id]
+  planned_theory_sections smallint
+  planned_lab_sections smallint
+  source varchar(15)
+  demand json
+  adjusted boolean
+  notes text
+  estimated_at timestamp
+  confirmed_at timestamp
+  confirmed_by uuid
+  Note: 'المقررات المطروحة في الفصل وتقدير طلبها بالمعادلة وبنموذج التنبؤ'
+}
+
+Table course_sections {
+  id uuid [pk]
+  course_id uuid
+  section_name varchar(120)
+  section_type varchar(20)
+  capacity int
+  meetings_per_week tinyint
+  meeting_minutes smallint
+  semester_id uuid
+  course_offering_id uuid [ref: > course_offerings.id]
+  component varchar(10)
+  section_number varchar(5)
+  parent_section_id uuid [ref: > course_sections.id]
+  delivery_mode varchar(15)
+  language varchar(5)
+  restrictions json
+  status varchar(15)
+  cancelled_reason text
+  notes text
+  Note: 'شعب كل مقرر مطروح'
+}
+
+Table course_section_instructors {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  instructor_id uuid [ref: > instructors.id]
+  role varchar(15)
+  load_share decimal(4,2)
+  Note: 'مدرّسو كل شعبة وأحمالهم'
+}
+
+Table semester_schedule_plans {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  status varchar(30)
+  selected_algorithm varchar(30)
+  generated_at timestamp
+  notes text
+  faculty_id uuid [ref: > faculties.id]
+  name varchar(150)
+  version_no smallint
+  source varchar(15)
+  cloned_from_id uuid
+  quality_score decimal(5,2)
+  hard_conflicts_count int
+  soft_conflicts_count int
+  lock_version int
+  checklist json
+  checked_at timestamp
+  submitted_by uuid
+  submitted_at timestamp
+  reviewed_by uuid
+  reviewed_at timestamp
+  approved_by uuid
+  approved_at timestamp
+  published_by uuid
+  published_at timestamp
+  archived_by uuid
+  archived_at timestamp
+  conflicts_checked_at timestamp
+  quality_breakdown json
+  Note: 'نسخ الجدول الدراسي ومسار اعتمادها'
+}
+
+Table schedule_sessions {
+  id uuid [pk]
+  room_id uuid [ref: > rooms.id]
+  schedule_plan_id uuid [ref: > semester_schedule_plans.id]
+  section_instructor_id uuid [ref: > course_section_instructors.id]
+  course_offering_id uuid
+  day_value varchar(10)
+  start_time time
+  end_time time
+  conflict_state varchar(20)
+  conflict_reasons text
+  grades_entry_status varchar(20)
+  grades_marked_done_at timestamp
+  week_pattern varchar(20)
+  is_locked boolean
+  locked_by uuid
+  locked_at timestamp
+  Note: 'محاضرات الجدول الأسبوعي'
+}
+
+Table schedule_comments {
+  id uuid [pk]
+  schedule_plan_id uuid [ref: > semester_schedule_plans.id]
+  schedule_session_id uuid [ref: > schedule_sessions.id]
+  author_id uuid
+  body text
+  is_resolved boolean
+  resolved_by uuid
+  resolved_at timestamp
+  Note: 'ملاحظات المراجعة على النسخة'
+}
+
+Table schedule_conflicts {
+  id uuid [pk]
+  schedule_plan_id uuid [ref: > semester_schedule_plans.id]
+  conflict_key varchar(32)
+  type varchar(40)
+  severity varchar(5)
+  rule varchar(120)
+  session_ids json
+  details json
+  status varchar(10)
+  note text
+  ignored_by uuid
+  ignored_at timestamp
+  resolved_at timestamp
+  Note: 'تعارضات النسخة'
+}
+
+Table schedule_generation_jobs {
+  id uuid [pk]
+  requested_by_user_id uuid
+  status varchar(20)
+  algorithm varchar(20)
+  semester_id uuid [ref: > semesters.id]
+  request_payload json
+  result_payload json
+  error_message text
+  progress tinyint
+  queued_at timestamp
+  started_at timestamp
+  finished_at timestamp
+  faculty_id uuid
+  department_id uuid
+  mode varchar(20)
+  relaxed_rule varchar(60)
+  phase varchar(20)
+  best_objective decimal(14,4)
+  objective_value decimal(14,4)
+  hard_violations int
+  placed_count int
+  unplaced_count int
+  bent_count int
+  stats json
+  Note: 'عمليات توليد الجدول بمحرك الجدولة'
+}
+
+TableGroup "الجدول الدراسي" [color: #2563EB] {
+  course_offerings
+  course_sections
+  course_section_instructors
+  semester_schedule_plans
+  schedule_sessions
+  schedule_comments
+  schedule_conflicts
+  schedule_generation_jobs
+}
+
+// -------------------- إعدادات الجدولة --------------------
+
+Table schedule_settings {
+  id uuid [pk]
+  day_start time
+  day_end time
+  gap_minutes int
+  max_daily_lectures int
+  capacity_threshold int
+  step_minutes smallint
+  quality_minimum tinyint
+  Note: 'إعدادات الأسبوع الدراسي'
+}
+
+Table schedule_setting_study_days {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  day_value varchar(10)
+  enabled boolean
+  Note: 'أيام الدراسة'
+}
+
+Table schedule_setting_break_times {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  break_key varchar(100)
+  start_time time
+  end_time time
+  enabled boolean
+  Note: 'الاستراحات'
+}
+
+Table schedule_setting_constraints {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  category varchar(30)
+  constraint_key varchar(100)
+  enabled boolean
+  weight decimal(5,2)
+  Note: 'قواعد الجدولة الصارمة والمرنة وقواعد القاعات وأوزانها'
+}
+
+Table schedule_setting_load_ranges {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  load_key varchar(100)
+  min_value int
+  max_value int
+  Note: 'حدود الأحمال'
+}
+
+Table scheduling_constraints {
+  id uuid [pk]
+  scope_type varchar(20)
+  scope_id uuid
+  rule_key varchar(60)
+  value json
+  is_hard boolean
+  weight smallint
+  is_active boolean
+  Note: 'قيود خاصة بكلية أو قسم أو مدرّس أو قاعة أو مقرر'
+}
+
+Table time_slots {
+  id uuid [pk]
+  day_value varchar(10)
+  starts_at time
+  ends_at time
+  kind varchar(20)
+  is_active boolean
+  sort smallint
+  Note: 'الفترات الزمنية للأسبوع'
+}
+
+TableGroup "إعدادات الجدولة" [color: #64748B] {
+  schedule_settings
+  schedule_setting_study_days
+  schedule_setting_break_times
+  schedule_setting_constraints
+  schedule_setting_load_ranges
+  scheduling_constraints
+  time_slots
+}
+
+// -------------------- الجلسات خلال الفصل --------------------
+
+Table class_sessions {
+  id uuid [pk]
+  semester_id uuid
+  schedule_session_id uuid [ref: > schedule_sessions.id]
+  section_id uuid [ref: > course_sections.id]
+  instructor_id uuid [ref: > instructors.id]
+  room_id uuid [ref: > rooms.id]
+  planned_room_id uuid
+  date date
+  start_time time
+  end_time time
+  week_no smallint
+  sitting_no smallint
+  kind varchar(10)
+  status varchar(12)
+  change_source varchar(20)
+  change_ref uuid
+  original_session_id uuid
+  topic varchar(255)
+  planned_instructor_id uuid
+  Note: 'جلسات المحاضرات الفعلية بتواريخها'
+}
+
+Table session_changes {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  type varchar(20)
+  source varchar(20)
+  source_id uuid
+  old_values json
+  new_values json
+  reason text
+  decided_at timestamp
+  voided_at timestamp
+  voided_by uuid
+  Note: 'سجل تغييرات الجلسات'
+}
+
+Table lecture_requests {
+  id uuid [pk]
+  schedule_session_id uuid
+  instructor_id uuid
+  request_type varchar(20)
+  requested_date date
+  note text
+  status varchar(20)
+  review_note text
+  reviewed_at timestamp
+  requested_start time
+  requested_end time
+  requested_room_id uuid
+  reason_code varchar(40)
+  class_session_id uuid [ref: > class_sessions.id]
+  Note: 'طلبات الاعتذار عن محاضرة أو تعويضها'
+}
+
+Table substitutions {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  original_instructor_id uuid
+  substitute_instructor_id uuid [ref: > instructors.id]
+  leave_request_id uuid [ref: > leave_requests.id]
+  reason text
+  status varchar(15)
+  proposed_at timestamp
+  proposed_by uuid
+  confirmed_at timestamp
+  confirmed_by uuid
+  cancelled_at timestamp
+  cancelled_by uuid
+  cancel_reason varchar(20)
+  cancel_note text
+  lecture_request_id uuid [ref: > lecture_requests.id]
+  Note: 'المدرّسون البدلاء للجلسات'
+}
+
+TableGroup "الجلسات خلال الفصل" [color: #0891B2] {
+  class_sessions
+  session_changes
+  lecture_requests
+  substitutions
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table courses {
+  id uuid [pk]
+  code varchar(50)
+  name_ar varchar(190)
+  Note: 'من القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+Table semesters {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table prediction_models {
+  id uuid [pk]
+  kind varchar(20)
+  version varchar(20)
+  Note: 'من القسم 8: شؤون الموظفين والمكتبة والذكاء الاصطناعي'
+}
+
+Table instructors {
+  id uuid [pk]
+  user_id uuid [unique]
+  Note: 'من القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+Table faculties {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table rooms {
+  id uuid [pk]
+  code varchar(20) [unique]
+  name_ar varchar(190)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table leave_requests {
+  id uuid [pk]
+  status varchar(20)
+  Note: 'من القسم 8: شؤون الموظفين والمكتبة والذكاء الاصطناعي'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  courses
+  semesters
+  prediction_models
+  instructors
+  faculties
+  rooms
+  leave_requests
+}

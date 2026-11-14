@@ -1,0 +1,387 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 2 من 8: الهيكل التنظيمي والتقويم والقاعات
+// 20 جدولاً من هذا القسم، و4 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_2 {
+  database_type: 'MySQL'
+  Note: 'القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+// -------------------- الهيكل التنظيمي --------------------
+
+Table campuses {
+  id uuid [pk]
+  code varchar(10) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  address_ar varchar(255)
+  address_en varchar(255)
+  is_active boolean
+  Note: 'فروع الجامعة'
+}
+
+Table buildings {
+  id uuid [pk]
+  campus_id uuid [ref: > campuses.id]
+  code varchar(10) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  floors_count smallint
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  is_active boolean
+  Note: 'مباني كل فرع'
+}
+
+Table faculties {
+  id uuid [pk]
+  code varchar(50) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  graduation_hours int
+  studying_level int
+  color varchar(20)
+  icon_url text
+  is_active boolean
+  building_id uuid [ref: > buildings.id]
+  dean_user_id uuid [ref: > users.id]
+  Note: 'الكليات وعمداؤها'
+}
+
+Table departments {
+  id uuid [pk]
+  faculty_id uuid [ref: > faculties.id]
+  code varchar(50) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  icon_url text
+  is_active boolean
+  head_user_id uuid [ref: > users.id]
+  Note: 'الأقسام ورؤساؤها'
+}
+
+Table programs {
+  id uuid [pk]
+  department_id uuid [ref: > departments.id]
+  code varchar(20) [unique]
+  name_ar varchar(200)
+  name_en varchar(200)
+  degree_level varchar(20)
+  total_credit_hours smallint
+  duration_semesters tinyint
+  max_duration_semesters tinyint
+  level_thresholds json
+  is_active boolean
+  grading_scheme_id uuid [ref: > grading_schemes.id]
+  Note: 'البرامج الأكاديمية لكل قسم'
+}
+
+Table administrative_units {
+  id uuid [pk]
+  parent_id uuid [ref: > administrative_units.id]
+  code varchar(20) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  manager_user_id uuid [ref: > users.id]
+  building_id uuid [ref: > buildings.id]
+  email varchar(190)
+  phone varchar(30)
+  is_active boolean
+  Note: 'الوحدات الإدارية كالمالية والمكتبة'
+}
+
+TableGroup "الهيكل التنظيمي" [color: #0F766E] {
+  campuses
+  buildings
+  faculties
+  departments
+  programs
+  administrative_units
+}
+
+// -------------------- التقويم الأكاديمي --------------------
+
+Table academic_years {
+  id uuid [pk]
+  code varchar(9) [unique]
+  starts_on date
+  ends_on date
+  is_current boolean
+  Note: 'السنوات الأكاديمية'
+}
+
+Table semesters {
+  id uuid [pk]
+  code varchar(50) [unique]
+  start_date date
+  end_date date
+  is_active boolean
+  academic_year_id uuid [ref: > academic_years.id]
+  type varchar(10)
+  name_ar varchar(150)
+  name_en varchar(150)
+  classes_start_date date
+  classes_end_date date
+  weeks_count smallint
+  status varchar(20)
+  Note: 'الفصول الدراسية ومراحلها'
+}
+
+Table semester_windows {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  type varchar(30)
+  starts_at datetime
+  ends_at datetime
+  is_active boolean
+  notes text
+  Note: 'نوافذ الفصل كالتسجيل والتفرغ ورصد العلامات'
+}
+
+Table holidays {
+  id uuid [pk]
+  name_ar varchar(150)
+  name_en varchar(150)
+  category varchar(20)
+  starts_on date
+  ends_on date
+  affects_classes boolean
+  affects_exams boolean
+  affects_staff boolean
+  Note: 'العطل وما توقفه'
+}
+
+Table registration_priority_groups {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  priority smallint
+  name_ar varchar(100)
+  name_en varchar(100)
+  criteria json
+  opens_at datetime
+  announced_at timestamp
+  Note: 'أدوار التسجيل لمجموعات الطلاب'
+}
+
+Table calendar_feeds {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  token_hash varchar(64) [unique]
+  token_prefix varchar(8)
+  with_lectures boolean
+  last_used_at timestamp
+  Note: 'روابط الاشتراك بالتقويم'
+}
+
+TableGroup "التقويم الأكاديمي" [color: #0369A1] {
+  academic_years
+  semesters
+  semester_windows
+  holidays
+  registration_priority_groups
+  calendar_feeds
+}
+
+// -------------------- القاعات والموارد --------------------
+
+Table rooms {
+  id uuid [pk]
+  name_ar varchar(190)
+  name_en varchar(190)
+  type varchar(30)
+  capacity int
+  location_ar varchar(190)
+  location_en varchar(190)
+  status varchar(30)
+  notes_ar text
+  notes_en text
+  faculty_id uuid [ref: > faculties.id]
+  building_id uuid [ref: > buildings.id]
+  code varchar(20) [unique]
+  department_id uuid [ref: > departments.id]
+  floor smallint
+  exam_capacity smallint
+  seat_rows smallint
+  seat_columns smallint
+  is_accessible boolean
+  is_schedulable boolean
+  is_bookable boolean
+  Note: 'القاعات والمختبرات والمدرجات'
+}
+
+Table features {
+  id uuid [pk]
+  key varchar(40) [unique]
+  name_ar varchar(100)
+  name_en varchar(100)
+  icon varchar(40)
+  sort smallint
+  is_active boolean
+  Note: 'ميزات القاعات'
+}
+
+Table room_features {
+  id uuid [pk]
+  room_id uuid [ref: > rooms.id]
+  feature_id uuid [ref: > features.id]
+  quantity smallint
+  Note: 'ميزات كل قاعة وعددها'
+}
+
+Table equipment {
+  id uuid [pk]
+  asset_tag varchar(255) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  category varchar(40)
+  faculty_id uuid [ref: > faculties.id]
+  room_id uuid [ref: > rooms.id]
+  is_portable boolean
+  status varchar(20)
+  serial_number varchar(80)
+  purchased_on date
+  warranty_until date
+  notes text
+  Note: 'الأجهزة والتجهيزات برقم أصل'
+}
+
+Table maintenance_logs {
+  id uuid [pk]
+  reference varchar(20) [unique]
+  room_id uuid [ref: > rooms.id]
+  equipment_id uuid [ref: > equipment.id]
+  target_type varchar(10)
+  target_label varchar(200)
+  category varchar(20)
+  title varchar(200)
+  description text
+  priority varchar(10)
+  status varchar(20)
+  blocks_usage boolean
+  previous_status varchar(30)
+  starts_at datetime
+  expected_until datetime
+  assignee varchar(150)
+  reported_by uuid
+  taken_at datetime
+  taken_by uuid
+  resolved_at datetime
+  resolved_by uuid
+  resolution_notes text
+  schedule_session_id uuid
+  session_date date
+  cannot_teach boolean
+  lecture_decision varchar(10)
+  lecture_room_id uuid
+  decision_note text
+  decided_at datetime
+  decided_by uuid
+  class_session_id uuid [ref: > class_sessions.id]
+  Note: 'بلاغات الأعطال وصيانتها'
+}
+
+Table resource_requests {
+  id uuid [pk]
+  reference varchar(20) [unique]
+  requester_id uuid
+  schedule_session_id uuid [ref: > schedule_sessions.id]
+  lecture_label varchar(200)
+  request_type varchar(12)
+  first_date date
+  last_date date
+  room_family varchar(12)
+  room_type varchar(30)
+  features json
+  min_seats smallint
+  equipment_category varchar(30)
+  equipment_name_ar varchar(150)
+  equipment_name_en varchar(150)
+  quantity smallint
+  item varchar(200)
+  reason text
+  status varchar(12)
+  room_id uuid [ref: > rooms.id]
+  reviewed_by uuid
+  reviewed_at datetime
+  review_notes text
+  closed_at datetime
+  Note: 'طلبات المدرّسين لقاعات أو تجهيزات'
+}
+
+Table resource_request_units {
+  resource_request_id uuid [ref: > resource_requests.id]
+  equipment_id uuid [ref: > equipment.id]
+  indexes {
+    (resource_request_id, equipment_id) [pk]
+  }
+  Note: 'الأجهزة المخصصة لكل طلب'
+}
+
+Table room_reservations {
+  id uuid [pk]
+  reference varchar(20) [unique]
+  room_id uuid [ref: > rooms.id]
+  room_label varchar(200)
+  user_id uuid [ref: > users.id]
+  purpose varchar(12)
+  title varchar(200)
+  notes text
+  starts_at datetime
+  ends_at datetime
+  attendees smallint
+  status varchar(12)
+  check_in_required boolean
+  checked_in_at datetime
+  series_id uuid
+  reviewed_by uuid
+  reviewed_at datetime
+  review_notes text
+  closed_at datetime
+  booked_by uuid
+  Note: 'حجوزات القاعات'
+}
+
+TableGroup "القاعات والموارد" [color: #B45309] {
+  rooms
+  features
+  room_features
+  equipment
+  maintenance_logs
+  resource_requests
+  resource_request_units
+  room_reservations
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table users {
+  id uuid [pk]
+  full_name varchar(150)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table grading_schemes {
+  id uuid [pk]
+  name_ar varchar(100)
+  Note: 'من القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+Table class_sessions {
+  id uuid [pk]
+  date date
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+Table schedule_sessions {
+  id uuid [pk]
+  day_value varchar(10)
+  start_time time
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  users
+  grading_schemes
+  class_sessions
+  schedule_sessions
+}
