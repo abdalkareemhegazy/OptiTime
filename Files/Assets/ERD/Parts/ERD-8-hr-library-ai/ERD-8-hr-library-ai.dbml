@@ -1,0 +1,484 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 8 من 8: شؤون الموظفين والمكتبة والذكاء الاصطناعي
+// 25 جدولاً من هذا القسم، و7 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_8 {
+  database_type: 'MySQL'
+  Note: 'القسم 8: شؤون الموظفين والمكتبة والذكاء الاصطناعي'
+}
+
+// -------------------- شؤون الموظفين --------------------
+
+Table employees {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  position_id uuid [ref: > positions.id]
+  manager_employee_id uuid [ref: > employees.id]
+  national_id_encrypted text
+  national_id_hash char(64)
+  employment_type varchar(20)
+  hire_date date
+  gender varchar(6)
+  birth_date date
+  nationality char(2)
+  marital_status varchar(15)
+  address json
+  emergency_contact json
+  bank_account_encrypted text
+  status varchar(15)
+  termination_date date
+  termination_reason text
+  Note: 'الملف الوظيفي للموظف ومديره المباشر'
+}
+
+Table positions {
+  id uuid [pk]
+  code varchar(20) [unique]
+  title_ar varchar(150)
+  title_en varchar(150)
+  category varchar(20)
+  grade varchar(20)
+  is_active boolean
+  Note: 'المسميات الوظيفية'
+}
+
+Table contracts {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  file_id uuid [ref: > files.id]
+  contract_number varchar(30) [unique]
+  type varchar(20)
+  start_date date
+  end_date date
+  probation_end_date date
+  salary_encrypted text
+  currency char(3)
+  weekly_hours smallint
+  status varchar(15)
+  renewal_of_id uuid
+  notes text
+  Note: 'عقود الموظفين'
+}
+
+Table leave_types {
+  id uuid [pk]
+  key varchar(30) [unique]
+  name_ar varchar(100)
+  name_en varchar(100)
+  default_days_per_year smallint
+  is_paid boolean
+  requires_attachment boolean
+  max_consecutive_days smallint
+  min_notice_days smallint
+  carry_over_max smallint
+  affects_teaching boolean
+  is_active boolean
+  Note: 'أنواع الإجازات وقواعدها'
+}
+
+Table leave_balances {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  leave_type_id uuid [ref: > leave_types.id]
+  year smallint
+  entitled_days decimal(5,1)
+  carried_over_days decimal(5,1)
+  used_days decimal(5,1)
+  pending_days decimal(5,1)
+  adjustment_days decimal(5,1)
+  Note: 'رصيد كل موظف من كل نوع إجازة في السنة'
+}
+
+Table leave_requests {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  instructor_id uuid
+  leave_type_id uuid [ref: > leave_types.id]
+  starts_on date
+  ends_on date
+  reason text
+  suggested_substitute_id uuid
+  status varchar(20)
+  manager_id uuid
+  manager_decided_at timestamp
+  manager_comment text
+  cancelled_at timestamp
+  cancelled_by uuid
+  affects_sessions_count smallint
+  days_count decimal(5,1)
+  hr_decided_at timestamp
+  rejection_reason text
+  Note: 'طلبات الإجازة واعتمادها'
+}
+
+Table staff_attendance {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  date date
+  check_in_at timestamp
+  check_out_at timestamp
+  status varchar(15)
+  late_minutes smallint
+  early_leave_minutes smallint
+  source varchar(15)
+  leave_request_id uuid
+  notes varchar(255)
+  Note: 'دوام الموظفين من أجهزة البصمة'
+}
+
+Table performance_cycles {
+  id uuid [pk]
+  year smallint
+  name_ar varchar(150)
+  name_en varchar(150)
+  starts_on date
+  ends_on date
+  status varchar(15)
+  criteria_template json
+  Note: 'دورات تقييم الأداء'
+}
+
+Table performance_reviews {
+  id uuid [pk]
+  performance_cycle_id uuid [ref: > performance_cycles.id]
+  employee_id uuid [ref: > employees.id]
+  reviewer_id uuid
+  status varchar(20)
+  self_score decimal(5,2)
+  manager_score decimal(5,2)
+  final_score decimal(5,2)
+  rating varchar(25)
+  evaluation_score decimal(5,2)
+  strengths text
+  improvements text
+  goals json
+  employee_comments text
+  acknowledged_at timestamp
+  Note: 'تقييم أداء كل موظف في الدورة'
+}
+
+TableGroup "شؤون الموظفين" [color: #C2410C] {
+  employees
+  positions
+  contracts
+  leave_types
+  leave_balances
+  leave_requests
+  staff_attendance
+  performance_cycles
+  performance_reviews
+}
+
+// -------------------- المكتبة --------------------
+
+Table library_items {
+  id uuid [pk]
+  type varchar(20)
+  isbn varchar(20)
+  issn varchar(20)
+  title varchar(500)
+  subtitle varchar(500)
+  authors varchar(500)
+  publisher varchar(200)
+  publication_year smallint
+  edition varchar(50)
+  language varchar(5)
+  call_number varchar(50)
+  subjects json
+  description text
+  cover_file_id uuid
+  is_digital boolean
+  digital_file_id uuid [ref: > files.id]
+  access_level varchar(20)
+  is_loanable boolean
+  replacement_cost decimal(10,2)
+  Note: 'كتالوج المكتبة ومؤلفو كل مادة'
+}
+
+Table library_copies {
+  id uuid [pk]
+  library_item_id uuid [ref: > library_items.id]
+  barcode varchar(30) [unique]
+  location varchar(100)
+  status varchar(20)
+  condition varchar(15)
+  acquired_on date
+  price decimal(10,2)
+  Note: 'النسخ الورقية وأماكنها'
+}
+
+Table borrowing_policies {
+  id uuid [pk]
+  role_id uuid [ref: > roles.id]
+  item_type varchar(20)
+  max_items smallint
+  loan_days smallint
+  max_renewals smallint
+  grace_days smallint
+  fine_per_day decimal(8,2)
+  max_fine_ratio decimal(4,2)
+  Note: 'سياسة الإعارة لكل دور ونوع مادة'
+}
+
+Table loans {
+  id uuid [pk]
+  library_copy_id uuid [ref: > library_copies.id]
+  borrower_user_id uuid [ref: > users.id]
+  fine_id uuid [ref: > fines.id]
+  borrowed_at timestamp
+  due_at timestamp
+  returned_at timestamp
+  renewals_count smallint
+  status varchar(15)
+  issued_by uuid
+  returned_to uuid
+  return_condition varchar(15)
+  Note: 'إعارة النسخ وإرجاعها'
+}
+
+Table library_holds {
+  id uuid [pk]
+  library_item_id uuid [ref: > library_items.id]
+  user_id uuid [ref: > users.id]
+  library_copy_id uuid
+  status varchar(15)
+  requested_at timestamp
+  ready_at timestamp
+  pickup_expires_at timestamp
+  Note: 'حجوزات النسخ المعارة'
+}
+
+TableGroup "المكتبة" [color: #92400E] {
+  library_items
+  library_copies
+  borrowing_policies
+  loans
+  library_holds
+}
+
+// -------------------- الذكاء الاصطناعي --------------------
+
+Table ai_providers {
+  id uuid [pk]
+  provider varchar(20) [unique]
+  key_encrypted text
+  key_hint varchar(12)
+  model varchar(120)
+  base_url varchar(255)
+  price_input decimal(10,4)
+  price_output decimal(10,4)
+  last_tested_at timestamp
+  last_test_ok boolean
+  last_test_ms int
+  last_test_code varchar(60)
+  Note: 'مزوّدو النماذج اللغوية ومفاتيحهم'
+}
+
+Table ai_feature_access {
+  id uuid [pk]
+  feature varchar(40)
+  role_code varchar(40)
+  enabled boolean
+  daily_limit int
+  Note: 'تفعيل كل ميزة ذكاء لكل دور وحصتها اليومية'
+}
+
+Table ai_conversations {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  role_code varchar(40)
+  title varchar(160)
+  messages_count int
+  last_message_at timestamp
+  Note: 'محادثات المساعد الذكي'
+}
+
+Table ai_messages {
+  id uuid [pk]
+  conversation_id uuid [ref: > ai_conversations.id]
+  role varchar(12)
+  content text
+  tools json
+  cards json
+  status varchar(16)
+  error_code varchar(60)
+  input_tokens int
+  output_tokens int
+  feedback tinyint
+  feedback_note varchar(500)
+  feedback_at timestamp
+  Note: 'رسائل كل محادثة'
+}
+
+Table ai_usage_logs {
+  id uuid [pk]
+  user_id uuid
+  role_code varchar(40)
+  feature varchar(40)
+  provider varchar(20)
+  model varchar(120)
+  status varchar(16)
+  error_code varchar(60)
+  input_tokens int
+  output_tokens int
+  cost_usd decimal(12,6)
+  latency_ms int
+  tool_calls smallint
+  conversation_id uuid
+  Note: 'سجل استخدام الذكاء وكلفته'
+}
+
+Table knowledge_documents {
+  id uuid [pk]
+  code varchar(60) [unique]
+  title_ar varchar(200)
+  title_en varchar(200)
+  category varchar(30)
+  summary_ar text
+  summary_en text
+  Note: 'لوائح الجامعة'
+}
+
+Table knowledge_document_versions {
+  id uuid [pk]
+  knowledge_document_id uuid [ref: > knowledge_documents.id]
+  version_label varchar(30)
+  effective_from date
+  status varchar(12)
+  stored_file_id uuid [ref: > files.id]
+  file_name varchar(200)
+  change_note text
+  pages smallint
+  characters int
+  articles_count smallint
+  chunks_count smallint
+  embedder varchar(200)
+  last_error varchar(60)
+  uploaded_by uuid
+  indexed_at timestamp
+  embedded_at timestamp
+  retired_at timestamp
+  retired_by uuid
+  Note: 'إصدارات كل لائحة وتاريخ نفاذها'
+}
+
+Table knowledge_chunks {
+  id uuid [pk]
+  knowledge_document_version_id uuid [ref: > knowledge_document_versions.id]
+  position smallint
+  article varchar(40)
+  article_title varchar(300)
+  heading varchar(300)
+  part tinyint
+  text text
+  embedding text
+  Note: 'مقاطع اللوائح وتضميناتها للبحث'
+}
+
+Table prediction_models {
+  id uuid [pk]
+  kind varchar(20)
+  version varchar(20)
+  algorithm varchar(40)
+  features json
+  metrics json
+  baseline_metrics json
+  trained_from_semester_id uuid
+  trained_to_semester_id uuid
+  status varchar(15)
+  trained_at timestamp
+  activated_at timestamp
+  activated_by uuid
+  Note: 'نماذج التنبؤ بالطلب وبخطر التعثر وإصداراتها ودقتها'
+}
+
+Table student_risk_scores {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  prediction_model_id uuid [ref: > prediction_models.id]
+  score decimal(5,4)
+  level varchar(10)
+  factors json
+  computed_at timestamp
+  Note: 'مؤشر خطر التعثر لكل طالب وأبرز أسبابه'
+}
+
+Table simulations {
+  id uuid [pk]
+  base_semester_id uuid [ref: > semesters.id]
+  schedule_generation_job_id uuid [ref: > schedule_generation_jobs.id]
+  name varchar(150)
+  parameters json
+  status varchar(15)
+  results json
+  Note: 'محاكاة الاحتمالات المستقبلية على نسخة معزولة من بيانات الفصل'
+}
+
+TableGroup "الذكاء الاصطناعي" [color: #6D28D9] {
+  ai_providers
+  ai_feature_access
+  ai_conversations
+  ai_messages
+  ai_usage_logs
+  knowledge_documents
+  knowledge_document_versions
+  knowledge_chunks
+  prediction_models
+  student_risk_scores
+  simulations
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table users {
+  id uuid [pk]
+  full_name varchar(150)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table files {
+  id uuid [pk]
+  original_name varchar(255)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table roles {
+  id uuid [pk]
+  code varchar(50) [unique]
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table fines {
+  id uuid [pk]
+  amount decimal(10,2)
+  Note: 'من القسم 7: القبول والمالية والطلبات الإلكترونية'
+}
+
+Table students {
+  user_id uuid [pk]
+  university_number varchar(40) [unique]
+  Note: 'من القسم 5: الطلاب والتسجيل والإرشاد والحضور والامتحانات'
+}
+
+Table semesters {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table schedule_generation_jobs {
+  id uuid [pk]
+  algorithm varchar(20)
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  users
+  files
+  roles
+  fines
+  students
+  semesters
+  schedule_generation_jobs
+}
