@@ -1,0 +1,69 @@
+@startuml UC-84_exam_schedule
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-84 — Schedule the Exams
+
+actor "Exams Officer" as U
+box "Server" #F3FAF3
+  participant "Exam\nController" as EX
+  participant "Exam List\nBuilder" as LB
+  participant "Exam\nScheduler" as ES
+  participant "Notification\nService" as NS
+end box
+actor "Students,\nInstructors" as R
+
+U -> EX : Create the exam period and its slots
+EX -> EX : Validate the dates and rules
+U -> EX : Build the exam list
+EX -> LB : Build one exam per course
+LB --> EX : Exams with their student counts
+U -> EX : Generate the exam timetable
+EX -> ES : Schedule the exams
+ES -> ES : Build the conflict graph\nfrom the enrollments
+ES -> ES : Colour it into the slots (DSatur)
+ES -> ES : Spread each student's exams
+alt some exams have no slot
+  ES --> EX : Conflicting exams
+  EX --> U : Suggest adding slots
+else all exams placed
+  ES --> EX : Exam timetable
+  EX --> U : Show the timetable for review
+end
+U -> EX : Publish the timetable
+EX -> EX : Check conflicts, seats and proctors
+alt a condition is not met
+  EX --> U : Show the unmet conditions
+else all conditions met
+  EX -> NS : Announce the timetable
+  NS ->> R : Exam timetable published
+  EX --> U : Confirm the publishing
+end
+@enduml

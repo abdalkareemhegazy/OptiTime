@@ -1,0 +1,70 @@
+@startuml UC-61_schedule_conflicts
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-61 — Resolve Timetable Conflicts
+
+actor "Coordinator" as U
+box "Server" #F3FAF3
+  participant "Timetable\nController" as TC
+  participant "Conflict\nService" as CS
+  participant "Suggestion\nFinder" as SF
+  participant "Seating\nService" as SS
+end box
+
+U -> TC : Open the version's conflicts
+TC -> CS : Check the version
+CS -> CS : Find hard and soft conflicts\nand score the quality
+CS --> TC : Conflicts and quality score
+TC --> U : Show the conflict list
+U -> TC : Ask for fixes to a conflict
+TC -> SF : Find fixes
+SF -> SF : Try a move, a swap or another room
+SF -> SF : Rank the options by quality
+SF --> TC : Suggested fixes
+TC --> U : Show the fixes and their effect
+U -> TC : Apply a fix
+TC -> TC : Check the version is still editable
+alt version changed or locked
+  TC --> U : Ask to reload the version
+else editable
+  TC -> TC : Save the lectures
+  TC -> SS : Re-seat the students
+  SS --> TC : Seating result
+  alt seating problems
+    TC -> TC : Undo the change
+    TC --> U : Refuse with the problems
+  else no problems
+    TC -> CS : Check the version again
+    CS --> TC : Updated conflicts and score
+    TC --> U : Show the updated list
+  end
+end
+@enduml

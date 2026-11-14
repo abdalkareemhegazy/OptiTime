@@ -1,0 +1,72 @@
+@startuml UC-67_course_registration
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-67 — Register for Courses
+
+actor "Student" as U
+box "Server" #F3FAF3
+  participant "Registration\nController" as RC
+  participant "Eligibility\nChecker" as EC
+  participant "Seat\nManager" as SM
+  participant "Checkout\nService" as CS
+  participant "Invoice\nService" as IS
+end box
+
+U -> RC : Add a section to the cart
+RC -> EC : Check eligibility
+EC -> EC : Check the window, holds,\nprerequisites, clashes and hours
+alt a rule fails
+  EC --> RC : Failed rule
+  RC --> U : Show the reason and alternatives
+else eligible
+  EC --> RC : Eligible
+  RC -> SM : Hold the seat for a while
+  RC --> U : Show the updated cart
+end
+U -> RC : Confirm the registration
+RC -> RC : Ignore a repeated request
+RC -> EC : Check the whole cart again
+RC -> CS : Confirm the cart
+CS -> SM : Reserve every seat in one transaction
+alt a section is full
+  SM --> CS : Section full
+  CS -> CS : Undo everything
+  CS --> RC : Nothing registered
+  RC --> U : Show the full section and alternatives
+else seats reserved
+  SM --> CS : Seats reserved
+  CS -> CS : Create the enrollments
+  CS -> IS : Issue the invoice
+  IS --> CS : Invoice
+  CS --> RC : Confirmation number
+  RC --> U : Registration confirmed
+end
+@enduml

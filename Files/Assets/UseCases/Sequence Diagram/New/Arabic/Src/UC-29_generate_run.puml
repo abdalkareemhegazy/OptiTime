@@ -1,0 +1,63 @@
+@startuml UC-29_generate_run
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-29 — توليد الجدول الدراسي
+
+actor "منسق الجداول\nوالموارد" as U
+box "الخادم" #F3FAF3
+  participant "متحكم\nالتوليد" as GC
+  participant "معالج المهام\nكل دقيقة" as JP
+  participant "خدمة\nالتوليد" as GS
+  participant "محرك\nالجدولة" as SE
+  participant "خدمة\nالإشعارات" as NS
+end box
+
+U -> GC : يطلب توليد الجدول\nللفصل والنطاق والخوارزمية
+GC -> GC : ينشئ مهمة توليد في الانتظار
+GC --> U : أُضيفت المهمة إلى الانتظار
+JP -> JP : يأخذ أقدم مهمة في الانتظار
+JP -> GS : يطلب توليد الجدول
+GS -> GS : يحمّل القاعات والشعب\nوأوقات التفرّغ والقواعد
+alt القواعد ناقصة
+  GS --> JP : القواعد الناقصة
+else البيانات جاهزة
+  GS -> SE : يطلب الحل بالخوارزمية المختارة
+  loop حتى انتهاء المهلة أو توقف التحسّن
+    SE -> SE : يضع المحاضرات ويحسّن الجودة
+  end
+  SE --> GS : المحاضرات الموضوعة وغير الموضوعة
+  GS -> GS : يتحقق من القيود الصلبة\nويقيس جودة الجدول
+  GS --> JP : الجدول ومقاييسه
+end
+JP -> JP : يحفظ النتيجة
+JP -> NS : يطلب إبلاغ المنسق
+NS ->> U : الجدول جاهز أو تعذّر توليده مع السبب
+@enduml
