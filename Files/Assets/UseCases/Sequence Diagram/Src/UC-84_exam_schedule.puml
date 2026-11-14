@@ -1,0 +1,105 @@
+@startuml UC-84_exam_schedule
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-84 — جدولة الامتحانات
+
+actor "موظف شؤون\nالامتحانات" as EXM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "محرك الامتحانات\nDSatur" as ENG
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== الفترة والقائمة ==
+EXM -> UI : إنشاء فترة بنوعها وتاريخيها\nوالفترات اليومية والقواعد
+UI -> API : حفظ الفترة\n""POST /api/exam-periods""
+API -> API : التحقق من الرمز والصلاحية\n""exams.manage""
+UI -> API : الفترات اليومية والقواعد\n""PUT /api/exam-periods/{id}/slots""\n""PUT /api/exam-periods/{id}/rules""
+alt #FFEBEE تواريخ أو فترات أو قواعد غير صالحة
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> EXM : رسالة مع وسم الحقول
+else #E8F5E9 البيانات صالحة
+  API -> DB : حفظ الفترة وقواعدها
+  EXM -> UI : توليد قائمة الامتحانات
+  UI -> API : التوليد\n""POST /api/exam-periods/{id}/exams/generate-list""
+  API -> DB : امتحان لكل مقرر مطروح يدمج شعبه\nمع أعداد الطلاب
+  API --> UI : القائمة\n""200 OK""
+  opt #FFF8E1 فصل الشعب أو دمجها
+    EXM -> UI : فصل شعب أو دمجها
+    UI -> API : شعب الامتحان\n""PUT /api/exams/{id}/sections""
+  end
+end
+
+== توليد الجدول ==
+EXM -> UI : توليد الجدول
+UI -> API : طلب التوليد\n""POST /api/exam-periods/{id}/schedule/generate""
+API --> UI : قُبل للتنفيذ\n""202 Accepted""
+API -> ENG : التوليد في الخلفية
+ENG -> DB : تسجيلات الطلاب الفعلية والقاعات
+ENG -> ENG : رسم التعارض بعقدة لكل امتحان\nوحافة بوزن الطلاب المشتركين
+ENG -> ENG : تلوين بلا تعارض لأي طالب ضمن سعة القاعات\nثم بحث محلي على القيود المرنة
+alt #FFEBEE تعذّر التوزيع في الفترات المتاحة
+  ENG --> API : الامتحانات المتعارضة وسبب التعذّر
+  API --> UI : نتيجة التوليد مع السبب
+  UI --> EXM : اقتراح زيادة الفترات
+else #E8F5E9 جدول صالح
+  ENG -> DB : حفظ الجدول والتعارضات المتبقية
+  API --> UI : الجدول ومؤشرات القيود المرنة
+end
+opt #FFF8E1 نقل امتحان يدوياً
+  EXM -> UI : نقل امتحان إلى فترة أخرى
+  UI -> API : نقل مع فحص فوري\n""PATCH /api/exams/{id}/slot""
+  alt #FFEBEE تعارض لطلاب مشتركين أو سعة غير كافية
+    API --> UI : رفض الطلب\n""409 EXM_SLOT_CONFLICT""\n""409 EXM_ROOM_CAPACITY""
+    UI --> EXM : رسالة تبيّن السبب
+  else #E8F5E9 الموضع صالح
+    API -> DB : حفظ الموضع الجديد
+  end
+end
+
+== النشر ==
+EXM -> UI : نشر الجدول
+UI -> API : النشر\n""POST /api/exam-periods/{id}/publish""
+API -> API : التحقق من الصلاحية\n""exams.publish""
+API -> DB : فحص التعارضات والمقاعد والمراقبين
+alt #FFEBEE شرط نشر غير متحقق
+  API --> UI : رفض الطلب\n""409 GEN_CONFLICT""
+  UI --> EXM : قائمة الشروط غير المتحققة
+else #E8F5E9 الشروط متحققة
+  API --> UI : قُبل للتنفيذ\n""202 Accepted""
+  API -> DB : نشر الجدول وإشعار الطلاب والمدرّسين\nوتسجيل النشر في سجل التدقيق
+end
+@enduml

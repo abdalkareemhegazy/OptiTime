@@ -1,0 +1,78 @@
+@startuml UC-10_create_user
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-10 — إنشاء مستخدم
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح نموذج الحساب الجديد ==
+ADM -> UI : الضغط على حساب جديد
+UI -> API : تحميل قوائم الأدوار والكليات\nوالأقسام والوحدات الإدارية
+API --> UI : القوائم
+UI --> ADM : عرض نموذج حساب جديد\nالهوية والصلاحيات وكلمة المرور والحالة
+
+== إدخال البيانات ==
+ADM -> UI : إدخال الاسم والبريد الإلكتروني واختيار الدور والقسم
+ADM -> UI : إدخال كلمة المرور الأولى أو توليد كلمة قوية\nوتحديد الحالة وطلب تغييرها عند أول دخول
+ADM -> UI : الضغط على إنشاء الحساب
+
+== التحقق والحفظ ==
+UI -> API : إرسال بيانات الحساب الجديد\n""POST /api/admin/users""
+API -> API : التحقق من الرمز والصلاحية\n""users.create""
+API -> API : التحقق من الحقول وسياسة كلمة المرور
+alt #FFEBEE حقل ناقص أو بريد غير صالح أو كلمة مرور ضعيفة
+  API --> UI : أخطاء الحقول\n""422""
+  UI --> ADM : رسالة الخطأ تحت كل حقل
+else #FFEBEE بريد أو اسم دخول أو رقم وظيفي مستخدم
+  API -> DB : فحص تفرّد البريد واسم الدخول والرقم الوظيفي
+  API --> UI : رفض الطلب\n""422""
+  UI --> ADM : رسالة هذا البريد مستخدم لحساب آخر
+else #E8F5E9 البيانات صالحة
+  API -> DB : إنشاء الحساب وإعداداته في عملية واحدة
+  API -> DB : إصدار الرقم الوظيفي التالي إن لم يُحدَّد
+  ref over API, DB : UC-13 تعيين الأدوار\nإسناد الدور الأساسي بنطاق الجامعة
+  API -> DB : حفظ كلمة المرور الأولى في سجل كلمات المرور
+  API -> NTF : إشعار تم إنشاء حساب إلى صاحبه
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : بيانات الحساب الجديد\n""201 Created""
+  UI --> ADM : رسالة تم إنشاء الحساب
+end
+@enduml

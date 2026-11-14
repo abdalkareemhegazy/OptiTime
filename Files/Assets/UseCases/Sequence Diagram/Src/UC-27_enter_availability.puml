@@ -1,0 +1,95 @@
+@startuml UC-27_enter_availability
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-27 — إدخال أوقات التفرّغ
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "منسق الجداول\nوالموارد" as CRD
+
+== اختيار الفصل ==
+INS -> UI : فتح صفحة أوقات تفرّغي من مجموعة مساحتي
+UI -> API : طلب الفصول وحالة أسبوع المدرّس\n""GET /api/instructor/availability""
+API -> API : التحقق من الرمز والصلاحية\n""instructor_availability.view""
+API -> DB : قراءة الفصول التي تُجمع أوقاتها\nوحالة أسبوع المدرّس ونافذة التفرّغ في كل منها
+API --> UI : الفصول وحالة الأسبوع والنافذة\n""200 OK""
+UI --> INS : عرض الفصول مع حالة الأسبوع لم يبدأ أو مسودة أو سُلّم\nوهل النافذة مفتوحة وحتى متى
+INS -> UI : اختيار الفصل
+UI -> API : طلب شبكة الأسبوع وساعات التدريس المسندة\n""GET /api/instructor/availability-grid-context""
+API --> UI : أيام الدوام وساعاته والاستراحات\n""200 OK""
+UI --> INS : عرض شبكة الأسبوع وساعات التدريس المسندة له
+
+== تلوين الأسبوع ==
+INS -> UI : اختيار الفرشاة مفضّل أو متاح أو مغلق\nوالتلوين بالسحب على الشبكة أو بالنقر على المواضع
+INS -> UI : اختيار سبب كل وقت مغلق وكتابة كلمة للمنسق
+UI -> UI : حساب الساعات المتاحة والمفضّلة والمغلقة\nومقارنتها بساعات التدريس
+opt #FFF8E1 الساعات المتاحة لا تكفي أو ساعات مغلقة بلا سبب
+  UI --> INS : تحذير قبل الحفظ ويترك القرار للمدرّس
+end
+
+== الحفظ أو التسليم ==
+INS -> UI : الضغط على تسليم أو على حفظ مسودة
+UI -> API : إرسال أسبوع الفصل\n""PUT /api/instructor/availability""
+API -> API : التحقق من الرمز والصلاحية\n""instructor_availability.update""
+API -> DB : التحقق من أن نافذة التفرّغ مفتوحة وأن الفصل غير مغلق
+alt #FFEBEE النافذة مغلقة أو الفصل مغلق أو تُجمع الأوقات لفصل آخر
+  API --> UI : رفض الحفظ\n""403 GEN_WINDOW_CLOSED""\n""409 AVL_TERM_CLOSED""\n""409 AVL_TERM_NOT_COLLECTING""
+  UI --> INS : رسالة السبب ويبقى الأسبوع للقراءة فقط
+else #FFEBEE موضع في يوم لا تدريس فيه أو داخل استراحة أو مواضع متداخلة
+  API --> UI : رفض الحفظ\n""422""
+  UI --> INS : رسالة رفض الخادم الحفظ\nمع بيان سبب كل موضع
+else #E8F5E9 النافذة مفتوحة والمواضع صالحة
+  API -> DB : حفظ مواضع الأسبوع للفصل في عملية واحدة
+  alt #E8F5E9 تسليم الأسبوع
+    API -> DB : تحويل الأسبوع إلى مسلَّم مع وقت التسليم
+    API -> NTF : إشعار المنسقين بتسليم الأسبوع\nمرة واحدة لتكرار التسليم خلال نصف ساعة
+    NTF --> CRD : إشعار تسليم أسبوع مدرّس
+  else #FFF8E1 حفظ مسودة
+    API -> DB : حفظ الأسبوع مسودة خاصة بالمدرّس
+  end
+  API --> UI : أسبوع الفصل بعد الحفظ\n""200 OK""
+  UI --> INS : رسالة سُلّم أسبوعك وأُخبر المنسق\nأو حُفظ أسبوعك مسودة
+end
+note over UI, API
+  يصبح الأسبوع المعدَّل بعد تسليمه مسودة إلى أن يُسلَّم من جديد
+  ويذكّر المنسق أو رئيس القسم أو العميد من لم يسلّم
+  ويذكّره النظام تلقائياً قبل إغلاق النافذة
+end note
+@enduml

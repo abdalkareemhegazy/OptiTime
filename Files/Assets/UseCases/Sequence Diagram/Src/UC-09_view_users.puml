@@ -1,0 +1,86 @@
+@startuml UC-09_view_users
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-09 — عرض المستخدمين
+
+actor "مدير النظام\nأو الإدارة العليا" as A
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح صفحة إدارة المستخدمين ==
+A -> UI : فتح صفحة إدارة المستخدمين\nمن مجموعة الحسابات والأدوار
+UI -> API : طلب قائمة الحسابات\n""GET /api/admin/users""
+API -> API : التحقق من الرمز والصلاحية\n""users.view""
+alt #FFEBEE لا يملك صلاحية العرض
+  API --> UI : رفض الطلب\n""403""
+  UI --> A : التحويل إلى صفحة لا صلاحية
+else #FFEBEE تعذّر الاتصال أو خطأ في الخادم
+  UI --> A : رسالة تعذر تحميل الحسابات\nمع زر إعادة المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : قراءة الحسابات مع أدوارها وأقسامها وحالاتها
+  DB --> API : الحسابات
+  API --> UI : قائمة الحسابات\n""200 OK""
+  UI --> A : عرض الأرقام الإجمالية وجدول الحسابات\nالشخص والدور والقسم وآخر دخول والحالة
+end
+
+== البحث والتصفية ==
+A -> UI : اختيار الفئة المعروضة ثم البحث أو التصفية أو الفرز
+UI -> UI : تحديث القائمة وعدد الحسابات المعروضة\nمن البيانات المحمّلة
+opt #FFF8E1 لا نتائج مطابقة
+  UI --> A : رسالة لا توجد نتائج مطابقة\nمع زر مسح التصفية
+end
+
+== تفاصيل الحساب ==
+A -> UI : فتح أحد الحسابات
+UI -> API : طلب تفاصيل الحساب\n""GET /api/admin/users/{id}""
+API -> DB : قراءة الحساب وأدواره ونطاقاته
+DB --> API : بيانات الحساب
+API --> UI : تفاصيل الحساب\n""200 OK""
+UI --> A : عرض الهوية والأدوار والنطاقات والحالة والأمان\nللتعديل لمن يملك صلاحيته وللعرض فقط لغيره
+
+== مسار بديل: تصدير القائمة ==
+opt #FFF8E1 تصدير قائمة المستخدمين
+  A -> UI : فتح مركز التصدير واختيار قائمة المستخدمين
+  UI -> API : طلب إنشاء ملف التصدير\n""POST /api/exports""
+  API -> DB : توليد الملف وتسجيل العملية في سجل التدقيق
+  API --> UI : بيانات الملف الجاهز\n""201 Created""
+  UI -> API : طلب رابط التنزيل\n""GET /api/exports/{id}/download""
+  API --> UI : رابط موقّع مؤقت
+  UI --> A : تنزيل الملف
+end
+@enduml

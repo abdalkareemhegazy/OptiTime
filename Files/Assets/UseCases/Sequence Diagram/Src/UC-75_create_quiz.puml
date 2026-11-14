@@ -1,0 +1,92 @@
+@startuml UC-75_create_quiz
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-75 — إنشاء كويز ونشره
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "ترحيل الكويز\nSyncQuizToGradebookAction" as SYNC
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== بنك الأسئلة ==
+INS -> UI : إنشاء بنك أو فتح بنك قائم
+UI -> API : إنشاء البنك\n""POST /api/question-banks""
+API -> API : التحقق من الرمز والصلاحية\n""question_banks.manage""
+INS -> UI : إضافة الأسئلة بأنواعها وخياراتها\nوإجاباتها ودرجاتها
+UI -> API : حفظ سؤال\n""POST /api/question-banks/{id}/questions""
+opt #FFF8E1 الاستيراد من ملف
+  UI -> API : استيراد الأسئلة\n""POST /api/question-banks/{id}/import""
+end
+alt #FFEBEE سؤال بلا إجابة صحيحة أو بلا درجة\nأو ملف غير صالح
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> INS : رسالة مع وسم الأسئلة
+else #E8F5E9 الأسئلة صالحة
+  API -> DB : حفظ الأسئلة
+end
+
+== الكويز ==
+INS -> UI : كويز للشعبة بأسئلة من البنك ودرجاتها\nوالمواعيد والمدة والمحاولات والخلط وسياسة الإظهار
+UI -> API : إنشاء الكويز\n""POST /api/sections/{id}/quizzes""
+API -> API : التحقق من الصلاحية\n""quizzes.manage""
+UI -> API : أسئلة الكويز ودرجاتها\n""PUT /api/quizzes/{id}/questions""
+INS -> UI : الضغط على نشر
+UI -> API : النشر\n""POST /api/quizzes/{id}/publish""
+alt #FFEBEE كويز بلا أسئلة أو بمواعيد غير صحيحة
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> INS : رسالة تبيّن النقص
+else #E8F5E9 الكويز مكتمل
+  API -> DB : نشر الكويز وجدولة فتحه\nوإشعار الطلاب عند الفتح
+  API --> UI : تم النشر\n""200 OK""
+end
+
+== التصحيح والترحيل ==
+INS -> UI : فتح النتائج بعد الإغلاق وتصحيح المقالي\nمع تغذية راجعة
+UI -> API : تصحيح إجابة\n""PATCH /api/quiz-answers/{id}/grade""
+API -> DB : حفظ الدرجة وإعادة حساب المحاولة
+INS -> UI : ترحيل إلى دفتر الدرجات
+UI -> API : الترحيل\n""POST /api/quizzes/{id}/sync-to-gradebook""
+API -> SYNC : نقل الدرجات إلى مكوّن التقييم المرتبط
+alt #FFEBEE لا مكوّن مرتبط أو الكشف لا يُعدَّل
+  SYNC --> API : تعذّر الترحيل
+  API --> UI : رفض الطلب\n""409 GRD_SHEET_NOT_EDITABLE""
+  UI --> INS : رسالة لا يمكن تعديل الكشف في مرحلته الحالية
+else #E8F5E9 رُحّلت الدرجات
+  SYNC -> DB : تحديث علامات المكوّن في الكشف
+  API --> UI : تم الترحيل\n""200 OK""
+end
+@enduml

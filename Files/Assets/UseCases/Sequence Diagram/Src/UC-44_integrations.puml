@@ -1,0 +1,97 @@
+@startuml UC-44_integrations
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-44 — إدارة التكاملات ومفاتيح الواجهة البرمجية
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "الخدمة المتكاملة\nبريد أو رسائل أو بصمة" as EXT
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "النظام الخارجي" as SYS
+
+== إعداد التكامل واختباره ==
+ADM -> UI : فتح صفحة التكاملات
+UI -> API : طلب التكاملات والمفاتيح\n""GET /api/admin/integrations""\n""GET /api/admin/api-keys""
+API -> API : التحقق من الرمز والصلاحية\n""integrations.manage""
+alt #FFEBEE لا يملك صلاحية إدارة التكاملات
+  API --> UI : رفض الطلب\n""403""
+  UI --> ADM : رسالة ليس لديك صلاحية إدارة التكاملات
+else #E8F5E9 الطلب مسموح
+  API --> UI : التكاملات دون أسرارها والمفاتيح\n""200 OK""
+  ADM -> UI : إدخال إعدادات التكامل وتفعيله ثم حفظ
+  UI -> API : حفظ الإعدادات\n""PUT /api/admin/integrations/{key}""
+  alt #FFEBEE حقل مطلوب ناقص أو قيمة غير صالحة
+    API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+    UI --> ADM : رسالة أكمل الحقول المطلوبة
+  else #E8F5E9 الإعدادات مكتملة
+    API -> DB : حفظ الإعدادات والأسرار مشفّرة\nوتسجيلها في سجل التدقيق
+    API --> UI : التكامل مع إخفاء الأسرار\n""200 OK""
+    UI --> ADM : رسالة حُفظ التكامل
+    ADM -> UI : الضغط على اختبار الاتصال
+    UI -> API : اختبار الاتصال\n""POST /api/admin/integrations/{key}/test""
+    API -> EXT : اتصال بالإعدادات المحفوظة
+    EXT --> API : نجاح الاتصال أو فشله
+    API --> UI : نتيجة الاختبار\n""200 OK""
+    UI --> ADM : الاتصال ناجح أو فشل الاتصال
+  end
+end
+
+== مفتاح لنظام خارجي ==
+ADM -> UI : اسم المفتاح وصلاحياته وانتهاؤه\nوالعناوين المسموحة ثم إنشاء مفتاح
+UI -> API : إنشاء المفتاح\n""POST /api/admin/api-keys""
+API -> DB : حفظ بصمة المفتاح المجزّأة وصلاحياته
+API --> UI : المفتاح كاملاً لمرة واحدة\n""201 Created""
+UI --> ADM : نافذة انسخ المفتاح الآن\nفلا يظهر مرة أخرى
+ADM -> SYS : تسليم المفتاح إلى النظام الخارجي
+SYS -> API : طلب بالمفتاح\n""GET /api/integration/ping""
+API -> DB : مطابقة البصمة وفحص الانتهاء\nوالعنوان ونطاق الطلب
+alt #FFEBEE المفتاح ملغى أو منتهٍ أو العنوان أو النطاق غير مسموح
+  API --> SYS : رفض الطلب\n""401""
+else #E8F5E9 المفتاح صالح
+  API -> DB : تسجيل آخر استخدام
+  API --> SYS : الاستجابة المطلوبة\n""200 OK""
+end
+opt #FFF8E1 إلغاء المفتاح
+  ADM -> UI : الضغط على إلغاء أمام المفتاح
+  UI -> API : إلغاء المفتاح\n""DELETE /api/admin/api-keys/{id}""
+  API -> DB : تعليم المفتاح ملغى دون حذفه
+  API --> UI : تم الإلغاء\n""200 OK""
+end
+@enduml

@@ -1,0 +1,87 @@
+@startuml UC-55_grading_schemes
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-55 — إدارة سلالم الدرجات
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+ACO -> UI : الضغط على سلّم جديد
+UI --> ACO : محرر السلّم بأقسامه\nالسلّم والحروف وجرّب علامة والرموز الخاصة
+ACO -> UI : الاسمان وأعلى النقاط وبداية كل حرف ونقاطه\nوعلامة النجاح والرموز الخاصة
+UI -> UI : حساب نهاية كل حرف ووسمه ناجحاً أو راسباً
+ACO -> UI : الضغط على إنشاء السلّم
+UI -> API : إنشاء السلّم\n""POST /api/grading-schemes""
+API -> API : التحقق من الصلاحية\n""grading_schemes.create""
+API -> API : فحص تفرّد الحروف وتدرّج النقاط\nووقوع علامة النجاح عند بداية حرف
+alt #FFEBEE حرف مكرر أو نقاط لا تتدرج\nأو علامة نجاح في غير موضعها
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ACO : رسالة بعض الحقول تحتاج إلى تصحيح
+else #E8F5E9 السلّم صالح
+  API -> DB : حفظ السلّم وحروفه ورموزه\nوتسجيله في سجل التدقيق
+  API --> UI : السلّم الجديد\n""201 Created""
+  UI --> ACO : رسالة أُنشئ السلّم
+end
+
+== الافتراضي والنسخ والحذف ==
+alt #E8F5E9 جعله افتراضياً
+  ACO -> UI : اجعله الافتراضي
+  UI -> API : تعيين الافتراضي\n""POST /api/grading-schemes/{id}/make-default""
+  API -> DB : جعل السلّم الافتراضي الوحيد
+  UI --> ACO : رسالة أصبح السلّم الافتراضي
+else #FFF3E0 نسخ السلّم
+  ACO -> UI : نسخ
+  UI -> API : نسخ السلّم\n""POST /api/grading-schemes/{id}/copy""
+  API -> DB : إنشاء سلّم من القائم
+  UI --> ACO : رسالة نُسخ السلّم
+else #FFF3E0 حذف السلّم
+  ACO -> UI : حذف ثم تأكيد الحذف
+  UI -> API : حذف السلّم\n""DELETE /api/grading-schemes/{id}""
+  alt #FFEBEE السلّم الافتراضي
+    API --> UI : رفض الحذف\n""409 CUR_SCHEME_IS_DEFAULT""
+    UI --> ACO : رسالة اجعل سلّماً آخر افتراضياً أولاً
+  else #FFEBEE برامج تستخدم السلّم
+    API --> UI : رفض الحذف\n""409 CUR_SCHEME_IN_USE""
+    UI --> ACO : رسالة ما زالت برامج تستخدم هذا السلّم
+  else #E8F5E9 يمكن حذفه
+    API -> DB : حذف السلّم
+    UI --> ACO : رسالة حُذف السلّم
+  end
+end
+@enduml

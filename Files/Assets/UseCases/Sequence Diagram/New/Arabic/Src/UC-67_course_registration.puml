@@ -1,0 +1,72 @@
+@startuml UC-67_course_registration
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-67 — تسجيل المقررات
+
+actor "الطالب" as U
+box "الخادم" #F3FAF3
+  participant "متحكم\nالتسجيل" as RC
+  participant "فاحص\nالأهلية" as EC
+  participant "مدير\nالمقاعد" as SM
+  participant "خدمة\nتأكيد السلة" as CS
+  participant "خدمة\nالفواتير" as IS
+end box
+
+U -> RC : يضيف شعبة إلى السلة
+RC -> EC : يطلب فحص الأهلية
+EC -> EC : يفحص النافذة والعوائق\nوالمتطلبات والتعارضات والساعات
+alt لم تتحقق قاعدة
+  EC --> RC : القاعدة غير المتحققة
+  RC --> U : يعرض السبب والبدائل
+else الطالب مؤهل
+  EC --> RC : الطالب مؤهل
+  RC -> SM : يحجز المقعد مؤقتاً
+  RC --> U : يعرض السلة بعد الإضافة
+end
+U -> RC : يؤكد التسجيل
+RC -> RC : يتجاهل الطلب المكرر
+RC -> EC : يعيد فحص السلة كلها
+RC -> CS : يطلب تأكيد السلة
+CS -> SM : يحجز المقاعد كلها في عملية واحدة
+alt امتلأت شعبة
+  SM --> CS : الشعبة ممتلئة
+  CS -> CS : يتراجع عن العملية كلها
+  CS --> RC : لم يُسجَّل شيء
+  RC --> U : يعرض الشعبة الممتلئة والبدائل
+else حُجزت المقاعد
+  SM --> CS : حُجزت المقاعد
+  CS -> CS : ينشئ التسجيلات
+  CS -> IS : يطلب إصدار الفاتورة
+  IS --> CS : الفاتورة
+  CS --> RC : رقم التأكيد
+  RC --> U : تأكيد التسجيل
+end
+@enduml

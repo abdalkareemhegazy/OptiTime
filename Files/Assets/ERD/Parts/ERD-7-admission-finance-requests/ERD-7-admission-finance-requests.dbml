@@ -1,0 +1,460 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 7 من 8: القبول والمالية والطلبات الإلكترونية
+// 25 جدولاً من هذا القسم، و6 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_7 {
+  database_type: 'MySQL'
+  Note: 'القسم 7: القبول والمالية والطلبات الإلكترونية'
+}
+
+// -------------------- القبول --------------------
+
+Table admission_cycles {
+  id uuid [pk]
+  intake_semester_id uuid [ref: > semesters.id]
+  name_ar varchar(150)
+  name_en varchar(150)
+  opens_at timestamp
+  closes_at timestamp
+  decisions_publish_at timestamp
+  application_fee decimal(10,2)
+  max_preferences smallint
+  status varchar(25)
+  Note: 'دورات القبول ومواعيدها'
+}
+
+Table admission_programs {
+  id uuid [pk]
+  admission_cycle_id uuid [ref: > admission_cycles.id]
+  program_id uuid [ref: > programs.id]
+  capacity smallint
+  waitlist_capacity smallint
+  min_high_school_score decimal(5,2)
+  required_tracks json
+  score_formula json
+  accepted_count smallint
+  Note: 'البرامج المفتوحة في الدورة وسعتها وشروطها'
+}
+
+Table document_types {
+  id uuid [pk]
+  key varchar(40) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_required boolean
+  applies_to json
+  max_size_mb smallint
+  allowed_mimes json
+  Note: 'أنواع المستندات المطلوبة للتقديم'
+}
+
+Table applicants {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  national_id_encrypted text
+  national_id_hash char(64)
+  first_name_ar varchar(50)
+  father_name_ar varchar(50)
+  grandfather_name_ar varchar(50)
+  family_name_ar varchar(50)
+  full_name_en varchar(150)
+  gender varchar(6)
+  birth_date date
+  nationality char(2)
+  phone varchar(20)
+  address json
+  guardian json
+  high_school json
+  entrance_exam_score decimal(5,2)
+  special_needs text
+  Note: 'المتقدمون للقبول وبياناتهم'
+}
+
+Table applications {
+  id uuid [pk]
+  application_number varchar(20) [unique]
+  admission_cycle_id uuid [ref: > admission_cycles.id]
+  applicant_id uuid [ref: > applicants.id]
+  student_id uuid [unique, ref: - students.user_id]
+  status varchar(25)
+  composite_score decimal(6,3)
+  rank_in_program int
+  decided_program_id uuid
+  conditions text
+  decision_notes text
+  reviewed_by uuid
+  decided_by uuid
+  decided_at timestamp
+  offer_sent_at timestamp
+  offer_expires_at timestamp
+  responded_at timestamp
+  submitted_at timestamp
+  Note: 'طلبات الالتحاق وقراراتها، والطالب الذي ينشأ عن قبول العرض'
+}
+
+Table application_preferences {
+  id uuid [pk]
+  application_id uuid [ref: > applications.id]
+  admission_program_id uuid [ref: > admission_programs.id]
+  priority smallint
+  allocation_result varchar(15)
+  Note: 'رغبات المتقدم مرتبة'
+}
+
+Table application_documents {
+  id uuid [pk]
+  application_id uuid [ref: > applications.id]
+  document_type_id uuid [ref: > document_types.id]
+  file_id uuid [ref: > files.id]
+  status varchar(15)
+  rejection_reason text
+  verified_by uuid
+  verified_at timestamp
+  Note: 'مستندات الطلب ومراجعتها'
+}
+
+TableGroup "القبول" [color: #DB2777] {
+  admission_cycles
+  admission_programs
+  document_types
+  applicants
+  applications
+  application_preferences
+  application_documents
+}
+
+// -------------------- المالية --------------------
+
+Table fee_types {
+  id uuid [pk]
+  key varchar(40) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_refundable boolean
+  gl_account_code varchar(30)
+  is_active boolean
+  Note: 'أنواع الرسوم'
+}
+
+Table fee_structures {
+  id uuid [pk]
+  academic_year_id uuid [ref: > academic_years.id]
+  fee_type_id uuid [ref: > fee_types.id]
+  program_id uuid [ref: > programs.id]
+  student_category varchar(20)
+  calculation varchar(20)
+  amount decimal(10,2)
+  currency char(3)
+  effective_from date
+  Note: 'قيمة كل رسم لكل برنامج وسنة أكاديمية'
+}
+
+Table invoices {
+  id uuid [pk]
+  invoice_number varchar(20) [unique]
+  student_id uuid [ref: > students.user_id]
+  applicant_id uuid [ref: > applicants.id]
+  semester_id uuid [ref: > semesters.id]
+  issue_date date
+  due_date date
+  subtotal decimal(12,2)
+  discount_total decimal(12,2)
+  total decimal(12,2)
+  paid_total decimal(12,2)
+  balance decimal(12,2)
+  currency char(3)
+  status varchar(20)
+  source_type varchar(30)
+  source_id uuid
+  notes text
+  Note: 'فواتير الطلاب والمتقدمين للقبول'
+}
+
+Table invoice_items {
+  id uuid [pk]
+  invoice_id uuid [ref: > invoices.id]
+  fee_type_id uuid [ref: > fee_types.id]
+  scholarship_award_id uuid [ref: > scholarship_awards.id]
+  description_ar varchar(255)
+  description_en varchar(255)
+  quantity decimal(8,2)
+  unit_price decimal(10,2)
+  discount_amount decimal(10,2)
+  amount decimal(12,2)
+  related_type varchar(30)
+  related_id uuid
+  Note: 'بنود الفاتورة'
+}
+
+Table payments {
+  id uuid [pk]
+  payment_number varchar(20) [unique]
+  receipt_number varchar(20)
+  student_id uuid [ref: > students.user_id]
+  payer_type varchar(20)
+  payer_id uuid
+  amount decimal(12,2)
+  currency char(3)
+  method varchar(20)
+  gateway varchar(30)
+  gateway_reference varchar(120)
+  status varchar(20)
+  idempotency_key uuid [unique]
+  paid_at timestamp
+  received_by uuid
+  reversal_reason text
+  notes text
+  Note: 'الدفعات الإلكترونية والنقدية'
+}
+
+Table payment_allocations {
+  id uuid [pk]
+  payment_id uuid [ref: > payments.id]
+  invoice_id uuid [ref: > invoices.id]
+  amount decimal(12,2)
+  Note: 'توزيع كل دفعة على الفواتير'
+}
+
+Table gateway_transactions {
+  id uuid [pk]
+  payment_id uuid [ref: > payments.id]
+  gateway varchar(30)
+  event varchar(40)
+  reference varchar(120)
+  request_payload json
+  response_payload json
+  signature_verified boolean
+  http_status smallint
+  Note: 'سجل التخاطب مع بوابة الدفع'
+}
+
+Table student_ledger_entries {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  type varchar(20)
+  amount decimal(12,2)
+  balance_after decimal(12,2)
+  reference_type varchar(30)
+  reference_id uuid
+  description_ar varchar(255)
+  Note: 'دفتر حساب الطالب، قيوده لا تُعدَّل'
+}
+
+Table installment_plans {
+  id uuid [pk]
+  invoice_id uuid [ref: > invoices.id]
+  service_request_id uuid [ref: > service_requests.id]
+  total_amount decimal(12,2)
+  down_payment decimal(12,2)
+  installments_count smallint
+  status varchar(15)
+  approved_by uuid
+  Note: 'خطط تقسيط الفواتير'
+}
+
+Table installments {
+  id uuid [pk]
+  installment_plan_id uuid [ref: > installment_plans.id]
+  sequence smallint
+  due_date date
+  amount decimal(12,2)
+  paid_amount decimal(12,2)
+  status varchar(15)
+  Note: 'أقساط كل خطة'
+}
+
+Table scholarships {
+  id uuid [pk]
+  name_ar varchar(150)
+  name_en varchar(150)
+  type varchar(25)
+  coverage_type varchar(15)
+  value decimal(10,2)
+  applies_to_fee_types json
+  min_gpa_to_maintain decimal(3,2)
+  min_hours_to_maintain smallint
+  max_semesters smallint
+  sponsor_name varchar(150)
+  budget decimal(14,2)
+  is_active boolean
+  Note: 'المنح وشروط استمرارها'
+}
+
+Table scholarship_awards {
+  id uuid [pk]
+  scholarship_id uuid [ref: > scholarships.id]
+  student_id uuid [ref: > students.user_id]
+  from_semester_id uuid
+  to_semester_id uuid
+  status varchar(15)
+  suspension_reason text
+  semesters_used smallint
+  approved_by uuid
+  Note: 'منح الطلاب ومدتها'
+}
+
+Table fines {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  invoice_item_id uuid [ref: > invoice_items.id]
+  type varchar(25)
+  amount decimal(10,2)
+  reason_ar varchar(255)
+  source_type varchar(30)
+  source_id uuid
+  status varchar(15)
+  waived_by uuid
+  waiver_reason text
+  issued_by uuid
+  Note: 'الغرامات، ومنها غرامات تأخير الكتب'
+}
+
+Table refunds {
+  id uuid [pk]
+  payment_id uuid [ref: > payments.id]
+  invoice_id uuid [ref: > invoices.id]
+  amount decimal(12,2)
+  reason varchar(30)
+  method varchar(20)
+  status varchar(15)
+  requested_by uuid
+  approved_by uuid
+  processed_at timestamp
+  bank_details_encrypted text
+  notes text
+  Note: 'المبالغ المستردة للطلاب'
+}
+
+TableGroup "المالية" [color: #047857] {
+  fee_types
+  fee_structures
+  invoices
+  invoice_items
+  payments
+  payment_allocations
+  gateway_transactions
+  student_ledger_entries
+  installment_plans
+  installments
+  scholarships
+  scholarship_awards
+  fines
+  refunds
+}
+
+// -------------------- الطلبات الإلكترونية --------------------
+
+Table request_types {
+  id uuid [pk]
+  key varchar(40) [unique]
+  module varchar(30)
+  name_ar varchar(150)
+  name_en varchar(150)
+  description_ar text
+  fee_type_id uuid [ref: > fee_types.id]
+  requester_roles json
+  form_schema json
+  workflow json
+  required_documents json
+  fee_amount decimal(10,2)
+  sla_days smallint
+  window_type varchar(30)
+  handler_key varchar(60)
+  is_active boolean
+  Note: 'أنواع الطلبات الإلكترونية ونماذجها وخطوات اعتمادها'
+}
+
+Table service_requests {
+  id uuid [pk]
+  request_number varchar(20) [unique]
+  request_type_id uuid [ref: > request_types.id]
+  requester_id uuid [ref: > users.id]
+  invoice_id uuid [ref: > invoices.id]
+  semester_id uuid
+  payload json
+  status varchar(20)
+  current_step smallint
+  current_role varchar(50)
+  current_assignee_id uuid
+  outcome json
+  submitted_at timestamp
+  due_at timestamp
+  completed_at timestamp
+  Note: 'الطلبات الإلكترونية المقدمة'
+}
+
+Table request_steps {
+  id uuid [pk]
+  service_request_id uuid [ref: > service_requests.id]
+  step_no smallint
+  role varchar(50)
+  assignee_id uuid
+  decision varchar(15)
+  comment text
+  decided_at timestamp
+  Note: 'خطوات اعتماد الطلب وقراراتها'
+}
+
+Table request_comments {
+  id uuid [pk]
+  service_request_id uuid [ref: > service_requests.id]
+  author_id uuid
+  body text
+  is_internal boolean
+  attachment_file_id uuid
+  Note: 'المراسلات على الطلب'
+}
+
+TableGroup "الطلبات الإلكترونية" [color: #0E7490] {
+  request_types
+  service_requests
+  request_steps
+  request_comments
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table semesters {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table programs {
+  id uuid [pk]
+  name_ar varchar(200)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table users {
+  id uuid [pk]
+  full_name varchar(150)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table students {
+  user_id uuid [pk]
+  university_number varchar(40) [unique]
+  Note: 'من القسم 5: الطلاب والتسجيل والإرشاد والحضور والامتحانات'
+}
+
+Table files {
+  id uuid [pk]
+  original_name varchar(255)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table academic_years {
+  id uuid [pk]
+  code varchar(9) [unique]
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  semesters
+  programs
+  users
+  students
+  files
+  academic_years
+}

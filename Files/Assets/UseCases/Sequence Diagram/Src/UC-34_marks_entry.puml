@@ -1,0 +1,97 @@
+@startuml UC-34_marks_entry
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-34 (1/2) — فتح الكشف ورصد العلامات وحفظها
+
+actor "موظف شؤون\nالامتحانات" as EXM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "الطالب" as STU
+
+== فتح لوحة الامتحانات ==
+EXM -> UI : فتح لوحة الامتحانات واختيار الفصل
+UI -> API : طلب مواد الفصل وتقدّم رصدها\n""GET /api/exams/subjects""
+API -> API : التحقق من الرمز والصلاحية\n""exam_sessions.view""
+API -> DB : قراءة المواد وشعبها وتقدّم الرصد ومكوّنات العلامة
+API --> UI : المواد\n""200 OK""
+UI --> EXM : عرض مواد الفصل لكل مادة\nشعبها وتقدّم رصدها ومكوّنات علامتها
+
+== كشف علامات الجلسة ==
+EXM -> UI : الضغط على رصد العلامات لمادة أو فتح شعبة بعينها
+UI -> API : طلب كشف علامات الجلسة\n""GET /api/exams/grades""
+API -> API : التحقق من الصلاحية\n""exam_grades.view""
+API -> DB : قراءة طلاب الشعبة بالرقم الجامعي وعلاماتهم على المكوّنات
+API --> UI : الكشف\n""200 OK""
+UI --> EXM : عرض طلاب الشعبة وحقلاً لكل مكوّن من مكوّنات المادة
+EXM -> UI : إدخال علامة كل طالب على مكوّنات المادة
+UI -> UI : حساب المجموع والتقدير والنجاح\nعلى سلّم درجات برنامج الطالب معاينةً
+
+== حفظ العلامات ==
+EXM -> UI : الضغط على حفظ لطالب واحد أو حفظ التغييرات للجميع
+UI -> API : إرسال علامات الطالب\n""POST /api/exams/grades""
+API -> API : التحقق من الرمز والصلاحية\n""exam_grades.update""
+API -> DB : التحقق من نافذة رصد العلامات للفصل\nومن أن الجلسة غير مقفلة ومن تسجيل الطالب فيها
+alt #FFEBEE نافذة رصد العلامات مغلقة
+  API --> UI : رفض الطلب\n""403 GEN_WINDOW_CLOSED""
+  UI --> EXM : رسالة رصد العلامات لهذا الفصل مغلق الآن
+else #FFEBEE الجلسة مقفلة
+  API --> UI : رفض الطلب\n""422 closed""
+  UI --> EXM : رسالة الجلسة مقفلة\nولا يمكن تعديل علاماتها قبل إعادة فتحها
+else #FFEBEE الطالب غير مسجّل في الجلسة
+  API --> UI : رفض الطلب\n""422 not_enrolled""
+  UI --> EXM : رسالة هذا الطالب غير مسجّل في هذه الجلسة
+else #FFEBEE علامة خارج حدود مكوّنها
+  API --> UI : رفض الطلب\n""422""
+  UI --> EXM : تلوين الخانة بالأحمر مع رسالة\nقيمة خارج حدود مكوّنها
+else #E8F5E9 العلامات صالحة
+  API -> DB : حفظ العلامات وإعادة حساب المجموع والتقدير
+  API -> DB : تسجيل الإدخال في سجل التدقيق
+  opt #FFF8E1 اكتملت علامات الطالب
+    API -> NTF : إشعار الطالب بدرجته الجديدة
+    NTF --> STU : إشعار نشر درجة جديدة
+  end
+  API --> UI : صف الطالب بعد الحفظ\n""200 OK""
+  UI --> EXM : رسالة بنجاح الحفظ
+end
+note over UI, DB
+  العلامة الفارغة تعني لم تُرصد لا صفراً
+  فتُملأ الكشوف مكوّناً مكوّناً
+  ولا يظهر تقدير الطالب إلا بعد رصد كل مكوّنات علامته
+end note
+@enduml

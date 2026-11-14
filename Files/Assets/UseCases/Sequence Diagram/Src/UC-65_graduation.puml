@@ -1,0 +1,81 @@
+@startuml UC-65_graduation
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-65 — ترشيح المتخرجين واعتماد دفعة التخرج
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "التدقيق الأكاديمي\nDegreeAuditService" as AUD
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+ACO -> UI : فتح مرشحو التخرج واختيار الفصل
+UI -> API : طلب المرشحين\n""GET /api/graduation/candidates""
+API -> API : التحقق من الرمز والصلاحية\n""graduation.manage""
+alt #FFEBEE درجات الفصل غير منشورة
+  API --> UI : رفض الطلب\n""409 GEN_CONFLICT""
+  UI --> ACO : بيان أن الدرجات لم تُنشر بعد
+else #E8F5E9 الدرجات منشورة
+  loop #FFFFFF لكل طالب قدّم طلب تخرج أو بلغ ساعات برنامجه
+    API -> AUD : تدقيق الطالب
+    AUD -> DB : المنجز والمتبقي والعوائق
+  end
+  API --> UI : المستوفون بتقديرهم ومرتبة شرفهم\nوعوائقهم\n""200 OK""
+  alt #FFF3E0 لا مرشحين مستوفين
+    UI --> ACO : بيان أنه لا مرشحين مستوفين
+  else #E8F5E9 يوجد مرشحون
+    ACO -> UI : اعتماد مرشح
+    UI -> API : اعتماد فردي\n""POST /api/graduation/candidates/{studentId}/approve""
+    alt #FFEBEE على المرشح عائق يمنع التخرج
+      API --> UI : رفض الطلب\n""409 GEN_CONFLICT""
+      UI --> ACO : رسالة تبيّن العائق
+    else #E8F5E9 مستوفٍ بلا عائق
+      API -> DB : تعليم المرشح معتمداً
+      API --> UI : تم\n""200 OK""
+    end
+    ACO -> UI : اعتماد الدفعة ثم التأكيد
+    UI -> API : اعتماد الدفعة\n""POST /api/graduation/finalize""
+    API -> DB : إعادة التحقق من كل معتمد\nوإخراج من تغيّر وضعه مع السبب
+    API -> DB : تحويل الحالة إلى متخرج\nوحفظ التقدير ومرتبة الشرف وسنة التخرج
+    API -> DB : تسجيل الاعتماد في سجل التدقيق
+    API -> NTF : إشعار المتخرجين
+    API --> UI : عدد المتخرجين ومن أُخرج\n""200 OK""
+    UI --> ACO : رسالة اعتماد الدفعة
+  end
+end
+@enduml

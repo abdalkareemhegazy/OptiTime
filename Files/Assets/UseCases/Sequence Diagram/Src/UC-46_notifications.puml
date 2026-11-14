@@ -1,0 +1,100 @@
+@startuml UC-46_notifications
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-46 — متابعة الإشعارات
+
+actor "المستخدم" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "الإشعارات الفورية\nFCM" as FCM
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== وقوع الحدث ==
+API -> NTF : حدث يعني المستخدم\nمثل نشر جدول أو مراجعة طلب
+NTF -> DB : إنشاء إشعار داخل التطبيق بلغتي الواجهة
+opt #FFF8E1 تفضيلات المستخدم تسمح بالإشعار الفوري
+  NTF -> FCM : إرسال إلى الأجهزة المسجّلة
+  alt #FFEBEE رفضت الخدمة رمز جهاز
+    FCM --> NTF : الرمز غير صالح
+    NTF -> DB : حذف رمز الجهاز
+  else #E8F5E9 وصل الإشعار
+    FCM --> U : إشعار فوري على الجهاز
+  end
+end
+loop #FFFFFF كل ثماني ثوانٍ
+  UI -> API : التحقق من الجديد\n""GET /api/notifications""
+  API --> UI : عدد غير المقروء\n""200 OK""
+end
+
+== مركز الإشعارات ==
+U -> UI : الضغط على الجرس أو فتح مركز الإشعارات
+UI -> API : طلب الإشعارات\n""GET /api/notifications""
+API -> API : التحقق من الرمز والصلاحية\n""notifications.view""
+alt #FFEBEE تعذّر التحميل
+  UI --> U : رسالة تعذر تحميل إشعاراتك\nمع زر إعادة المحاولة
+else #E8F5E9 وصلت الإشعارات
+  API -> DB : قراءة إشعارات المستخدم
+  API --> UI : الإشعارات والأعداد\n""200 OK""
+  alt #FFF3E0 لا توجد إشعارات
+    UI --> U : رسالة لا جديد لديك
+  else #E8F5E9 توجد إشعارات
+    UI --> U : الإشعارات مجمّعة بالأيام\nمع التصفية بحسب النوع
+    U -> UI : فتح إشعار
+    UI -> API : تعليمه مقروءاً\n""POST /api/notifications/{id}/read""
+    API -> DB : تعليم الإشعار مقروءاً
+    API --> UI : تم\n""200 OK""
+    UI --> U : فتح صفحة الحدث وتحديث العدّاد
+    U -> UI : الضغط على تعيين الكل كمقروء
+    UI -> API : تعليم الكل\n""POST /api/notifications/read-all""
+    API -> DB : تعليم كل الإشعارات مقروءة
+    API --> UI : تم\n""200 OK""
+    UI --> U : رسالة تم تعيين كل الإشعارات كمقروءة
+  end
+end
+
+== تنبيهات سطح المكتب ==
+opt #FFF8E1 تفعيل التنبيهات على هذا الجهاز
+  U -> UI : الضغط على تفعيل
+  UI -> UI : طلب إذن المتصفح ورمز الجهاز
+  UI -> API : تسجيل الجهاز\n""POST /api/notifications/devices""
+  API -> DB : حفظ رمز الجهاز
+  API --> UI : تم التسجيل\n""200 OK""
+end
+@enduml

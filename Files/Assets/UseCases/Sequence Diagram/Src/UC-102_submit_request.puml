@@ -1,0 +1,86 @@
+@startuml UC-102_submit_request
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-102 — تقديم طلب إلكتروني ومتابعته
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "فحص النموذج\nFormSchemaValidator" as FSV
+  participant "محرك سير العمل\nWorkflowEngine" as WF
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "الجهة المعالِجة" as PROC
+
+STU -> UI : فتح طلباتي والضغط على طلب جديد
+UI -> API : الأنواع المتاحة لي\n""GET /api/request-types""
+API -> API : التحقق من الرمز والصلاحية\n""requests.create""
+API --> UI : الأنواع مع رسوم كل نوع ومدة إنجازه\n""200 OK""
+STU -> UI : اختيار نوع الطلب
+UI -> API : مخطط النموذج وخطوات الاعتماد\n""GET /api/request-types/{key}""
+API --> UI : النموذج الديناميكي وخطوات اعتماده\n""200 OK""
+STU -> UI : تعبئة النموذج وإرفاق المستندات\nثم الضغط على تقديم
+UI -> API : حفظ الطلب ثم تقديمه\n""POST /api/me/requests""\n""POST /api/me/requests/{id}/submit""
+API -> FSV : فحص النوع والطلبات المعلّقة\nوحقول النموذج
+alt #FFEBEE نوع الطلب غير متاح
+  API --> UI : رفض الطلب\n""403 REQ_TYPE_INACTIVE""
+  UI --> STU : رسالة نوع الطلب غير متاح
+else #FFEBEE لدى الطالب طلب معلّق مماثل
+  API --> UI : رفض الطلب\n""409 REQ_DUPLICATE_PENDING""
+  UI --> STU : رسالة لديك طلب معلّق مماثل
+else #FFEBEE حقل مطلوب ناقص أو مستند مرفوض
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> STU : رسالة بعض البيانات المدخلة غير صالحة\nمع وسم الحقول
+else #E8F5E9 الطلب صالح
+  WF -> DB : تسجيل الطلب برقمه وتوجيهه\nإلى الخطوة الأولى في مسار الاعتماد
+  opt #FFF8E1 للنوع رسوم
+    WF -> DB : إصدار فاتورة تُدفع قبل المعالجة
+    ref over STU, UI : UC-94 عرض الرصيد والدفع الإلكتروني
+  end
+  WF -> NTF : إشعار الجهة المعالِجة
+  NTF --> PROC : طلب جديد في صندوقك
+  API --> UI : الطلب برقمه وخطه الزمني\n""201 Created""
+  UI --> STU : الخط الزمني بحالة الطلب\nومدة الإنجاز المعلنة
+end
+opt #FFF8E1 طلب معلومات إضافية
+  NTF --> STU : المعالِج يطلب معلومات إضافية
+  STU -> UI : الرد على الطلب
+  UI -> API : الرد\n""POST /api/me/requests/{id}/respond""
+  WF -> DB : إعادة الطلب إلى خطوته نفسها
+end
+NTF --> STU : القرار النهائي والأثر المنفَّذ
+@enduml

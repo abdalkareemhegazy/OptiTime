@@ -1,0 +1,87 @@
+@startuml UC-74_course_content
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-74 — إدارة محتوى المادة وإعلاناتها
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "تخزين الملفات\nFileStorageService" as FS
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "طلاب الشعبة" as STU
+
+INS -> UI : فتح موادي واختيار الشعبة
+UI -> API : طلب صفحة المادة\n""GET /api/sections/{id}/overview""
+API -> API : التحقق من الرمز وعضوية الشعبة\n""learning.access""
+alt #FFEBEE ليس من طلاب الشعبة ولا مدرّسيها
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN""
+  UI --> INS : رسالة لا تملك صلاحية تنفيذ هذا
+else #E8F5E9 عضو في الشعبة
+  API --> UI : الوصف والجدول والمدرّسون والتقدّم\n""200 OK""
+end
+
+== المحتوى ==
+INS -> UI : رفع ملف مع الأسبوع أو الموضوع ووصفه
+UI -> API : رفع الملف\n""POST /api/sections/{id}/materials""
+API -> API : التحقق من الصلاحية\n""materials.manage""
+API -> FS : فحص النوع والحجم والمحتوى
+alt #FFEBEE الملف مرفوض
+  API --> UI : رفض الطلب\n""422 GEN_FILE_REJECTED""
+  UI --> INS : رسالة رُفض الملف مع السبب
+else #E8F5E9 الملف مقبول
+  FS -> DB : حفظ الملف مسودة
+  INS -> UI : نشر الملف
+  UI -> API : نشر\n""POST /api/materials/{id}/publish""
+  API -> NTF : إشعار طلاب الشعبة
+  NTF --> STU : ملف جديد في المادة
+end
+
+== الإعلانات والتقدّم ==
+INS -> UI : كتابة إعلان للشعبة ونشره
+UI -> API : نشر الإعلان\n""POST /api/sections/{id}/announcements""
+API -> DB : حفظ الإعلان
+API -> NTF : إشعار طلاب الشعبة
+INS -> UI : تعليم مواضيع الأسبوع المنجزة
+UI -> API : حفظ التقدّم\n""PUT /api/sections/{id}/progress""
+API -> DB : حفظ التقدّم وتحديث نسبته
+API --> UI : التقدّم\n""200 OK""
+note over UI, API
+  ينزّل الطالب الملفات برابط موقّع مؤقت يُعدّ تنزيله
+  ""GET /api/materials/{id}/download""
+end note
+@enduml

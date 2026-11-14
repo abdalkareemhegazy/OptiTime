@@ -1,0 +1,80 @@
+@startuml UC-83_grade_change
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-83 — طلب تعديل درجة منشورة
+
+actor "عضو هيئة\nالتدريس" as INS
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "تطبيق التعديل\nApplyGradeChangeAction" as APPLY
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "عميد الكلية" as DEN
+
+== تقديم الطلب ==
+INS -> UI : طلب تعديل لدرجة طالب منشورة\nبالعلامة الجديدة والسبب والمرفق
+UI -> API : تقديم الطلب\n""POST /api/grade-change-requests""
+API -> API : التحقق من الرمز والصلاحية\n""grades.change.request""
+alt #FFEBEE الدرجة غير منشورة
+  API --> UI : رفض الطلب\n""409 GEN_CONFLICT""
+  UI --> INS : بيان أن التعديل قبل النشر يكون من الكشف
+else #FFEBEE علامة خارج النطاق أو سبب أو مرفق ناقص
+  API --> UI : رفض الطلب\n""422 GRD_MARK_OUT_OF_RANGE""
+  UI --> INS : رسالة تبيّن الخطأ
+else #E8F5E9 الطلب صالح
+  API -> API : تقدير حجم التغيير ومدى قلب النتيجة
+  API -> DB : حفظ الطلب وتوجيهه إلى العميد\nأو إلى موظف الشؤون إن كان دون الحد
+  API -> NTF : إشعار الجهة المعنية
+  API --> UI : الطلب\n""201 Created""
+end
+
+== القرار ==
+DEN -> UI : فتح الطلب ومراجعة السبب والقيمتين
+DEN -> UI : الموافقة أو الرفض مع ملاحظة
+UI -> API : القرار\n""POST /api/grade-change-requests/{id}/approve""
+API -> API : التحقق من الصلاحية\n""grades.change.approve""
+alt #FFEBEE جهة غير العميد لتعديل يتطلب موافقته
+  API --> UI : رفض\n""403 GRD_CHANGE_REQUIRES_DEAN""
+  UI --> DEN : رسالة يتطلب هذا التعديل موافقة العميد
+else #E8F5E9 القرار مخوّل
+  API -> APPLY : تطبيق التعديل
+  APPLY -> DB : حفظ القيمة السابقة والجديدة\nومن طلب ومن اعتمد في سجل الدرجات
+  ref over APPLY, DB : UC-81 حساب المعدل والوضع الأكاديمي
+  API -> NTF : إشعار الطالب والمدرّس بالقرار
+  API --> UI : تم التطبيق\n""200 OK""
+end
+@enduml

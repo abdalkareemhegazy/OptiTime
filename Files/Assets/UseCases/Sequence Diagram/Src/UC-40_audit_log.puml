@@ -1,0 +1,86 @@
+@startuml UC-40_audit_log
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-40 — استعراض سجل التدقيق
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح السجل ==
+ADM -> UI : فتح صفحة سجل التدقيق من مجموعة النظام
+UI -> API : طلب الإجراءات\n""GET /api/admin/audit-logs""
+API -> API : التحقق من الرمز والصلاحية\n""audit_logs.view""
+alt #FFEBEE لا يملك صلاحية عرض السجل
+  API --> UI : رفض الطلب\n""403""
+  UI --> ADM : رسالة لا تملك صلاحية عرض السجل
+else #FFEBEE تعذّر التحميل لانقطاع الاتصال أو خطأ في الخادم
+  UI --> ADM : رسالة تعذّر تحميل السجل\nمع زر إعادة المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : قراءة الإجراءات من الأحدث\nمع الأعداد الإجمالية
+  API --> UI : صفحة من الإجراءات والأعداد\n""200 OK""
+  alt #FFF3E0 لا توجد إجراءات بعد
+    UI --> ADM : رسالة لا توجد إجراءات بعد
+  else #E8F5E9 توجد إجراءات
+    UI --> ADM : الإجراءات مجمّعة بالأيام\nوكل إجراء جملة مقروءة
+  end
+end
+
+== التصفية والتفاصيل ==
+ADM -> UI : تحديد نوع الحدث والمجال والشخص والفترة\nأو كتابة نص في البحث
+UI -> API : طلب الإجراءات المطابقة\n""GET /api/admin/audit-logs""
+API -> DB : قراءة الإجراءات بحسب الشروط
+API --> UI : الإجراءات المطابقة\n""200 OK""
+alt #FFF3E0 لا إجراءات تطابق التصفية
+  UI --> ADM : رسالة لا نتائج لهذه التصفية\nجرّب توسيع المدة
+else #E8F5E9 توجد نتائج
+  UI --> ADM : الإجراءات المطابقة
+end
+ADM -> UI : الضغط على عرض التفاصيل أمام إجراء
+UI --> ADM : السجل المتأثر ورقم الطلب وعنوان الجهاز\nوالمتصفح ومفتاح الإجراء وما تغيّر
+
+== الجديد منذ آخر زيارة ==
+UI -> API : طلب عدد الإجراءات الجديدة\n""GET /api/admin/audit-logs/new-count""
+API -> DB : عدّ ما سُجّل بعد آخر ما اطّلع عليه المدير
+API --> UI : العدد وما يستدعي الانتباه\n""200 OK""
+UI --> ADM : تنبيه بما يستدعي الانتباه إن وُجد
+note over API, DB
+  لا يوجد أي مسار لتعديل سجل التدقيق أو حذفه
+  ويُستبقى سبع سنوات على الأقل
+end note
+@enduml

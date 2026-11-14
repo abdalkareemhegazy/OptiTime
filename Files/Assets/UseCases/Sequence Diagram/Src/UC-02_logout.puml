@@ -1,0 +1,74 @@
+@startuml UC-02_logout
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-02 — تسجيل الخروج
+
+actor "المستخدم" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== اختيار الإجراء ==
+U -> UI : الضغط على الصورة الشخصية في الشريط العلوي
+UI --> U : عرض قائمة المستخدم
+
+alt #E8F5E9 الخروج من هذا الجهاز
+  U -> UI : اختيار تسجيل الخروج
+  UI -> API : طلب إنهاء الجلسة\n""POST /api/auth/logout""
+  alt #E8F5E9 الخادم متاح
+    API -> DB : حذف رمز الدخول الخاص بهذا الجهاز
+    API -> DB : تسجيل العملية في سجل التدقيق
+    API --> UI : تأكيد إنهاء الجلسة\n""200 OK""
+  else #FFEBEE تعذّر الوصول إلى الخادم
+    UI -> UI : إنهاء الجلسة محلياً دون انتظار الرد
+  end
+  UI -> UI : حذف بيانات الجلسة والصلاحيات\nوالبيانات المخزنة مؤقتاً من المتصفح
+  UI --> U : التحويل إلى صفحة تسجيل الدخول
+else #FFF8E1 الخروج من الأجهزة الأخرى فقط
+  U -> UI : فتح إعدادات المستخدم ثم قسم الأجهزة المتصلة\nواختيار تسجيل الخروج من الأجهزة الأخرى
+  UI -> API : طلب إنهاء بقية الجلسات\n""POST /api/auth/logout-all""
+  API -> DB : حذف رموز الأجهزة الأخرى\nمع إبقاء رمز هذا الجهاز
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : عدد الجلسات المنتهية\n""200 OK""
+  UI --> U : تحديث قائمة الأجهزة المتصلة
+end
+note over UI, API
+  عند انتهاء الجلسة تلقائياً بعد المدة المحددة في الإعدادات
+  أو بعد إنهاء مدير النظام لجلسات الحساب
+  يحوَّل المستخدم إلى صفحة تسجيل الدخول عند طلبه التالي
+end note
+@enduml

@@ -1,0 +1,62 @@
+@startuml UC-27_enter_availability
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-27 — Enter Availability
+
+actor "Instructor" as U
+box "Server" #F3FAF3
+  participant "Availability\nController" as AC
+  participant "Availability\nService" as AS
+  participant "Notification\nService" as NS
+end box
+actor "Coordinator" as CRD
+
+U -> AC : Send the week's availability
+AC -> AS : Save the week
+AS -> AS : Check the availability window is open
+AS -> AS : Check each time cell
+alt window closed
+  AS --> AC : Window closed
+  AC --> U : Show the week read-only
+else a cell is invalid
+  AS --> AC : Reason for each cell
+  AC --> U : Refuse with the reasons
+else week valid
+  AS -> AS : Save the week in one transaction
+  opt week submitted
+    AS -> NS : Notify the coordinators
+    NS ->> CRD : Availability submitted
+  end
+  AS --> AC : Saved week
+  AC -> AC : Record in the audit log
+  AC --> U : Confirm saved or submitted
+end
+@enduml

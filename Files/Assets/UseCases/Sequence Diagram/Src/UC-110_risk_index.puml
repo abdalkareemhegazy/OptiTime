@@ -1,0 +1,93 @@
+@startuml UC-110_risk_index
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-110 — متابعة مؤشر خطر التعثّر
+
+actor "المرشد الأكاديمي" as ADV
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "المجدول الدوري\nDetectAtRiskStudentsJob" as JOB
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "خدمة الذكاء الاصطناعي" #F3FAF3
+  participant "خدمة التحليلات\nFastAPI" as AIS
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "موظف الشؤون الأكاديمية\nأو رئيس القسم" as ACO
+
+== الدفعة الليلية ==
+loop #FFFFFF ليلاً
+  JOB -> DB : بيانات كل طالب من الغياب ونتائج الكويزات\nوالمعدل والمتطلبات الراسبة والعبء الدراسي
+  JOB -> AIS : حساب المؤشر بالنموذج المفعّل\n""HMAC""
+  alt #FFEBEE تعذّرت خدمة التحليلات
+    JOB -> DB : إبقاء آخر مؤشرات محسوبة بتاريخها\nوتنبيه المسؤول
+  else #E8F5E9 المؤشرات محسوبة
+    AIS --> JOB : المؤشر وأبرز العوامل لكل طالب
+    JOB -> DB : حفظ المؤشرات وعواملها
+    JOB -> NTF : الطلاب الذين تجاوزوا العتبة
+    NTF --> ADV : إشعار بطلاب تجاوز مؤشرهم العتبة
+  end
+end
+
+== طلاب المرشد ==
+ADV -> UI : فتح طلابي
+UI -> API : طلابي مع مؤشرات الخطر\n""GET /api/advising/advisees""
+API -> API : التحقق من الرمز والصلاحية\n""advising.advisees""
+alt #FFF3E0 لا طلاب أو لا مؤشرات محسوبة بعد
+  API --> UI : قائمة فارغة\n""200 OK""
+  UI --> ADV : بيان ذلك
+else #E8F5E9 توجد مؤشرات
+  API --> UI : الطلاب مرتبين بالمؤشر مع أبرز العوامل\n""200 OK""
+  UI --> ADV : المؤشرات موسومة بأنها مؤشر لا حكم
+  ADV -> UI : فتح ملف طالب
+  UI -> API : الملف الأكاديمي\n""GET /api/advising/advisees/{studentId}""
+  alt #FFEBEE الطالب ليس من طلاب المرشد
+    API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN_SCOPE""
+    UI --> ADV : رسالة هذا خارج نطاق دورك
+  else #E8F5E9 من طلابه
+    API --> UI : تطور المؤشر وعوامله مع الملف الأكاديمي\n""200 OK""
+    ref over ADV, UI : UC-92 متابعة الإنذارات ومواعيد الإرشاد
+  end
+end
+
+== مؤشرات النطاق ==
+ACO -> UI : فتح مؤشرات الخطر
+UI -> API : التوزيع في النطاق\n""GET /api/ai/risk-scores""
+API -> API : التحقق من الصلاحية والنطاق\n""reports.academic""
+API --> UI : توزيع المؤشرات بحسب البرنامج والسنة\n""200 OK""
+UI --> ACO : إظهار التوزيع
+note over API, DB : لا أثر آلي للمؤشر على حالة الطالب\nوتُستبعد منه الخصائص الحساسة
+@enduml

@@ -1,0 +1,111 @@
+@startuml UC-31_approve_publish_schedule
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-31 — اعتماد الجدول ونشره
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "المنسق والمدرّسون\nوالطلاب" as REC
+
+== مراجعة النسخة ==
+ACO -> UI : فتح صفحة اعتماد الجداول\nواختيار نسخة من قائمة بانتظار المراجعة
+UI -> API : طلب النسخة ومحاضراتها\n""GET /api/schedule-versions/{id}""\n""GET /api/schedule-versions/{id}/lectures""
+API -> DB : قراءة محاضرات النسخة وقائمة التحقق\nوالملاحظات ومسار النسخة
+API --> UI : بيانات النسخة\n""200 OK""
+UI --> ACO : عرض المحاضرات على الجدول الأسبوعي\nوقائمة التحقق والملاحظات ومسار النسخة
+ACO -> UI : مراجعة المحاضرات ومقارنتها بالنسخة السارية عند الحاجة
+
+== الاعتماد ==
+ACO -> UI : الضغط على اعتماد
+UI -> API : طلب الاعتماد\n""POST /api/schedule-versions/{id}/approve""
+API -> API : التحقق من الرمز والصلاحية\n""schedules.approve""
+API -> DB : إعادة تشغيل قائمة التحقق
+alt #FFEBEE تعارضات صلبة أو بنود لم تجتز القائمة
+  API --> UI : رفض الطلب مع البنود المانعة\n""422 SCH_HARD_CONFLICTS_REMAIN""
+  UI --> ACO : رسالة في النسخة تعارضات صلبة تمنع اعتمادها\nويُرجعها الموظف إلى المنسق بملاحظات
+else #E8F5E9 القائمة ناجحة
+  API -> DB : تحويل النسخة إلى معتمدة وتسجيل الانتقال
+  API -> NTF : إشعار المنسق بالاعتماد
+  NTF --> REC : إشعار اعتماد النسخة
+  API --> UI : النسخة بعد الاعتماد\n""200 OK""
+end
+
+== النشر ==
+ACO -> UI : الضغط على نشر
+UI -> API : طلب النشر\n""POST /api/schedule-versions/{id}/publish""
+API -> API : التحقق من الرمز والصلاحية\n""schedules.publish""
+API -> DB : فحص تعارض النسخة مع نسخة سارية للمؤسسة كلها\nوإعادة فحص القائمة
+alt #FFEBEE جدول الفصل منشور للمؤسسة كلها
+  API --> UI : رفض الطلب\n""409 SCH_SCOPE_CLASH""
+  UI --> ACO : رسالة لا تُنشر فوقه نسخة لكلية واحدة
+else #FFEBEE تعارضات صلبة في النسخة
+  API --> UI : رفض الطلب\n""422 SCH_HARD_CONFLICTS_REMAIN""
+  UI --> ACO : رسالة التعارضات الصلبة مع البنود المانعة
+else #E8F5E9 النشر ممكن
+  API -> DB : أرشفة النسخة التي حلّت محلها ونشر هذه النسخة
+  API -> DB : توزيع الطلاب على محاضرات النسخة وفحص المشكلات
+  alt #FFEBEE تعذّر توزيع الطلاب دون مشكلات
+    API -> DB : التراجع عن العملية كلها
+    API --> UI : رفض الطلب مع المشكلات\n""422 SCH_SEATING_PROBLEMS""
+    UI --> ACO : رسالة تعذّر توزيع الطلاب على النسخة\nولم يُنشر شيء
+  else #E8F5E9 التوزيع سليم
+    API -> DB : ترحيل العلامات وكشوف العلامات المقفلة والطلبات\nإلى المحاضرة المقابلة في النسخة المنشورة
+    API -> DB : تسجيل النشر في سجل النسخة
+    API -> NTF : إشعار المنسق والمدرّسين والطلاب بنشر الجدول
+    NTF --> REC : إشعار نشر الجدول
+    API --> UI : النسخة المنشورة\n""200 OK""
+    UI --> ACO : رسالة نُشرت النسخة
+  end
+end
+
+== مسار بديل: الإرجاع بملاحظات ==
+opt #FFF8E1 إرجاع النسخة إلى المنسق
+  ACO -> UI : كتابة ملاحظة على محاضرة\nثم الضغط على إرجاع بملاحظات وكتابة السبب
+  UI -> API : طلب إضافة الملاحظة\n""POST /api/schedule-versions/{id}/comments""
+  UI -> API : طلب الإرجاع مع السبب\n""POST /api/schedule-versions/{id}/return""
+  alt #FFEBEE سبب الإرجاع فارغ
+    API --> UI : رفض الطلب\n""422 SCH_RETURN_NEEDS_NOTE""
+  else #E8F5E9 السبب مكتوب
+    API -> DB : تحويل النسخة إلى مُرجَعة وحفظ السبب ملاحظةً على النسخة
+    API -> NTF : إشعار المنسق بإرجاع النسخة
+    NTF --> REC : إشعار إرجاع النسخة بملاحظات
+  end
+end
+@enduml

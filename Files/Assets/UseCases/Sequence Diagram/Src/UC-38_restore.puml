@@ -1,0 +1,103 @@
+@startuml UC-38_restore
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-38 (2/2) — استعادة نسخة احتياطية
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "إجراء الاستعادة\nRestoreBackupAction" as RST
+  participant "خدمة النسخ الاحتياطي\nBackupService" as BKP
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== تفعيل وضع الصيانة ==
+ADM -> UI : تفعيل وضع الصيانة لإغلاق النظام أمام المستخدمين
+UI -> API : طلب إغلاق النظام للصيانة\n""POST /api/admin/maintenance""
+API -> API : التحقق من الصلاحية وتأكيد الهوية\n""settings.manage""
+API -> DB : حفظ حالة الصيانة وتسجيل العملية في سجل التدقيق
+API --> UI : حالة الصيانة\n""200 OK""
+
+== طلب الاستعادة وتأكيد الهوية ==
+ADM -> UI : الضغط على استعادة أمام النسخة المطلوبة
+UI --> ADM : نافذة استعادة نسخة\nالحالة التي سيعود إليها النظام وأن ما تغيّر بعدها يُفقد\nوأن نسخة أمان تُؤخذ أولاً
+ADM -> UI : كتابة ملاحظة اختيارية وتأكيد فهم فقدان التغييرات\nثم الضغط على استعادة
+UI -> API : طلب الاستعادة\n""POST /api/admin/backups/{id}/restore""
+API -> API : فحص تأكيد الهوية الحديث\n""step_up""
+alt #FFF8E1 لم يؤكد المدير هويته مؤخراً
+  API --> UI : طلب تأكيد الهوية\n""403 AUTH_STEP_UP_REQUIRED""
+  UI --> ADM : نافذة تأكيد الهوية
+  ADM -> UI : إدخال كلمة المرور أو رمز التحقق الثنائي
+  UI -> API : إرسال التأكيد\n""POST /api/auth/step-up""
+  alt #FFEBEE التأكيد غير صحيح أو أُلغي
+    API --> UI : رفض التأكيد\n""422 AUTH_STEP_UP_INVALID""
+    UI --> ADM : رسالة التأكيد غير صحيح\nولا تبدأ الاستعادة
+  else #E8F5E9 التأكيد صحيح
+    UI -> API : إعادة طلب الاستعادة\n""POST /api/admin/backups/{id}/restore""
+  end
+end
+
+== تنفيذ الاستعادة ==
+API -> RST : تنفيذ الاستعادة
+RST -> DB : التحقق من تفعيل وضع الصيانة\nومن أن النسخة محفوظة وسليمة
+alt #FFEBEE النظام غير مغلق للصيانة
+  RST --> API : رفض الاستعادة
+  API --> UI : رفض الطلب\n""409 SYS_MAINTENANCE_REQUIRED""
+  UI --> ADM : رسالة يجب تفعيل وضع الصيانة قبل الاستعادة
+else #FFEBEE النسخة غير محفوظة أو ملفها تالف
+  RST --> API : رفض الاستعادة
+  API --> UI : رفض الطلب\n""409 SYS_BACKUP_UNAVAILABLE""\n""422 SYS_BACKUP_DAMAGED""
+  UI --> ADM : رسالة هذه النسخة لم تعد محفوظة على الخادم\nأو ملف النسخة تالف
+else #E8F5E9 الشروط متحققة
+  RST -> BKP : أخذ نسخة أمان من الحالة الحالية
+  BKP --> RST : نسخة الأمان
+  RST -> DB : إفراغ الجداول وإعادة ملئها من النسخة\nعدا سجل التدقيق وجلسات الأجهزة وسجل النسخ والاستعادات
+  alt #FFEBEE لم تكتمل الاستعادة
+    RST -> DB : تسجيل الاستعادة بحالة فشلت
+    API --> UI : رفض الطلب\n""500 SYS_RESTORE_FAILED""
+    UI --> ADM : رسالة لم تكتمل الاستعادة\nأُخذت نسخة أمان قبل بدئها
+  else #E8F5E9 اكتملت الاستعادة
+    RST -> DB : تسجيل الاستعادة في سجل الاستعادات
+    API -> DB : تسجيل العملية في سجل التدقيق
+    API --> UI : نتيجة الاستعادة\n""200 OK""
+    UI --> ADM : رسالة اكتملت الاستعادة\nراجع النظام ثم أعد فتحه
+  end
+end
+note over UI, API
+  يبقى النظام مغلقاً للصيانة بعد الاستعادة
+  حتى يعيد المدير فتحه
+end note
+@enduml

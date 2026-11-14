@@ -1,0 +1,490 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 5 من 8: الطلاب والتسجيل والإرشاد والحضور والامتحانات
+// 25 جدولاً من هذا القسم، و10 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_5 {
+  database_type: 'MySQL'
+  Note: 'القسم 5: الطلاب والتسجيل والإرشاد والحضور والامتحانات'
+}
+
+// -------------------- سجلات الطلاب --------------------
+
+Table students {
+  user_id uuid [pk, ref: - users.id]
+  university_number varchar(40) [unique]
+  completed_hours int
+  year_level int
+  study_status varchar(30)
+  program_id uuid [ref: > programs.id]
+  advisor_id uuid [ref: > instructors.id]
+  gender varchar(6)
+  date_of_birth date
+  place_of_birth varchar(120)
+  nationality char(2)
+  residency varchar(15)
+  id_document_type varchar(15)
+  id_document_number text
+  id_document_hash char(64) [unique]
+  address_country char(2)
+  address_city varchar(80)
+  address_line varchar(190)
+  guardian_name varchar(150)
+  guardian_relation varchar(15)
+  guardian_phone varchar(20)
+  certificate_type varchar(30)
+  certificate_year smallint
+  certificate_score decimal(8,2)
+  certificate_score_max decimal(8,2)
+  certificate_country char(2)
+  certificate_institution varchar(150)
+  Note: 'ملف الطالب وبرنامجه ومرشده الأكاديمي'
+}
+
+Table student_semester_records {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  registered_hours smallint
+  attempted_hours smallint
+  earned_hours smallint
+  gpa_hours smallint
+  quality_points decimal(8,2)
+  semester_gpa decimal(5,4)
+  cumulative_gpa decimal(5,4)
+  academic_standing varchar(20)
+  level_at_end smallint
+  is_final boolean
+  computed_at timestamp
+  Note: 'سجل الطالب في كل فصل: ساعاته ومعدله ووضعه الأكاديمي'
+}
+
+Table graduations {
+  id uuid [pk]
+  student_id uuid [unique, ref: - students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  final_gpa decimal(5,4)
+  total_earned_hours smallint
+  classification varchar(20)
+  honors boolean
+  certificate_number varchar(30) [unique]
+  verification_code char(12) [unique]
+  approved_by uuid
+  graduated_on date
+  Note: 'تخرج الطالب وتقدير التخرج ومرتبة الشرف'
+}
+
+Table registration_holds {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  type varchar(20)
+  reason_ar text
+  reason_en text
+  blocks json
+  source_type varchar(100)
+  source_id uuid
+  is_automatic boolean
+  placed_by uuid
+  placed_at timestamp
+  released_by uuid
+  released_at timestamp
+  release_reason text
+  Note: 'العوائق المالية والأكاديمية وغيرها، وما يمنعه كل عائق'
+}
+
+TableGroup "سجلات الطلاب" [color: #15803D] {
+  students
+  student_semester_records
+  graduations
+  registration_holds
+}
+
+// -------------------- تسجيل المقررات --------------------
+
+Table carts {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid
+  status varchar(15)
+  confirmation_number varchar(20) [unique]
+  idempotency_key uuid [unique]
+  invoice_id uuid [ref: > invoices.id]
+  total_hours smallint
+  confirmed_at timestamp
+  last_validated_at timestamp
+  expires_at timestamp
+  Note: 'سلة تسجيل الطالب في الفصل، وتأكيدها برقم تأكيد واحد'
+}
+
+Table cart_items {
+  id uuid [pk]
+  cart_id uuid [ref: > carts.id]
+  section_id uuid [ref: > course_sections.id]
+  component varchar(10)
+  action varchar(10)
+  replaces_enrollment_section_id uuid
+  held_until timestamp
+  validation_status varchar(10)
+  validation_messages json
+  Note: 'الشعب المختارة في السلة مع حجز مؤقت لمقاعدها'
+}
+
+Table enrollments {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  course_offering_id uuid [ref: > course_offerings.id]
+  cart_id uuid [ref: > carts.id]
+  status varchar(15)
+  source varchar(20)
+  is_repeat boolean
+  repeats_enrollment_id uuid
+  credit_hours smallint
+  counts_in_gpa boolean
+  enrolled_at timestamp
+  dropped_at timestamp
+  withdrawn_at timestamp
+  status_reason text
+  Note: 'تسجيل الطالب في مقرر مطروح'
+}
+
+Table enrollment_sections {
+  id uuid [pk]
+  enrollment_id uuid [ref: > enrollments.id]
+  section_id uuid [ref: > course_sections.id]
+  component varchar(10)
+  status varchar(15)
+  added_at timestamp
+  released_at timestamp
+  Note: 'شعب التسجيل النظرية والعملية'
+}
+
+Table waitlist_entries {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  student_id uuid [ref: > students.user_id]
+  priority smallint
+  joined_at timestamp
+  status varchar(15)
+  offered_at timestamp
+  offer_expires_at timestamp
+  skip_count smallint
+  last_skip_reason varchar(40)
+  resolved_at timestamp
+  Note: 'قوائم انتظار الشعب الممتلئة'
+}
+
+Table enrollment_overrides {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid
+  course_offering_id uuid [ref: > course_offerings.id]
+  section_id uuid [ref: > course_sections.id]
+  service_request_id uuid [ref: > service_requests.id]
+  type varchar(25)
+  reason text
+  granted_by uuid
+  expires_at timestamp
+  used_at timestamp
+  revoked_at timestamp
+  Note: 'استثناءات التسجيل الموثقة لمقرر أو شعبة أو فصل'
+}
+
+TableGroup "تسجيل المقررات" [color: #16A34A] {
+  carts
+  cart_items
+  enrollments
+  enrollment_sections
+  waitlist_entries
+  enrollment_overrides
+}
+
+// -------------------- الإرشاد الأكاديمي --------------------
+
+Table advising_clearances {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  advisor_id uuid
+  status varchar(15)
+  planned_hours smallint
+  planned_courses json
+  student_notes text
+  advisor_notes text
+  submitted_at timestamp
+  decided_at timestamp
+  Note: 'خطة الطالب للفصل ومقرراتها، وتصريح المرشد بالتسجيل'
+}
+
+Table advising_appointments {
+  id uuid [pk]
+  advisor_id uuid [ref: > instructors.id]
+  student_id uuid [ref: > students.user_id]
+  starts_at timestamp
+  ends_at timestamp
+  location varchar(150)
+  online_link varchar(500)
+  purpose varchar(255)
+  student_notes text
+  status varchar(15)
+  cancelled_by uuid
+  cancel_reason varchar(255)
+  Note: 'مواعيد الإرشاد التي يحددها المرشد ويحجزها الطلاب'
+}
+
+Table advising_notes {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  advisor_id uuid
+  advising_appointment_id uuid
+  body_encrypted text
+  visibility varchar(20)
+  category varchar(20)
+  Note: 'ملاحظات الإرشاد السرية'
+}
+
+Table academic_warnings {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  type varchar(30)
+  severity varchar(10)
+  details json
+  status varchar(15)
+  acknowledged_by_student_at timestamp
+  advisor_action_notes text
+  resolved_at timestamp
+  Note: 'الإنذارات الأكاديمية ومتابعتها'
+}
+
+TableGroup "الإرشاد الأكاديمي" [color: #65A30D] {
+  advising_clearances
+  advising_appointments
+  advising_notes
+  academic_warnings
+}
+
+// -------------------- الحضور والغياب --------------------
+
+Table attendance_records {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  enrollment_id uuid [ref: > enrollments.id]
+  status varchar(10)
+  minutes_late smallint
+  method varchar(10)
+  marked_by uuid
+  marked_at timestamp
+  note varchar(255)
+  Note: 'حضور كل طالب في كل جلسة'
+}
+
+Table attendance_qr_tokens {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  secret char(32)
+  started_by uuid
+  started_at timestamp
+  stopped_at timestamp
+  Note: 'رمز QR المتغير لتسجيل حضور الجلسة'
+}
+
+Table attendance_warnings {
+  id uuid [pk]
+  enrollment_id uuid [ref: > enrollments.id]
+  level varchar(15)
+  absence_percent decimal(5,2)
+  status varchar(15)
+  approved_by uuid
+  approved_at timestamp
+  revoked_reason text
+  Note: 'إنذارات الغياب وقرارات الحرمان'
+}
+
+TableGroup "الحضور والغياب" [color: #CA8A04] {
+  attendance_records
+  attendance_qr_tokens
+  attendance_warnings
+}
+
+// -------------------- الامتحانات --------------------
+
+Table exam_periods {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  type varchar(12)
+  name_ar varchar(150)
+  name_en varchar(150)
+  starts_on date
+  ends_on date
+  suspends_classes boolean
+  rules json
+  status varchar(15)
+  published_at timestamp
+  Note: 'فترات الامتحانات وقواعدها'
+}
+
+Table exam_slots {
+  id uuid [pk]
+  exam_period_id uuid [ref: > exam_periods.id]
+  date date
+  starts_at time
+  ends_at time
+  label varchar(30)
+  is_active boolean
+  Note: 'فترات الامتحان في كل يوم'
+}
+
+Table exams {
+  id uuid [pk]
+  exam_period_id uuid [ref: > exam_periods.id]
+  course_offering_id uuid [ref: > course_offerings.id]
+  exam_slot_id uuid [ref: > exam_slots.id]
+  duration_minutes smallint
+  mode varchar(10)
+  expected_students int
+  is_locked boolean
+  status varchar(15)
+  notes text
+  Note: 'امتحان المقرر المطروح وموعده'
+}
+
+Table exam_sections {
+  exam_id uuid [ref: > exams.id]
+  section_id uuid [ref: > course_sections.id]
+  indexes {
+    (exam_id, section_id) [pk]
+  }
+  Note: 'الشعب التي يجمعها الامتحان'
+}
+
+Table exam_rooms {
+  id uuid [pk]
+  exam_id uuid [ref: > exams.id]
+  room_id uuid [ref: > rooms.id]
+  seats_allocated smallint
+  Note: 'قاعات الامتحان والمقاعد المخصصة فيها'
+}
+
+Table exam_seat_assignments {
+  id uuid [pk]
+  exam_room_id uuid [ref: > exam_rooms.id]
+  enrollment_id uuid [ref: > enrollments.id]
+  seat_label varchar(10)
+  seat_row smallint
+  seat_column smallint
+  attendance varchar(10)
+  attendance_marked_by uuid
+  attendance_marked_at timestamp
+  Note: 'مقعد كل طالب في الامتحان وحضوره'
+}
+
+Table exam_proctors {
+  id uuid [pk]
+  exam_slot_id uuid [ref: > exam_slots.id]
+  room_id uuid [ref: > rooms.id]
+  user_id uuid [ref: > users.id]
+  role varchar(10)
+  confirmed_at timestamp
+  Note: 'المراقبون في كل قاعة وفترة'
+}
+
+Table exam_incidents {
+  id uuid [pk]
+  exam_id uuid [ref: > exams.id]
+  student_id uuid [ref: > students.user_id]
+  room_id uuid
+  type varchar(20)
+  description text
+  action_taken text
+  reported_by uuid
+  reported_at timestamp
+  follow_up_status varchar(15)
+  Note: 'حوادث يوم الامتحان كالغش أو المرض'
+}
+
+TableGroup "الامتحانات" [color: #E11D48] {
+  exam_periods
+  exam_slots
+  exams
+  exam_sections
+  exam_rooms
+  exam_seat_assignments
+  exam_proctors
+  exam_incidents
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table users {
+  id uuid [pk]
+  full_name varchar(150)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table programs {
+  id uuid [pk]
+  name_ar varchar(200)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table instructors {
+  id uuid [pk]
+  user_id uuid [unique]
+  Note: 'من القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+Table semesters {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table invoices {
+  id uuid [pk]
+  invoice_number varchar(20) [unique]
+  Note: 'من القسم 7: القبول والمالية والطلبات الإلكترونية'
+}
+
+Table course_sections {
+  id uuid [pk]
+  section_number varchar(5)
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+Table course_offerings {
+  id uuid [pk]
+  course_id uuid
+  semester_id uuid
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+Table service_requests {
+  id uuid [pk]
+  request_number varchar(20) [unique]
+  Note: 'من القسم 7: القبول والمالية والطلبات الإلكترونية'
+}
+
+Table class_sessions {
+  id uuid [pk]
+  date date
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+Table rooms {
+  id uuid [pk]
+  code varchar(20) [unique]
+  name_ar varchar(190)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  users
+  programs
+  instructors
+  semesters
+  invoices
+  course_sections
+  course_offerings
+  service_requests
+  class_sessions
+  rooms
+}

@@ -1,0 +1,95 @@
+@startuml UC-08_enable_two_factor
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-08 — تفعيل التحقق الثنائي عبر تطبيق المصادقة
+
+actor "المستخدم" as U
+participant "تطبيق المصادقة\nعلى الهاتف" as APP
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  participant "التخزين المؤقت\nCache" as CACHE
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== بدء الإعداد ==
+U -> UI : فتح قسم التحقق الثنائي ثم الضغط على تفعيل
+UI -> API : طلب بدء الإعداد\n""POST /api/auth/2fa/setup""
+alt #FFEBEE التحقق الثنائي مفعّل مسبقاً
+  API --> UI : رفض الطلب\n""409 AUTH_2FA_ALREADY_ENABLED""
+  UI --> U : رسالة التحقق الثنائي مفعّل مسبقاً
+else #E8F5E9 غير مفعّل
+  API -> API : توليد مفتاح سري جديد
+  API -> CACHE : حفظ المفتاح مشفّراً لمدة 15 دقيقة
+  API --> UI : المفتاح النصي ورابط الإعداد\n""200 OK""
+  UI --> U : عرض رمز الاستجابة السريعة\nوالمفتاح النصي لإدخاله يدوياً
+end
+
+== ربط التطبيق وتأكيد الرمز ==
+U -> APP : مسح رمز الاستجابة السريعة بتطبيق المصادقة
+APP --> U : رمز من 6 أرقام يتغير كل 30 ثانية
+U -> UI : إدخال الرمز ثم الضغط على تحقق وفعّل
+UI -> API : إرسال الرمز\n""POST /api/auth/2fa/confirm""
+API -> CACHE : قراءة المفتاح المؤقت
+alt #FFEBEE انتهت مهلة الإعداد أو لم يبدأ
+  API --> UI : رفض الطلب\n""409 AUTH_2FA_NOT_STARTED""
+  UI --> U : رسالة انتهت مهلة الإعداد ابدأ من جديد
+else #FFEBEE الرمز غير صحيح
+  API --> UI : رفض الطلب\n""422 AUTH_2FA_INVALID""
+  UI --> U : رسالة رمز التحقق غير صحيح
+else #E8F5E9 الرمز صحيح
+  API -> API : توليد رموز الاسترداد
+  API -> DB : تفعيل التحقق الثنائي وحفظ المفتاح ورموز الاسترداد
+  API -> CACHE : حذف المفتاح المؤقت
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : رموز الاسترداد تُعرض مرة واحدة\n""200 OK""
+  UI --> U : عرض رموز الاسترداد مع إمكانية تنزيلها أو نسخها
+  U -> UI : حفظ الرموز ثم تحديد خانة التأكيد والضغط على تم
+  UI --> U : رسالة فُعّل التحقق الثنائي
+end
+
+== مسار بديل: إيقاف التحقق الثنائي ==
+opt #FFF8E1 إيقاف التحقق الثنائي بعد تأكيد الهوية
+  U -> UI : اختيار إيقاف التحقق الثنائي
+  UI -> API : تأكيد الهوية بكلمة المرور أو رمز التطبيق\n""POST /api/auth/step-up""
+  UI -> API : طلب الإيقاف\n""DELETE /api/auth/2fa""
+  alt #FFEBEE دور الحساب يشترط التحقق الثنائي
+    API --> UI : رفض الإيقاف\n""409 AUTH_2FA_REQUIRED_BY_ROLE""
+  else #E8F5E9 غير مشروط بالدور
+    API -> DB : مسح المفتاح السري ورموز الاسترداد
+    API --> UI : تم الإيقاف\n""200 OK""
+  end
+end
+@enduml

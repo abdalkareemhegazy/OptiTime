@@ -1,0 +1,75 @@
+@startuml UC-47_dashboard
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-47 — عرض لوحة التحكم
+
+actor "المستخدم" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+U -> UI : تسجيل الدخول أو فتح الرئيسية
+UI -> API : طلب المستخدم ودوره وصلاحياته\n""GET /api/auth/me""
+API --> UI : الدور الحالي والصلاحيات\n""200 OK""
+UI -> UI : اختيار لوحة الدور ومصادر بياناتها
+par جلب البيانات بالتوازي بحسب الدور
+  UI -> API : لمدير النظام الحسابات والقاعات وسجل التدقيق\n""GET /api/admin/users""\n""GET /api/admin/audit-logs""
+else
+  UI -> API : للمنسق سياق اللوح وطلبات المحاضرات\n""GET /api/coordinator/schedule-board-context""\n""GET /api/coordinator/lecture-requests""
+else
+  UI -> API : لعضو هيئة التدريس جدوله وتفرّغه\n""GET /api/instructor/weekly-schedule""\n""GET /api/instructor/availability""
+else
+  UI -> API : للطالب جدوله وعلاماته\n""GET /api/student/weekly-schedule""\n""GET /api/student/grades""
+end
+API -> DB : قراءة البيانات ضمن صلاحيات الدور ونطاقه
+API --> UI : البيانات المطلوبة\n""200 OK""
+alt #FFEBEE تعذّر تحميل اللوحة كلها
+  UI --> U : رسالة تعذّر تحميل لوحتك\nمع زر إعادة المحاولة
+else #FFF3E0 تعذّر تحميل جزء من البيانات
+  UI --> U : ما وصل من اللوحة مع تنبيه\nبأن ما يظهر ناقص
+else #E8F5E9 وصلت البيانات كلها
+  UI -> UI : حساب المؤشرات وما ينتظر المستخدم
+  UI --> U : التحية والمؤشرات والفصل الحالي ومرحلته\nوالاختصارات وما ينتظره
+end
+U -> UI : الضغط على بطاقة أو اختصار
+UI --> U : فتح الشاشة المختصة
+note over UI, API
+  للإدارة العليا لوحة تعرض إشغال القاعات والأحمال
+  وتنتقل منها إلى تقارير الإدارة
+  ""GET /api/management/reports/overview""
+end note
+@enduml

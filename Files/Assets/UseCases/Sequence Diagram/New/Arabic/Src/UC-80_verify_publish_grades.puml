@@ -1,0 +1,70 @@
+@startuml UC-80_verify_publish_grades
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-80 — الإدخال المزدوج واعتماد الكشوف ونشرها
+
+actor "موظف شؤون\nالامتحانات" as U
+box "الخادم" #F3FAF3
+  participant "متحكم\nكشوف العلامات" as GC
+  participant "خدمة\nالتحقق" as VS
+  participant "دفتر\nالعلامات" as GB
+  participant "مهمة النشر\nفي الخلفية" as PJ
+end box
+actor "الطلاب" as R
+
+U -> GC : يدخل علامات الامتحان النهائي ثانيةً
+GC -> VS : يطلب المقارنة بإدخال المدرّس
+VS -> VS : يحفظ الإدخال الثاني
+VS --> GC : الفروقات
+GC --> U : يعرض الفروقات
+loop لكل فرق
+  U -> GC : يختار العلامة الصحيحة
+  GC -> GB : يطلب حفظ العلامة
+  GB -> GB : يعيد حساب المجموع والتقدير
+end
+U -> GC : يعتمد الكشف
+GC -> VS : يسأل عن الفروقات الباقية
+alt بقيت فروقات
+  VS --> GC : الفروقات غير المحلولة
+  GC --> U : يرفض الاعتماد
+else لا فروقات
+  VS --> GC : لا فروقات
+  GC -> GC : يحوّل الكشف إلى معتمد
+  GC --> U : يؤكد الاعتماد
+end
+U -> GC : ينشر الكشوف المعتمدة
+GC -> GC : يتحقق من كلمة مرور الموظف
+GC ->> PJ : يطلب النشر في الخلفية
+GC --> U : بدأ النشر
+PJ -> PJ : ينشر كل كشف
+PJ -> PJ : يحدّث المعدل والوضع الأكاديمي
+PJ ->> R : نُشرت علامات جديدة
+@enduml

@@ -1,0 +1,90 @@
+@startuml UC-13_assign_roles
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-13 — تعيين الأدوار
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح قسم الأدوار والنطاقات ==
+ADM -> UI : فتح قسم الأدوار والنطاقات في صفحة تعديل الحساب
+UI -> API : طلب أدوار الحساب\n""GET /api/admin/users/{id}/roles""
+API -> DB : قراءة الأدوار ونطاقاتها ومددها
+API --> UI : الأدوار الحالية والدور الأساسي\n""200 OK""
+UI --> ADM : عرض الأدوار مع نطاق كل دور ومدته\nوالدور الأساسي معلَّماً بنجمة
+
+== تعديل الأدوار ==
+ADM -> UI : إضافة دور أو تعديل نطاقه أو إزالته\nمع اختيار النطاق والمدة والدور الأساسي
+ADM -> UI : الضغط على حفظ التغييرات
+UI -> API : إرسال مجموعة الأدوار الجديدة\n""PUT /api/admin/users/{id}/roles""
+
+== تأكيد هوية المدير ==
+API -> API : فحص تأكيد الهوية الحديث\n""step_up""
+alt #FFF8E1 لم يؤكد المدير هويته مؤخراً
+  API --> UI : طلب تأكيد الهوية\n""403 AUTH_STEP_UP_REQUIRED""
+  UI --> ADM : نافذة تأكيد الهوية
+  ADM -> UI : إدخال كلمة المرور أو رمز التحقق الثنائي
+  UI -> API : إرسال التأكيد\n""POST /api/auth/step-up""
+  alt #FFEBEE التأكيد غير صحيح أو أُلغي
+    API --> UI : رفض التأكيد\n""422 AUTH_STEP_UP_INVALID""
+    UI --> ADM : رسالة التأكيد غير صحيح\nدون حفظ الأدوار
+  else #E8F5E9 التأكيد صحيح
+    API --> UI : تم التأكيد لدقائق معدودة
+    UI -> API : إعادة إرسال مجموعة الأدوار\n""PUT /api/admin/users/{id}/roles""
+  end
+end
+
+== التحقق والحفظ ==
+API -> API : التحقق من نطاق كل دور ومن عدم التكرار\nومن صحة المدة ومن أن الدور الأساسي بين الأدوار
+alt #FFEBEE دور بنطاق غير مسموح أو مكرر أو مدة غير صحيحة
+  API --> UI : رفض الطلب\n""422 USR_SCOPE_INVALID""\n""422 USR_PRIMARY_ROLE_MISSING""
+  UI --> ADM : رسالة الخطأ والعودة إلى تعديل الأدوار
+else #FFEBEE التعديل يمس الحساب المؤسِّس أو المدير نفسه أو آخر مدير
+  API --> UI : رفض الطلب\n""422 USR_PROTECTED_ACCOUNT""\n""422 USR_SELF_TARGET""\n""422 USR_LAST_ADMIN""
+  UI --> ADM : رسالة سبب المنع
+else #E8F5E9 التعديل مسموح
+  API -> DB : حذف الأدوار المزالة وحفظ المضافة والمعدّلة
+  API -> DB : تحديث الدور الأساسي للحساب
+  API -> DB : مزامنة قيادة الكلية أو القسم لدور العميد أو رئيس القسم
+  API -> API : إعادة حساب صلاحيات الحساب
+  API -> DB : تسجيل الأدوار قبل التغيير وبعده في سجل التدقيق
+  API --> UI : الأدوار بعد التحديث\n""200 OK""
+  UI --> ADM : رسالة بنجاح العملية
+end
+@enduml

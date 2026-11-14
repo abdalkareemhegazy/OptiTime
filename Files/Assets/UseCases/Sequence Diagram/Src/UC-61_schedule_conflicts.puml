@@ -1,0 +1,86 @@
+@startuml UC-61_schedule_conflicts
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-61 — معالجة تعارضات الجدول ومؤشر الجودة
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "كشف التعارضات\nConflictDetectionService" as CD
+  participant "بناء الاقتراحات\nSuggestionBuilder" as SUG
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+CRD -> UI : فتح لوحة التعارضات من نسخة الجدول
+UI -> API : طلب التعارضات ومؤشر الجودة\n""GET /api/schedule-versions/{id}/conflicts""\n""GET /api/schedule-versions/{id}/quality""
+API -> CD : فحص النسخة وتصنيف التعارضات
+CD -> DB : قراءة محاضرات النسخة والقيود
+CD -> CD : حساب مؤشر الجودة من القيود المرنة الموزونة
+API --> UI : التعارضات الصلبة والمرنة والمؤشر وتفصيله\n""200 OK""
+alt #FFF3E0 لا تعارضات
+  UI --> CRD : مؤشر الجودة مع بيان خلو النسخة
+else #E8F5E9 توجد تعارضات
+  UI --> CRD : التعارضات بأنواعها وأماكنها
+  CRD -> UI : اختيار تعارض
+  UI -> SUG : طلب اقتراحات الحل مع التعارضات
+  SUG --> UI : نقل أو تبديل أو قاعة بديلة\nوأثر كل منها
+  alt #FFEBEE لا اقتراح يحل التعارض
+    UI --> CRD : بيان أنه لا اقتراح متاحاً
+  else #E8F5E9 توجد اقتراحات
+    CRD -> UI : تطبيق اقتراح بنقرة
+    UI -> API : تطبيق الاقتراح\n""POST /api/conflicts/{id}/apply-suggestion""
+    API -> API : التحقق من الصلاحية\n""scheduling.edit""
+    API -> DB : قراءة حالة النسخة ورقم إصدارها
+    alt #FFEBEE النسخة لا تُعدَّل في حالتها أو تغيّرت منذ فتحها
+      API --> UI : رفض الطلب\n""409 SCH_VERSION_NOT_EDITABLE""\n""409 SCH_VERSION_STALE""
+      UI --> CRD : رسالة تبيّن السبب مع إعادة التحميل
+    else #E8F5E9 النسخة قابلة للتعديل
+      API -> DB : تنفيذ التعديل
+      API -> CD : إعادة فحص النسخة
+      alt #FFEBEE نشأ تعارض صلب جديد
+        API -> DB : التراجع عن التعديل
+        API --> UI : رفض الطلب\n""409 SCH_ROOM_OCCUPIED""
+        UI --> CRD : رسالة القاعة مشغولة في هذا الوقت
+      else #E8F5E9 التعديل سليم
+        CD -> DB : حفظ التعارضات في سجل مصنّف
+        API -> DB : تسجيل التعديل في سجل التدقيق
+        API --> UI : التعارضات والمؤشر بعد التعديل\n""200 OK""
+        UI --> CRD : تحديث اللوحة ومؤشر الجودة
+      end
+    end
+  end
+end
+@enduml

@@ -1,0 +1,427 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 6 من 8: التعلّم والعلامات وتقييم المقررات
+// 23 جدولاً من هذا القسم، و10 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_6 {
+  database_type: 'MySQL'
+  Note: 'القسم 6: التعلّم والعلامات وتقييم المقررات'
+}
+
+// -------------------- التعلّم الإلكتروني --------------------
+
+Table course_materials {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  course_topic_id uuid [ref: > course_topics.id]
+  file_id uuid [ref: > files.id]
+  title varchar(255)
+  description text
+  type varchar(10)
+  url varchar(1000)
+  week_no smallint
+  is_published boolean
+  published_at timestamp
+  downloads_count int
+  uploaded_by uuid
+  Note: 'محتوى المادة وملفاتها لكل شعبة'
+}
+
+Table section_topic_progress {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  course_topic_id uuid [ref: > course_topics.id]
+  class_session_id uuid
+  status varchar(10)
+  covered_on date
+  notes text
+  Note: 'تقدّم الشعبة في مفردات المقرر'
+}
+
+Table question_banks {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  owner_id uuid
+  name varchar(150)
+  is_shared boolean
+  Note: 'بنوك الأسئلة لكل مقرر'
+}
+
+Table questions {
+  id uuid [pk]
+  question_bank_id uuid [ref: > question_banks.id]
+  type varchar(20)
+  body text
+  options json
+  explanation text
+  difficulty varchar(10)
+  default_points decimal(6,2)
+  accepted_answers json
+  tags json
+  version int
+  previous_version_id uuid
+  Note: 'أسئلة بنك الأسئلة وخياراتها'
+}
+
+Table quizzes {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  assessment_component_id uuid [ref: > assessment_components.id]
+  title varchar(255)
+  instructions text
+  starts_at timestamp
+  ends_at timestamp
+  duration_minutes smallint
+  max_attempts smallint
+  grading_method varchar(10)
+  shuffle_questions boolean
+  shuffle_options boolean
+  questions_per_attempt smallint
+  show_results varchar(15)
+  show_correct_answers boolean
+  total_points decimal(7,2)
+  passing_points decimal(7,2)
+  status varchar(15)
+  results_released_at timestamp
+  Note: 'الاختبارات القصيرة لكل شعبة'
+}
+
+Table quiz_questions {
+  quiz_id uuid [ref: > quizzes.id]
+  question_id uuid [ref: > questions.id]
+  points decimal(6,2)
+  sort smallint
+  indexes {
+    (quiz_id, question_id) [pk]
+  }
+  Note: 'أسئلة كل اختبار ودرجاتها'
+}
+
+Table quiz_accommodations {
+  id uuid [pk]
+  quiz_id uuid [ref: > quizzes.id]
+  student_id uuid [ref: > students.user_id]
+  extra_minutes smallint
+  extra_attempts smallint
+  reason varchar(255)
+  Note: 'تسهيلات خاصة لطالب في اختبار'
+}
+
+Table quiz_attempts {
+  id uuid [pk]
+  quiz_id uuid [ref: > quizzes.id]
+  student_id uuid [ref: > students.user_id]
+  attempt_no smallint
+  status varchar(15)
+  started_at timestamp
+  expires_at timestamp
+  submitted_at timestamp
+  questions_snapshot json
+  score decimal(7,2)
+  max_score decimal(7,2)
+  needs_manual_grading boolean
+  ip varchar(45)
+  user_agent text
+  Note: 'محاولات الطلاب في الاختبارات'
+}
+
+Table quiz_answers {
+  id uuid [pk]
+  quiz_attempt_id uuid [ref: > quiz_attempts.id]
+  question_id uuid [ref: > questions.id]
+  selected_option_ids json
+  text_answer text
+  numeric_answer decimal(14,4)
+  is_flagged boolean
+  is_correct boolean
+  points_awarded decimal(6,2)
+  feedback text
+  graded_by uuid
+  saved_at timestamp
+  Note: 'إجابات كل محاولة'
+}
+
+Table quiz_attempt_events {
+  id uuid [pk]
+  quiz_attempt_id uuid [ref: > quiz_attempts.id]
+  type varchar(20)
+  meta json
+  occurred_at timestamp
+  Note: 'أحداث النزاهة أثناء المحاولة'
+}
+
+TableGroup "التعلّم الإلكتروني" [color: #9333EA] {
+  course_materials
+  section_topic_progress
+  question_banks
+  questions
+  quizzes
+  quiz_questions
+  quiz_accommodations
+  quiz_attempts
+  quiz_answers
+  quiz_attempt_events
+}
+
+// -------------------- العلامات --------------------
+
+Table assessment_components {
+  id uuid [pk]
+  course_offering_id uuid [ref: > course_offerings.id]
+  name_ar varchar(100)
+  name_en varchar(100)
+  type varchar(20)
+  weight decimal(5,2)
+  max_mark decimal(6,2)
+  is_final_exam boolean
+  sort smallint
+  Note: 'مكوّنات علامة المقرر المطروح وأوزانها'
+}
+
+Table grade_sheets {
+  id uuid [pk]
+  course_offering_id uuid [unique, ref: - course_offerings.id]
+  status varchar(12)
+  closed_at timestamp
+  closed_by uuid
+  reopened_at timestamp
+  submitted_at timestamp
+  department_reviewed_at timestamp
+  verified_at timestamp
+  approved_at timestamp
+  published_at timestamp
+  return_reason text
+  Note: 'كشف علامات المقرر المطروح ومسار اعتماده'
+}
+
+Table final_grades {
+  id uuid [pk]
+  course_offering_id uuid [ref: > course_offerings.id]
+  student_id uuid [ref: > students.user_id]
+  total decimal(5,2)
+  letter varchar(4)
+  grade_points decimal(4,2)
+  is_passed boolean
+  graded_at timestamp
+  Note: 'العلامة النهائية للطالب في المقرر من 100'
+}
+
+Table grade_marks {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  assessment_component_id uuid [ref: > assessment_components.id]
+  mark decimal(6,2)
+  entered_by uuid
+  entered_at datetime
+  Note: 'علامة الطالب في كل مكوّن'
+}
+
+Table verification_marks {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  assessment_component_id uuid [ref: > assessment_components.id]
+  mark decimal(6,2)
+  status varchar(10)
+  resolution varchar(15)
+  resolved_mark decimal(6,2)
+  resolution_note text
+  entered_by uuid
+  entered_at timestamp
+  resolved_by uuid
+  resolved_at timestamp
+  Note: 'الإدخال المزدوج للعلامة من شؤون الامتحانات وحل الفروقات'
+}
+
+Table grade_change_requests {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  service_request_id uuid [ref: > service_requests.id]
+  requested_by uuid
+  changes json
+  old_total decimal(5,2)
+  new_total decimal(5,2)
+  old_letter varchar(3)
+  new_letter varchar(3)
+  requires_dean boolean
+  reason text
+  attachment_file_id uuid
+  status varchar(25)
+  applied_by uuid
+  applied_at timestamp
+  Note: 'طلبات تعديل علامة منشورة واعتمادها'
+}
+
+Table grade_histories {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  grade_change_request_id uuid
+  field varchar(30)
+  old_value varchar(50)
+  new_value varchar(50)
+  reason text
+  changed_by uuid
+  Note: 'سجل تغييرات العلامة'
+}
+
+Table official_transcripts {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  service_request_id uuid [ref: > service_requests.id]
+  file_id uuid [ref: > files.id]
+  transcript_number varchar(20) [unique]
+  verification_code char(12) [unique]
+  data_hash char(64)
+  cumulative_gpa decimal(5,4)
+  language varchar(2)
+  issued_by uuid
+  issued_at timestamp
+  revoked_at timestamp
+  Note: 'كشوف العلامات الرسمية برمز تحقق'
+}
+
+TableGroup "العلامات" [color: #DC2626] {
+  assessment_components
+  grade_sheets
+  final_grades
+  grade_marks
+  verification_marks
+  grade_change_requests
+  grade_histories
+  official_transcripts
+}
+
+// -------------------- تقييم المقررات --------------------
+
+Table evaluation_forms {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  name_ar varchar(150)
+  name_en varchar(150)
+  opens_at timestamp
+  closes_at timestamp
+  status varchar(20)
+  min_responses_to_show smallint
+  Note: 'استبانات تقييم المقررات في كل فصل'
+}
+
+Table evaluation_questions {
+  id uuid [pk]
+  evaluation_form_id uuid [ref: > evaluation_forms.id]
+  category varchar(20)
+  type varchar(15)
+  body_ar text
+  body_en text
+  is_required boolean
+  sort smallint
+  Note: 'أسئلة الاستبانة'
+}
+
+Table evaluation_invitations {
+  id uuid [pk]
+  evaluation_form_id uuid [ref: > evaluation_forms.id]
+  enrollment_section_id uuid [ref: > enrollment_sections.id]
+  completed_at timestamp
+  Note: 'دعوات الطلاب للتقييم، لتتبّع المشاركة فقط'
+}
+
+Table evaluation_responses {
+  id uuid [pk]
+  evaluation_form_id uuid [ref: > evaluation_forms.id]
+  section_id uuid [ref: > course_sections.id]
+  instructor_id uuid [ref: > instructors.id]
+  submitted_on date
+  Note: 'الاستجابات دون أي رابط بهوية الطالب'
+}
+
+Table evaluation_answers {
+  id uuid [pk]
+  evaluation_response_id uuid [ref: > evaluation_responses.id]
+  evaluation_question_id uuid [ref: > evaluation_questions.id]
+  value_int smallint
+  value_text text
+  Note: 'إجابات كل استجابة'
+}
+
+TableGroup "تقييم المقررات" [color: #A21CAF] {
+  evaluation_forms
+  evaluation_questions
+  evaluation_invitations
+  evaluation_responses
+  evaluation_answers
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table course_sections {
+  id uuid [pk]
+  section_number varchar(5)
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+Table course_topics {
+  id uuid [pk]
+  title_ar varchar(255)
+  Note: 'من القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+Table files {
+  id uuid [pk]
+  original_name varchar(255)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table courses {
+  id uuid [pk]
+  code varchar(50)
+  name_ar varchar(190)
+  Note: 'من القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+Table students {
+  user_id uuid [pk]
+  university_number varchar(40) [unique]
+  Note: 'من القسم 5: الطلاب والتسجيل والإرشاد والحضور والامتحانات'
+}
+
+Table course_offerings {
+  id uuid [pk]
+  course_id uuid
+  semester_id uuid
+  Note: 'من القسم 4: الجدول الدراسي وإعداداته وجلساته'
+}
+
+Table service_requests {
+  id uuid [pk]
+  request_number varchar(20) [unique]
+  Note: 'من القسم 7: القبول والمالية والطلبات الإلكترونية'
+}
+
+Table semesters {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table enrollment_sections {
+  id uuid [pk]
+  section_id uuid
+  Note: 'من القسم 5: الطلاب والتسجيل والإرشاد والحضور والامتحانات'
+}
+
+Table instructors {
+  id uuid [pk]
+  user_id uuid [unique]
+  Note: 'من القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  course_sections
+  course_topics
+  files
+  courses
+  students
+  course_offerings
+  service_requests
+  semesters
+  enrollment_sections
+  instructors
+}

@@ -1,0 +1,100 @@
+@startuml UC-97_library_search
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-97 — البحث في كتالوج المكتبة وحجز نسخة
+
+actor "المستخدم\nطالب أو مدرّس" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "بحث الكتالوج\nCatalogSearchService" as CS
+  participant "قائمة الحجز\nHoldQueueService" as HQ
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "فهرس البحث\nMeilisearch" as IDX
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== البحث ==
+U -> UI : فتح المكتبة وكتابة كلمة البحث\nمع تصفية المتاح فقط عند الحاجة
+UI -> API : البحث\n""GET /api/library/items""
+API -> API : التحقق من الرمز والصلاحية\n""library.use""
+API -> CS : توحيد الهمزات والتاء المربوطة\nوالألف المقصورة في كلمة البحث
+CS -> IDX : بحث نصي بالعنوان والمؤلف\nوالرقم الدولي والموضوع
+alt #FFF3E0 لا نتائج مطابقة
+  API --> UI : قائمة فارغة\n""200 OK""
+  UI --> U : لا نتائج مع اقتراح تبسيط البحث
+else #E8F5E9 توجد نتائج
+  API --> UI : العناوين ومؤلفوها وتوافرها\n""200 OK""
+  U -> UI : فتح عنوان
+  UI -> API : التفاصيل والنسخ\n""GET /api/library/items/{id}""\n""GET /api/library/items/{id}/copies""
+  API -> DB : النسخ وحالاتها ومواقعها\nومواعيد إرجاع المعارة منها
+  API --> UI : التفاصيل والنسخ\n""200 OK""
+end
+
+== الحجز ==
+U -> UI : الضغط على احجز لعنوان بلا نسخة متاحة
+UI -> API : طلب الحجز\n""POST /api/library/items/{id}/holds""
+API -> HQ : فحص حد الحجوزات لفئته\nومتأخراته وغراماته
+alt #FFEBEE لدى المستخدم مواد متأخرة
+  API --> UI : رفض الطلب\n""403 LIB_HAS_OVERDUE""
+  UI --> U : رسالة لديك مواد متأخرة
+else #FFEBEE بلغ المستخدم حد فئته
+  API --> UI : رفض الطلب\n""403 LIB_LOAN_LIMIT_REACHED""
+  UI --> U : رسالة بلغت الحد الأعلى للإعارة
+else #E8F5E9 المستخدم مؤهل
+  HQ -> DB : تسجيل الحجز بترتيبه في القائمة
+  API --> UI : الحجز وترتيبه\n""201 Created""
+  UI --> U : تم الحجز مع ترتيبك في القائمة
+end
+
+== جاهزية النسخة ==
+HQ -> DB : عند إرجاع نسخة من العنوان\nتعليمها جاهزة للحاجز الأول
+HQ -> NTF : إشعار الحاجز بمهلة الاستلام
+NTF --> U : النسخة جاهزة للاستلام
+loop #FFFFFF يومياً
+  HQ -> DB : إلغاء الحجوزات المنتهية مهلتها\nوتعليم النسخة للحاجز التالي وإشعاره
+end
+opt #FFF8E1 تجديد إعارة
+  U -> UI : فتح إعاراتي والضغط على تجديد
+  UI -> API : التجديد\n""POST /api/me/library/loans/{id}/renew""
+  alt #FFEBEE محجوزة لغيره أو بلغ حد التجديد
+    API --> UI : رفض الطلب\n""403 LIB_RENEWAL_NOT_ALLOWED""
+    UI --> U : رسالة لا يمكن تجديد هذه الإعارة
+  else #E8F5E9 التجديد مسموح
+    API -> DB : تمديد موعد الإرجاع
+    API --> UI : الموعد الجديد\n""200 OK""
+  end
+end
+@enduml

@@ -1,0 +1,77 @@
+@startuml UC-79_department_review
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-79 — مراجعة كشف الدرجات في القسم
+
+actor "رئيس القسم" as HOD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+HOD -> UI : فتح صندوق الكشوف
+UI -> API : الكشوف المرسلة للمراجعة\n""GET /api/grade-sheets""
+API -> API : التحقق من الرمز والصلاحية والنطاق\n""grades.department_review""
+API -> DB : كشوف شعب القسم بحالة مرسل للمراجعة
+API --> UI : الكشوف\n""200 OK""
+alt #FFF3E0 لا كشوف بانتظار المراجعة
+  UI --> HOD : بيان خلو الصندوق
+else #E8F5E9 توجد كشوف
+  HOD -> UI : فتح كشف
+  UI -> API : طلب الكشف\n""GET /api/sections/{id}/grade-sheet""
+  API --> UI : الكشف مع التوزيع ونسبة النجاح\nوالمقارنة بالفصول والشعب الأخرى\n""200 OK""
+  HOD -> UI : القرار موافقة أو إعادة مع السبب
+  alt #E8F5E9 الموافقة
+    UI -> API : موافقة القسم\n""POST /api/grade-sheets/{id}/department-approve""
+  else #FFF3E0 الإعادة
+    UI -> API : إعادة بسبب\n""POST /api/grade-sheets/{id}/return""
+  end
+  API -> DB : فحص حالة الكشف
+  alt #FFEBEE الكشف لم يعد بانتظار المراجعة
+    API --> UI : رفض الطلب\n""409 GEN_INVALID_TRANSITION""
+    UI --> HOD : رسالة هذا الانتقال في الحالة غير مسموح
+  else #FFEBEE إعادة دون سبب
+    API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+    UI --> HOD : طلب كتابة السبب
+  else #E8F5E9 القرار صالح
+    API -> DB : نقل الكشف إلى مراجَع من القسم أو معاد\nوتسجيل الانتقال بصاحبه ووقته
+    API -> NTF : إشعار شؤون الامتحانات أو المدرّس
+    API --> UI : الحالة الجديدة\n""200 OK""
+    UI --> HOD : تحديث الصندوق
+  end
+end
+@enduml

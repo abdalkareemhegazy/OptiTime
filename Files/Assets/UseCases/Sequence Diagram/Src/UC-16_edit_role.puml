@@ -1,0 +1,79 @@
+@startuml UC-16_edit_role
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-16 — تعديل دور
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح الدور ==
+ADM -> UI : فتح الدور المطلوب من بطاقته أو من المصفوفة
+UI -> API : طلب بيانات الدور وصلاحياته\n""GET /api/admin/roles/{id}""
+API -> DB : قراءة الدور وصلاحياته
+API --> UI : بيانات الدور\n""200 OK""
+UI --> ADM : عرض نموذج تعديل الدور بصلاحياته الحالية
+
+== التعديل والحفظ ==
+ADM -> UI : تعديل الاسم أو اللون أو الوصف أو الحالة\nأو منح الصلاحيات وسحبها
+UI --> ADM : ملخص الصلاحيات المضافة والمزالة\nوشريط تغييرات غير محفوظة
+ADM -> UI : الضغط على حفظ التغييرات
+UI -> API : إرسال التعديلات\n""PUT /api/admin/roles/{id}""
+API -> API : التحقق من الرمز والصلاحية\n""roles.update""
+alt #FFEBEE حقل غير صالح أو رمز مكرر
+  API --> UI : رفض الطلب\n""422""
+  UI --> ADM : رسالة الحقل المعني
+else #FFEBEE تغيير رمز دور نظام أو نطاقه
+  API --> UI : رفض الطلب\n""422 ROL_CODE_LOCKED""\n""422 ROL_SCOPE_LOCKED""
+  UI --> ADM : رسالة لا يمكن تغيير رموز أدوار النظام
+else #FFEBEE التعديل يمنع المسؤولين من إدارة الأدوار
+  API --> UI : رفض الطلب\n""422 ROL_LOCKOUT""
+  UI --> ADM : رسالة هذا التغيير سيمنع المسؤولين من إدارة الأدوار
+else #E8F5E9 التعديل مسموح
+  API -> DB : حفظ بيانات الدور
+  API -> DB : فك الصلاحيات المسحوبة وربط الصلاحيات الممنوحة
+  API -> DB : تسجيل التعديل مع الصلاحيات المضافة والمزالة في سجل التدقيق
+  API --> UI : الدور بعد التحديث\n""200 OK""
+  UI --> ADM : رسالة تم حفظ التغييرات
+end
+note over UI, DB
+  تسري التغييرات على كل من يحمل الدور
+  وتبقى صلاحيتا عرض الأدوار وتعديلها مثبتتين
+  على دور مدير النظام وعلى دور المدير نفسه
+end note
+@enduml

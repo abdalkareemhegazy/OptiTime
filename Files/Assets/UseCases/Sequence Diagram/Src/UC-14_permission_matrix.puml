@@ -1,0 +1,75 @@
+@startuml UC-14_permission_matrix
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-14 — عرض مصفوفة الصلاحيات
+
+actor "مدير النظام\nأو الإدارة العليا" as A
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح إدارة الأدوار ==
+A -> UI : فتح صفحة إدارة الأدوار\nمن مجموعة الحسابات والأدوار
+UI -> API : طلب الأدوار\n""GET /api/admin/roles""
+API -> API : التحقق من الرمز والصلاحية\n""roles.view""
+alt #FFEBEE لا يملك صلاحية عرض الأدوار
+  API --> UI : رفض الطلب\n""403""
+  UI --> A : التحويل إلى صفحة لا صلاحية
+else #FFEBEE تعذّر الاتصال أو خطأ في الخادم
+  UI --> A : رسالة تعذر تحميل الأدوار\nمع زر إعادة المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : قراءة الأدوار وصلاحياتها وعدد أعضاء كل دور
+  DB --> API : الأدوار
+  API --> UI : قائمة الأدوار\n""200 OK""
+  UI -> API : طلب كتالوج الصلاحيات\n""GET /api/admin/permissions""
+  API -> DB : قراءة الصلاحيات ومجالاتها
+  API --> UI : الصلاحيات\n""200 OK""
+  UI --> A : عرض الأدوار بطاقات مع الأرقام الإجمالية
+end
+
+== مصفوفة الصلاحيات ==
+A -> UI : اختيار طريقة العرض مصفوفة الصلاحيات
+UI -> UI : بناء المصفوفة من البيانات المحمّلة\nالأدوار أعمدة والصلاحيات صفوف مجمّعة في مجالات
+UI --> A : عرض المصفوفة\nوفي كل خانة مستوى الصلاحية كاملة أو جزئية أو بلا صلاحية
+A -> UI : تمرير المؤشر فوق خانة أو البحث في الصلاحيات
+UI --> A : عرض تفاصيل الخانة وتصفية الصفوف المطابقة
+opt #FFF8E1 لا توجد صلاحيات مطابقة للبحث
+  UI --> A : رسالة لا توجد صلاحيات مطابقة لبحثك
+end
+A -> UI : الضغط على اسم دور لفتحه
+UI --> A : عرض تفاصيل الدور\nللعرض فقط لمن لا يملك صلاحية التعديل
+@enduml

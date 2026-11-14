@@ -1,0 +1,99 @@
+@startuml UC-57_teaching_profile
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-57 — إدارة الملف التدريسي لعضو هيئة التدريس
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "عضو هيئة\nالتدريس" as INS
+
+== ملف المدرّس ==
+ACO -> UI : فتح الكادر التدريسي ثم الملف التدريسي لمدرّس
+UI -> API : طلب الملف\n""GET /api/admin/instructors/{id}/profile""
+API -> API : التحقق من الرمز والصلاحية والنطاق\n""instructors.view""
+alt #FFEBEE المدرّس خارج نطاق الكلية أو القسم
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN_SCOPE""
+  UI --> ACO : رسالة هذا المدرّس خارج نطاق كليتك أو قسمك
+else #E8F5E9 ضمن النطاق
+  API --> UI : الملف والمقررات والحِمل الفعلي\n""200 OK""
+  ACO -> UI : اختيار الرتبة وتحديد الحدّين والمكتب\nوالدوام الجزئي والقدرة على المراقبة
+  UI --> ACO : الحدّان المعتادان للرتبة
+  UI -> API : حفظ الملف\n""PUT /api/admin/instructors/{id}/profile""
+  API -> API : التحقق من الصلاحية\n""instructors.manage""
+  alt #FFEBEE حد خارج النطاق أو الأقصى أقل من الأدنى
+    API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+    UI --> ACO : رسالة تحت الحقل
+  else #E8F5E9 القيم صالحة
+    API -> DB : حفظ الملف وتسجيله في سجل التدقيق
+    API --> UI : الملف المحفوظ\n""200 OK""
+    UI --> ACO : رسالة تم حفظ الملف التدريسي
+  end
+end
+
+== المقررات المؤهَّل لها ==
+ACO -> UI : إضافة المقررات وما يدرّسه من كل منها ثم حفظ
+UI -> API : حفظ القائمة كاملة\n""PUT /api/admin/instructors/{id}/qualified-courses""
+alt #FFEBEE مقرر بلا جزء أو جزء عملي غير موجود\nأو مقرر لم يعد موجوداً
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ACO : رسالة تبيّن المقرر المخالف
+else #E8F5E9 القائمة صالحة
+  API -> DB : استبدال القائمة بطلب واحد
+  API -> NTF : إشعار المدرّس بما أُضيف وما أُزيل
+  NTF --> INS : إشعار بتغيّر مقرراته
+  API --> UI : عدد ما أُضيف وما أُزيل\n""200 OK""
+  UI --> ACO : رسالة تم الحفظ مع الأعداد
+end
+
+== ملفي التدريسي ==
+INS -> UI : فتح ملفي التدريسي
+UI -> API : طلب الملف\n""GET /api/instructor/profile""
+API --> UI : ما يحفظه القسم وما يخص المدرّس\n""200 OK""
+INS -> UI : مواعيد الساعات المكتبية والرغبة في كل مقرر\nثم حفظ
+UI -> API : حفظ المواعيد\n""PUT /api/instructor/profile/office""
+UI -> API : حفظ الرغبات\n""PUT /api/instructor/profile/preferences""
+API -> API : التحقق من الصلاحية\n""instructor.profile.update""
+alt #FFEBEE موعد ينتهي قبل أن يبدأ أو متداخل\nأو مواعيد فوق الحد
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> INS : رسالة تبيّن خطأ الموعد
+else #E8F5E9 المواعيد صالحة
+  API -> DB : حفظ المواعيد والرغبات
+  UI --> INS : رسالة تم حفظ ملفك
+end
+@enduml

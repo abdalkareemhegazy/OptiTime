@@ -1,0 +1,83 @@
+@startuml UC-93_fees_invoices
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-93 — إدارة الرسوم والفواتير
+
+actor "الموظف المالي" as FIN
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "تقدير الرسوم\nFeeAssessmentService" as FEE
+  participant "دفتر الحساب\nLedgerService" as LED
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== هياكل الرسوم ==
+FIN -> UI : هيكل لبرنامج وسنة بسعر الساعة\nوالرسوم الثابتة ورسوم المختبرات والمواعيد
+UI -> API : حفظ الهيكل\n""POST /api/finance/fee-structures""
+API -> API : التحقق من الرمز والصلاحية\n""finance.fees.manage""
+alt #FFEBEE قيمة سالبة أو موعد غير صالح
+  API --> UI : رفض الطلب\n""422 FIN_AMOUNT_INVALID""
+  UI --> FIN : رسالة المبلغ غير صالح
+else #E8F5E9 القيم صالحة
+  API -> DB : حفظ الهيكل وتسجيله في سجل التدقيق
+  API --> UI : الهيكل\n""201 Created""
+end
+
+== الفاتورة عند التسجيل ==
+API -> FEE : حدث تأكيد تسجيل طالب أو تعديله
+FEE -> DB : الساعات المسجلة وهيكل البرنامج\nوالمنح والخصومات
+alt #FFEBEE لا هيكل لبرنامج الطالب وسنته
+  FEE -> DB : تعليق الإصدار وتنبيه الموظف المالي
+else #E8F5E9 الهيكل موجود
+  FEE -> FEE : الساعات في سعر الساعة مع الثابتة والمختبرات\nمطروحاً منها المنح والخصومات
+  FEE -> DB : فاتورة الفصل أو فاتورة تعديل أو إشعار دائن
+  FEE -> LED : قيد الحركة في دفتر الحساب
+  LED -> DB : إضافة قيد دون تعديل ما سبقه
+end
+
+== المتابعة ==
+FIN -> UI : فتح الفواتير ومتابعة حالاتها
+UI -> API : الفواتير\n""GET /api/finance/invoices""
+API --> UI : الفواتير بحالاتها\n""200 OK""
+loop #FFFFFF يومياً
+  API -> DB : تعليم المتجاوزة للاستحقاق متأخرة\nووضع عائق مالي على أصحابها
+end
+note over API, DB
+  يُصحح الخطأ بقيد عكسي أو بإلغاء الفاتورة بسبب
+  ""POST /api/finance/invoices/{id}/cancel""
+  ولا يُحذف أي قيد من الدفتر
+end note
+@enduml

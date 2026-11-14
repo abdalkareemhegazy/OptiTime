@@ -1,0 +1,90 @@
+@startuml UC-53_manage_courses
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-53 — إدارة المقررات وتوصيفها
+
+actor "موظف الشؤون\nأو المنسق" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+U -> UI : فتح صفحة المقررات
+UI -> API : طلب المقررات\n""GET /api/admin/courses""
+API -> API : التحقق من الرمز والصلاحية والنطاق\n""courses.view""
+API --> UI : مقررات النطاق وشعبها وخططها\n""200 OK""
+
+== حفظ المقرر ==
+U -> UI : إدخال الرمز والقسم والاسمين والساعات\nوالفئة والسنة ونمط التقدير ثم حفظ
+UI -> API : حفظ المقرر\n""POST /api/admin/courses""
+API -> API : التحقق من الصلاحية\n""courses.create""
+alt #FFEBEE حقل ناقص أو خارج الحدود أو الرمز مستخدم في القسم\nأو الفئة لا تناسب الشعب
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> U : رسالة تحت الحقل
+else #FFEBEE التغيير يزيل محاضرات منشورة أو عليها علامات
+  API --> UI : رفض الطلب\n""409 SEC_PROTECTED_LECTURES""
+  UI --> U : رسالة لم يُحفظ شيء
+else #E8F5E9 البيانات صالحة
+  API -> DB : حفظ المقرر وتسجيله في سجل التدقيق
+  API --> UI : المقرر المحفوظ\n""201 Created""
+  UI --> U : رسالة تم إنشاء المقرر
+end
+
+== المفردات ==
+U -> UI : إضافة المواضيع بالأسبوع والعنوانين والوصف\nأو نسخها من مقرر آخر ثم حفظ
+UI -> API : حفظ المفردات\n""PUT /api/admin/courses/{id}/topics""
+alt #FFEBEE موضوع بلا عنوان أو أسبوع خارج الحدود\nأو مواضيع أكثر من الحد
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> U : رسالة صحّح المواضيع المعلّمة بالأحمر
+else #E8F5E9 المواضيع صالحة
+  API -> DB : حفظ المواضيع بترتيبها
+  UI --> U : رسالة حُفظت المفردات
+end
+ref over U, API : UC-54 تحديد المتطلبات السابقة والمعادلات
+
+== الأرشفة ==
+opt #FFF8E1 أرشفة المقرر
+  U -> UI : الضغط على أرشفة المقرر
+  UI -> API : أرشفة المقرر\n""POST /api/admin/courses/{id}/archive""
+  alt #FFEBEE المقرر مطروح في فصل لم يُغلق
+    API --> UI : رفض الطلب\n""409 CUR_COURSE_OFFERED""
+    UI --> U : رسالة أوقف طرحه أولاً ثم أرشفه
+  else #E8F5E9 يمكن أرشفته
+    API -> DB : أرشفة المقرر مع حفظ سجله
+    UI --> U : رسالة أُرشف المقرر
+  end
+end
+@enduml

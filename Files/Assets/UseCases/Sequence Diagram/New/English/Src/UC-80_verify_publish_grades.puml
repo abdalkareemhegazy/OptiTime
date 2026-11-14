@@ -1,0 +1,70 @@
+@startuml UC-80_verify_publish_grades
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-80 — Double Entry and Publishing of Marks
+
+actor "Exams Officer" as U
+box "Server" #F3FAF3
+  participant "Grade Sheet\nController" as GC
+  participant "Verification\nService" as VS
+  participant "Gradebook" as GB
+  participant "Publishing Job\n(background)" as PJ
+end box
+actor "Students" as R
+
+U -> GC : Enter the final exam marks again
+GC -> VS : Compare with the instructor's entry
+VS -> VS : Save the second entry
+VS --> GC : Mismatches
+GC --> U : Show the mismatches
+loop each mismatch
+  U -> GC : Choose the correct mark
+  GC -> GB : Save the mark
+  GB -> GB : Recalculate the total and letter
+end
+U -> GC : Approve the sheet
+GC -> VS : Any mismatches left?
+alt mismatches left
+  VS --> GC : Unresolved mismatches
+  GC --> U : Refuse the approval
+else none left
+  VS --> GC : None
+  GC -> GC : Mark the sheet approved
+  GC --> U : Confirm the approval
+end
+U -> GC : Publish the approved sheets
+GC -> GC : Confirm the officer's password
+GC ->> PJ : Publish in the background
+GC --> U : Publishing started
+PJ -> PJ : Publish each sheet
+PJ -> PJ : Update GPA and academic standing
+PJ ->> R : New marks published
+@enduml

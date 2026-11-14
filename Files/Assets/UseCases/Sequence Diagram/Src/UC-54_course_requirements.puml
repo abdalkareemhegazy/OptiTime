@@ -1,0 +1,88 @@
+@startuml UC-54_course_requirements
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-54 — تحديد المتطلبات السابقة والمعادلات
+
+actor "موظف الشؤون\nأو المنسق" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة رسم المتطلبات\nPrerequisiteGraphService" as GRAPH
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== المتطلبات ==
+U -> UI : فتح قسم المتطلبات في نموذج المقرر
+UI -> API : طلب المتطلبات وحروف السلّم\n""GET /api/admin/courses/{id}/prerequisites""\n""GET /api/admin/prerequisites/letters""
+API --> UI : المجموعات الحالية والحروف\n""200 OK""
+U -> UI : إضافة مجموعات سابقة ببدائلها وأدنى تقدير\nومتطلبات متزامنة ثم حفظ
+UI -> API : حفظ المجموعات كاملة\n""PUT /api/admin/courses/{id}/prerequisites""
+API -> API : التحقق من الصلاحية والنطاق\n""courses.update""
+API -> API : فحص كل ارتباط\nالنفس والتكرار والمؤرشف والمعادل والحدود
+alt #FFEBEE ارتباط لا يصلح
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> U : رسالة تبيّن السبب\nمثل لا يمكن أن يتطلب المقرر نفسه
+else #E8F5E9 الارتباطات صالحة
+  API -> GRAPH : كشف الحلقات في الكتالوج كله
+  GRAPH -> DB : قراءة المتطلبات السابقة لكل المقررات
+  alt #FFEBEE المتطلبات تُغلق حلقة
+    GRAPH --> API : المقررات التي في الحلقة
+    API --> UI : رفض الطلب\n""422 CUR_REQUIREMENT_LOOP""
+    UI --> U : رسالة هذه المتطلبات تربط المقررات في حلقة\nلم يُحفظ شيء
+  else #E8F5E9 لا حلقة
+    API -> DB : حفظ المجموعات كاملة\nوتسجيلها في سجل التدقيق
+    API --> UI : المتطلبات المحفوظة\n""200 OK""
+    UI --> U : رسالة الحفظ
+  end
+end
+
+== المعادلات ==
+U -> UI : إضافة المقررات المعادلة وملاحظة ثم حفظ
+UI -> API : حفظ المعادلات\n""PUT /api/admin/courses/{id}/equivalencies""
+alt #FFEBEE يعادل نفسه أو مقرراً يتطلبه\nأو مقرراً خارج النطاق
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> U : رسالة تبيّن السبب
+else #E8F5E9 المعادلات صالحة
+  API -> DB : حفظ المعادلات ثنائية الاتجاه
+  UI --> U : رسالة الحفظ
+end
+opt #FFF8E1 خريطة المتطلبات
+  U -> UI : فتح خريطة المتطلبات لبرنامج أو قسم
+  UI -> API : طلب الرسم\n""GET /api/admin/prerequisites/graph""
+  API -> GRAPH : بناء الرسم بالعمق والحواف والحلقات
+  API --> UI : الرسم\n""200 OK""
+  UI --> U : المقررات بعمقها والحواف بالبدائل\nوقسم الحلقات إن وُجدت
+end
+@enduml

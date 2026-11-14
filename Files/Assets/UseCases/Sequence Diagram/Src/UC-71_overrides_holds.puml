@@ -1,0 +1,84 @@
+@startuml UC-71_overrides_holds
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-71 — منح استثناءات التسجيل وإدارة العوائق
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "مزامنة العوائق\nSyncFinancialHoldsJob" as SYNC
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+ACO -> UI : فتح ملف تسجيل الطالب
+UI -> API : طلب الملف\n""GET /api/enrollment/students/{studentId}""
+API --> UI : التسجيلات والعوائق والاستثناءات\n""200 OK""
+
+== منح استثناء ==
+ACO -> UI : منح استثناء بنوعه والمقرر أو الشعبة\nوالسبب ومدة الصلاحية
+UI -> API : حفظ الاستثناء\n""POST /api/enrollment-overrides""
+API -> API : التحقق من الصلاحية\n""enrollment.overrides.manage""
+alt #FFEBEE السبب أو المقرر ناقص
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ACO : رسالة بعض البيانات المدخلة غير صالحة
+else #E8F5E9 البيانات مكتملة
+  API -> DB : حفظ الاستثناء بمنفّذه ووقته\nوتسجيله في سجل التدقيق
+  API -> NTF : إشعار الطالب بأنه يستطيع التسجيل
+  API --> UI : الاستثناء\n""201 Created""
+end
+
+== وضع عائق ورفعه ==
+ACO -> UI : وضع عائق بنوعه وما يمنعه وسببه
+UI -> API : حفظ العائق\n""POST /api/holds""
+API -> API : التحقق من الصلاحية\n""enrollment.holds.manage""
+API -> DB : حفظ العائق وتسجيله
+API -> NTF : إشعار الطالب بالعائق
+ACO -> UI : رفع العائق بعد زوال سببه مع ملاحظة
+UI -> API : رفع العائق\n""POST /api/holds/{id}/release""
+alt #FFEBEE العائق آلي أو مرفوع مسبقاً
+  API --> UI : رفض الطلب\n""409 GEN_CONFLICT""
+  UI --> ACO : بيان أن العائق يُرفع من مصدره
+else #E8F5E9 يمكن رفعه
+  API -> DB : رفع العائق وتسجيل ذلك
+  API -> NTF : إشعار الطالب برفعه
+  API --> UI : تم\n""200 OK""
+end
+
+== العوائق الآلية ==
+SYNC -> DB : وضع العائق المالي عند الاستحقاق\nورفعه عند السداد الكامل
+SYNC -> DB : وضع عائق المكتبة عند التأخر\nورفعه عند الإرجاع والسداد
+@enduml

@@ -1,0 +1,62 @@
+@startuml UC-27_enter_availability
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-27 — إدخال أوقات التفرّغ
+
+actor "عضو هيئة\nالتدريس" as U
+box "الخادم" #F3FAF3
+  participant "متحكم\nأوقات التفرّغ" as AC
+  participant "خدمة\nأوقات التفرّغ" as AS
+  participant "خدمة\nالإشعارات" as NS
+end box
+actor "منسق الجداول\nوالموارد" as CRD
+
+U -> AC : يرسل أوقات تفرّغه في الأسبوع
+AC -> AS : يطلب حفظ الأسبوع
+AS -> AS : يتحقق من أن نافذة التفرّغ مفتوحة
+AS -> AS : يفحص كل خانة في الأسبوع
+alt النافذة مغلقة
+  AS --> AC : النافذة مغلقة
+  AC --> U : يعرض الأسبوع للقراءة فقط
+else خانة غير صالحة
+  AS --> AC : سبب رفض كل خانة
+  AC --> U : يرفض الحفظ ويبيّن الأسباب
+else الأسبوع صالح
+  AS -> AS : يحفظ الأسبوع في عملية واحدة
+  opt سُلّم الأسبوع
+    AS -> NS : يطلب إشعار المنسقين
+    NS ->> CRD : سُلّمت أوقات تفرّغ مدرّس
+  end
+  AS --> AC : الأسبوع بعد الحفظ
+  AC -> AC : يسجّل العملية في سجل التدقيق
+  AC --> U : يؤكد الحفظ أو التسليم
+end
+@enduml

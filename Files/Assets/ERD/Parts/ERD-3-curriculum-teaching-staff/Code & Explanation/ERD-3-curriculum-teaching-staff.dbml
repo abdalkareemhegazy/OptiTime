@@ -1,0 +1,276 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 3 من 8: المقررات وأعضاء هيئة التدريس
+// 17 جدولاً من هذا القسم، و4 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_3 {
+  database_type: 'MySQL'
+  Note: 'القسم 3: المقررات وأعضاء هيئة التدريس'
+}
+
+// -------------------- المقررات والخطط الدراسية --------------------
+
+Table grading_schemes {
+  id uuid [pk]
+  name_ar varchar(100)
+  name_en varchar(100)
+  max_points decimal(3,2)
+  pass_mark decimal(5,2)
+  is_default boolean
+  Note: 'سلالم التقدير'
+}
+
+Table grading_scale_items {
+  id uuid [pk]
+  grading_scheme_id uuid [ref: > grading_schemes.id]
+  letter varchar(3)
+  min_mark decimal(5,2)
+  max_mark decimal(5,2)
+  grade_points decimal(3,2)
+  description_ar varchar(50)
+  description_en varchar(50)
+  is_passing boolean
+  counts_in_gpa boolean
+  counts_as_earned boolean
+  is_special boolean
+  sort smallint
+  Note: 'حروف كل سلّم ونقاطها'
+}
+
+Table courses {
+  id uuid [pk]
+  department_id uuid [ref: > departments.id]
+  code varchar(50)
+  name_ar varchar(190)
+  name_en varchar(190)
+  required_hours int
+  room_consumed_hours int
+  lab_consumed_hours int
+  has_lab_component boolean
+  credit_hours tinyint
+  category varchar(15)
+  level tinyint
+  description_ar text
+  description_en text
+  grading_mode varchar(15)
+  is_repeatable boolean
+  is_active boolean
+  Note: 'كتالوج المقررات'
+}
+
+Table course_prerequisites {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  prerequisite_course_id uuid [ref: > courses.id]
+  type varchar(15)
+  group_no smallint
+  min_grade varchar(3)
+  Note: 'المتطلبات السابقة والمتزامنة'
+}
+
+Table course_equivalencies {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  equivalent_course_id uuid [ref: > courses.id]
+  is_bidirectional boolean
+  notes text
+  Note: 'المقررات المعادلة'
+}
+
+Table course_constraints {
+  id uuid [pk]
+  course_id uuid [unique, ref: - courses.id]
+  min_student_year_level int
+  max_student_year_level int
+  notes text
+  Note: 'السنوات الدراسية المسموح لها بالمقرر'
+}
+
+Table course_topics {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  week_no smallint
+  title_ar varchar(255)
+  title_en varchar(255)
+  description text
+  sort smallint
+  component varchar(10)
+  Note: 'مفردات المقرر الأسبوعية'
+}
+
+Table course_assessment_components {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  name_ar varchar(100)
+  name_en varchar(100)
+  type varchar(20)
+  weight decimal(5,2)
+  max_mark decimal(6,2)
+  is_final_exam boolean
+  sort smallint
+  Note: 'قالب مكوّنات علامة المقرر'
+}
+
+Table study_plans {
+  id uuid [pk]
+  program_id uuid [ref: > programs.id]
+  code varchar(30) [unique]
+  name_ar varchar(200)
+  name_en varchar(200)
+  effective_from_year smallint
+  total_credit_hours smallint
+  status varchar(15)
+  notes text
+  cloned_from_id uuid
+  approved_by uuid
+  approved_at datetime
+  Note: 'الخطط الدراسية لكل برنامج'
+}
+
+Table study_plan_groups {
+  id uuid [pk]
+  study_plan_id uuid [ref: > study_plans.id]
+  type varchar(30)
+  name_ar varchar(150)
+  name_en varchar(150)
+  min_credit_hours smallint
+  sort smallint
+  Note: 'مجموعات متطلبات الخطة'
+}
+
+Table study_plan_courses {
+  id uuid [pk]
+  study_plan_id uuid
+  study_plan_group_id uuid [ref: > study_plan_groups.id]
+  course_id uuid [ref: > courses.id]
+  recommended_level smallint
+  recommended_semester smallint
+  sort smallint
+  Note: 'مقررات كل مجموعة في الخطة'
+}
+
+TableGroup "المقررات والخطط الدراسية" [color: #4338CA] {
+  grading_schemes
+  grading_scale_items
+  courses
+  course_prerequisites
+  course_equivalencies
+  course_constraints
+  course_topics
+  course_assessment_components
+  study_plans
+  study_plan_groups
+  study_plan_courses
+}
+
+// -------------------- أعضاء هيئة التدريس --------------------
+
+Table instructors {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  specialization_id uuid [ref: > specializations.id]
+  min_work_hours_per_week int
+  max_work_hours_per_week int
+  academic_rank varchar(30)
+  highest_degree varchar(20)
+  specialization_ar varchar(200)
+  specialization_en varchar(200)
+  is_part_time boolean
+  can_proctor boolean
+  office_location varchar(150)
+  office_hours json
+  Note: 'الملف التدريسي لعضو هيئة التدريس'
+}
+
+Table specializations {
+  id uuid [pk]
+  code varchar(50) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_active boolean
+  Note: 'قائمة التخصصات'
+}
+
+Table instructor_qualified_courses {
+  id uuid [pk]
+  instructor_id uuid [ref: > instructors.id]
+  course_id uuid [ref: > courses.id]
+  components json
+  preference tinyint
+  source varchar(20)
+  set_by uuid
+  Note: 'المقررات التي يؤهَّل المدرّس لتدريسها'
+}
+
+Table instructor_availability_profiles {
+  id uuid [pk]
+  instructor_id uuid [ref: > instructors.id]
+  notes text
+  semester_id uuid [ref: > semesters.id]
+  status varchar(15)
+  submitted_at timestamp
+  submitted_by uuid
+  Note: 'أسبوع تفرّغ المدرّس في كل فصل'
+}
+
+Table instructor_availability_cells {
+  id uuid [pk]
+  availability_profile_id uuid [ref: > instructor_availability_profiles.id]
+  day_value varchar(10)
+  start_time time
+  end_time time
+  status varchar(20)
+  reason_code varchar(30)
+  reason varchar(150)
+  Note: 'الأوقات المفضّلة والمتاحة والمغلقة في الأسبوع'
+}
+
+Table instructor_availability_reminders {
+  id uuid [pk]
+  semester_id uuid
+  instructor_id uuid [ref: > instructors.id]
+  sent_by uuid
+  automatic boolean
+  Note: 'تذكيرات تسليم التفرّغ'
+}
+
+TableGroup "أعضاء هيئة التدريس" [color: #7C3AED] {
+  instructors
+  specializations
+  instructor_qualified_courses
+  instructor_availability_profiles
+  instructor_availability_cells
+  instructor_availability_reminders
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table departments {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table programs {
+  id uuid [pk]
+  name_ar varchar(200)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table users {
+  id uuid [pk]
+  full_name varchar(150)
+  Note: 'من القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+Table semesters {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  departments
+  programs
+  users
+  semesters
+}

@@ -1,0 +1,437 @@
+// OptiTime: مخطط الكيانات والعلاقات، القسم 1 من 8: المستخدمون والإشعارات وإدارة النظام
+// 27 جدولاً من هذا القسم، و2 جداول رمادية من أقسام أخرى تظهر بمفتاحها واسمها فقط.
+// الكود مأخوذ من Full_ERD.dbml كما هو.
+
+Project OptiTime_part_1 {
+  database_type: 'MySQL'
+  Note: 'القسم 1: المستخدمون والإشعارات وإدارة النظام'
+}
+
+// -------------------- الهوية والصلاحيات --------------------
+
+Table users {
+  id uuid [pk]
+  role_id uuid [ref: > roles.id]
+  department_id uuid [ref: > departments.id]
+  full_name varchar(150)
+  email varchar(190) [unique]
+  avatar_url text
+  password_hash varchar(255)
+  password_updated_at timestamp
+  is_active boolean
+  last_login_at timestamp
+  is_protected boolean
+  name_en varchar(150)
+  phone varchar(20)
+  username varchar(50) [unique]
+  user_type varchar(20)
+  status varchar(30)
+  locale varchar(5)
+  theme varchar(10)
+  must_change_password boolean
+  two_factor_secret text
+  two_factor_recovery_codes text
+  two_factor_confirmed_at timestamp
+  email_verified_at timestamp
+  last_login_ip varchar(45)
+  failed_login_attempts smallint
+  locked_until timestamp
+  administrative_unit_id uuid [ref: > administrative_units.id]
+  employee_number varchar(20) [unique]
+  Note: 'حسابات كل من يدخل النظام'
+}
+
+Table roles {
+  id uuid [pk]
+  code varchar(50) [unique]
+  name_ar varchar(120)
+  name_en varchar(120)
+  sidebar_color varchar(20)
+  description text
+  is_system boolean
+  is_active boolean
+  scope_level varchar(20)
+  requires_two_factor boolean
+  Note: 'الأدوار وصلاحياتها'
+}
+
+Table permissions {
+  id uuid [pk]
+  code varchar(100) [unique]
+  module varchar(80)
+  action varchar(80)
+  description text
+  is_system boolean
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_sensitive boolean
+  Note: 'الصلاحيات الدقيقة لكل وحدة'
+}
+
+Table role_permissions {
+  role_id uuid [ref: > roles.id]
+  permission_id uuid [ref: > permissions.id]
+  granted_at timestamp
+  granted_by uuid
+  indexes {
+    (role_id, permission_id) [pk]
+  }
+  Note: 'صلاحيات كل دور'
+}
+
+Table user_roles {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  role_id uuid [ref: > roles.id]
+  scope_type varchar(20)
+  scope_id uuid
+  starts_at timestamp
+  ends_at timestamp
+  assigned_by uuid
+  Note: 'أدوار الحساب ونطاق كل دور ومدته'
+}
+
+Table personal_access_tokens {
+  id bigint [pk]
+  tokenable_id uuid [ref: > users.id]
+  name varchar(255)
+  ip_address varchar(45)
+  user_agent varchar(255)
+  last_used_at timestamp
+  expires_at timestamp
+  impersonator_id uuid
+  Note: 'جلسات الدخول لكل جهاز، ومنها الدخول باسم مستخدم آخر'
+}
+
+Table password_histories {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  password_hash varchar(255)
+  Note: 'كلمات المرور السابقة لمنع تكرارها'
+}
+
+Table login_attempts {
+  id uuid [pk]
+  identifier varchar(191)
+  user_id uuid
+  ip varchar(45)
+  user_agent varchar(255)
+  succeeded boolean
+  failure_reason varchar(40)
+  Note: 'سجل محاولات الدخول'
+}
+
+Table auth_otps {
+  id uuid [pk]
+  email varchar(190)
+  purpose varchar(40)
+  otp_hash varchar(255)
+  payload_json json
+  attempts tinyint
+  expires_at timestamp
+  Note: 'رموز التحقق المرسلة إلى البريد'
+}
+
+TableGroup "الهوية والصلاحيات" [color: #1E3A8A] {
+  users
+  roles
+  permissions
+  role_permissions
+  user_roles
+  personal_access_tokens
+  password_histories
+  login_attempts
+  auth_otps
+}
+
+// -------------------- الإشعارات والإعلانات --------------------
+
+Table notifications {
+  id varchar(80) [pk]
+  user_id uuid [ref: > users.id]
+  title varchar(190)
+  message text
+  type varchar(50)
+  priority varchar(20)
+  is_read boolean
+  payload json
+  read_at timestamp
+  Note: 'إشعارات المستخدمين'
+}
+
+Table user_settings {
+  user_id uuid [pk, ref: - users.id]
+  email_schedule_updates boolean
+  email_reminders boolean
+  push_announcements boolean
+  push_system_alerts boolean
+  weekly_digest boolean
+  Note: 'تفضيلات الإشعارات لكل مستخدم'
+}
+
+Table user_device_tokens {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  fcm_token text
+  device_label varchar(80)
+  platform varchar(30)
+  last_seen_at timestamp
+  Note: 'أجهزة المستخدم للإشعارات الفورية'
+}
+
+Table notification_templates {
+  id uuid [pk]
+  key varchar(60)
+  channel varchar(15)
+  locale varchar(5)
+  subject varchar(255)
+  body text
+  is_active boolean
+  Note: 'قوالب رسائل البريد والإشعارات'
+}
+
+Table announcements {
+  id uuid [pk]
+  title_ar varchar(255)
+  title_en varchar(255)
+  body_ar text
+  body_en text
+  audience json
+  priority varchar(10)
+  channels json
+  is_pinned boolean
+  status varchar(15)
+  publish_at timestamp
+  expires_at timestamp
+  recipients_count int
+  author_id uuid
+  Note: 'الإعلانات للجامعة أو الكلية أو القسم أو الشعبة'
+}
+
+Table announcement_files {
+  announcement_id uuid [ref: > announcements.id]
+  file_id uuid [ref: > files.id]
+  indexes {
+    (announcement_id, file_id) [pk]
+  }
+  Note: 'مرفقات الإعلان'
+}
+
+Table announcement_reads {
+  announcement_id uuid [ref: > announcements.id]
+  user_id uuid [ref: > users.id]
+  read_at timestamp
+  indexes {
+    (announcement_id, user_id) [pk]
+  }
+  Note: 'من قرأ الإعلان ومتى'
+}
+
+TableGroup "الإشعارات والإعلانات" [color: #0284C7] {
+  notifications
+  user_settings
+  user_device_tokens
+  notification_templates
+  announcements
+  announcement_files
+  announcement_reads
+}
+
+// -------------------- إدارة النظام --------------------
+
+Table system_settings {
+  key varchar(100) [pk]
+  group varchar(40)
+  value json
+  type varchar(20)
+  is_public boolean
+  Note: 'إعدادات النظام مجمّعة حسب المجال'
+}
+
+Table files {
+  id uuid [pk]
+  disk varchar(20)
+  path varchar(500)
+  original_name varchar(255)
+  extension varchar(10)
+  mime_type varchar(120)
+  size_bytes bigint
+  checksum_sha256 char(64)
+  fileable_type varchar(100)
+  fileable_id uuid
+  collection varchar(50)
+  visibility varchar(20)
+  scan_status varchar(20)
+  uploaded_by uuid
+  Note: 'الملفات المرفوعة'
+}
+
+Table audit_logs {
+  id uuid [pk]
+  actor_user_id uuid [ref: > users.id]
+  event_type varchar(20)
+  module varchar(80)
+  action varchar(120)
+  description text
+  target_table varchar(80)
+  target_id uuid
+  request_id varchar(120)
+  ip_address varchar(45)
+  user_agent varchar(255)
+  metadata json
+  before_data json
+  after_data json
+  Note: 'سجل التدقيق: من فعل ماذا ومتى، ولذلك لا تُرسم أعمدة من نفّذ الإجراء في الجداول الأخرى'
+}
+
+Table status_transitions {
+  id uuid [pk]
+  subject_type varchar(100)
+  subject_id uuid
+  from_status varchar(30)
+  to_status varchar(30)
+  action varchar(40)
+  actor_id uuid
+  comment text
+  meta json
+  Note: 'سجل انتقالات الحالة لأي سجل: الفصل ونسخة الجدول والبلاغات والطلبات والحجوزات'
+}
+
+Table imports {
+  id uuid [pk]
+  number varchar(30) [unique]
+  type varchar(40)
+  file_id uuid [ref: > files.id]
+  status varchar(30)
+  headers json
+  column_mapping json
+  options json
+  total_rows int
+  valid_rows int
+  imported_rows int
+  updated_rows int
+  skipped_rows int
+  failed_rows int
+  errors json
+  context_type varchar(100)
+  context_id uuid
+  started_at timestamp
+  finished_at timestamp
+  Note: 'عمليات الاستيراد من ملفات Excel'
+}
+
+Table exports {
+  id uuid [pk]
+  number varchar(30) [unique]
+  type varchar(60)
+  format varchar(10)
+  params json
+  status varchar(20)
+  file_id uuid [ref: > files.id]
+  rows_count int
+  error text
+  expires_at timestamp
+  started_at timestamp
+  finished_at timestamp
+  Note: 'عمليات التصدير إلى ملفات'
+}
+
+Table backups {
+  id uuid [pk]
+  type varchar(20)
+  trigger varchar(20)
+  disk varchar(30)
+  path varchar(500)
+  file_name varchar(255)
+  size_bytes bigint
+  checksum_sha256 char(64)
+  is_encrypted boolean
+  status varchar(20)
+  initiated_by uuid
+  meta json
+  started_at timestamp
+  finished_at timestamp
+  error text
+  Note: 'النسخ الاحتياطية'
+}
+
+Table restores {
+  id uuid [pk]
+  backup_id uuid [ref: > backups.id]
+  safety_backup_id uuid
+  status varchar(20)
+  initiated_by uuid
+  confirmed_2fa_at timestamp
+  started_at timestamp
+  finished_at timestamp
+  notes text
+  error text
+  meta json
+  Note: 'عمليات الاستعادة من نسخة احتياطية'
+}
+
+Table api_keys {
+  id uuid [pk]
+  name varchar(100)
+  key_prefix varchar(12)
+  key_hash char(64) [unique]
+  scopes json
+  allowed_ips json
+  last_used_at timestamp
+  expires_at timestamp
+  revoked_at timestamp
+  Note: 'مفاتيح دخول الأنظمة الخارجية'
+}
+
+Table integrations {
+  key varchar(40) [pk]
+  driver varchar(40)
+  config_encrypted text
+  is_enabled boolean
+  last_tested_at timestamp
+  last_test_result varchar(20)
+  last_test_message text
+  Note: 'إعدادات الخدمات المتصلة بالنظام'
+}
+
+Table health_check_results {
+  id uuid [pk]
+  check_name varchar(60)
+  status varchar(20)
+  message varchar(120)
+  meta json
+  Note: 'نتائج فحوص صحة النظام'
+}
+
+TableGroup "إدارة النظام" [color: #475569] {
+  system_settings
+  files
+  audit_logs
+  status_transitions
+  imports
+  exports
+  backups
+  restores
+  api_keys
+  integrations
+  health_check_results
+}
+
+// -------------------- جداول من أقسام أخرى --------------------
+
+Table departments {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+Table administrative_units {
+  id uuid [pk]
+  name_ar varchar(150)
+  Note: 'من القسم 2: الهيكل التنظيمي والتقويم والقاعات'
+}
+
+TableGroup "من أقسام أخرى" [color: #9CA3AF] {
+  departments
+  administrative_units
+}

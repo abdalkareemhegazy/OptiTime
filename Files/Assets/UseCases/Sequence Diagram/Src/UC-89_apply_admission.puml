@@ -1,0 +1,109 @@
+@startuml UC-89_apply_admission
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-89 — تقديم طلب القبول ومتابعته
+
+actor "المتقدّم" as APL
+box "العميل" #F1F8FE
+  boundary "بوابة القبول\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "التحويل إلى طالب\nEnrollApplicantAction" as ENR
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "بوابة الدفع\nالإلكتروني" as PG
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== الحساب والطلب ==
+APL -> UI : استعراض الدورات المفتوحة وبرامجها
+UI -> API : الدورات\n""GET /api/public/admission/cycles""
+APL -> UI : إنشاء حساب بالبريد
+UI -> API : التسجيل\n""POST /api/public/applicants/register""
+alt #FFEBEE البريد مسجّل أو الرمز غير صحيح
+  API --> UI : رفض الطلب\n""422 AUTH_EMAIL_TAKEN""\n""422 AUTH_OTP_INVALID""
+  UI --> APL : رسالة تبيّن السبب
+else #E8F5E9 الحساب جاهز
+  APL -> UI : إنشاء الطلب وتعبئة البيانات خطوةً خطوة\nوترتيب الرغبات
+  UI -> API : حفظ الطلب والخطوات\n""POST /api/me/applications""\n""PUT /api/me/applications/{id}/preferences""
+  APL -> UI : رفع المستندات
+  UI -> API : رفع مستند\n""POST /api/me/applications/{id}/documents""
+  alt #FFEBEE ملف مرفوض
+    API --> UI : رفض\n""422 GEN_FILE_REJECTED""
+    UI --> APL : رسالة رُفض الملف مع السبب
+  else #E8F5E9 الملف مقبول
+    API -> DB : حفظ الملف في تخزين خاص
+  end
+end
+
+== الرسوم والتقديم ==
+APL -> UI : دفع رسوم التقديم
+UI -> API : بدء الدفع\n""POST /api/me/payments/checkout""
+API -> PG : إنشاء معاملة معرّفة
+API --> UI : رابط البوابة
+UI --> APL : التحويل إلى بوابة الدفع
+PG -> API : إشعار حالة الدفع الموقّع\n""POST /api/webhooks/payments/{gateway}""
+alt #FFEBEE خطأ من البوابة أو إلغاء
+  API --> UI : رسالة أعادت بوابة الدفع خطأً
+else #E8F5E9 دفعة ناجحة
+  API -> DB : تأكيد الرسوم مرة واحدة
+end
+APL -> UI : تقديم الطلب
+UI -> API : التقديم\n""POST /api/me/applications/{id}/submit""
+alt #FFEBEE الدورة مغلقة أو له طلب فيها\nأو مستندات ناقصة أو رسوم غير مدفوعة
+  API --> UI : رفض الطلب\n""409 ADM_CYCLE_CLOSED""\n""409 ADM_DUPLICATE_APPLICATION""\n""422 ADM_DOCUMENTS_MISSING""
+  UI --> APL : رسالة تبيّن السبب
+else #E8F5E9 الشروط مكتملة
+  API -> DB : تسجيل الطلب مقدّماً مع خط زمني
+  API --> UI : الخط الزمني\n""200 OK""
+end
+note over API, DB
+  يقبل موظف القبول كل مستند أو يرفضه بسبب
+  ""POST /api/admission/documents/{id}/verify""
+  فيُشعر المتقدّم لإعادة رفع المرفوض
+end note
+
+== العرض والتحويل ==
+APL -> UI : قبول العرض ضمن المهلة
+UI -> API : القبول\n""POST /api/me/applications/{id}/offer/accept""
+alt #FFEBEE انتهت المهلة
+  API --> UI : رفض الطلب\n""409 ADM_OFFER_EXPIRED""
+  UI --> APL : رسالة انتهت مهلة العرض
+else #E8F5E9 العرض قائم
+  API -> ENR : التحويل إلى طالب في الخلفية
+  ENR -> DB : الرقم الجامعي والسجل الأكاديمي وتبديل الدور\nوإسناد مرشد وفاتورة الفصل الأول
+  ENR -> DB : إشعار ترحيبي بالحساب الجديد
+  API --> UI : تم القبول\n""202 Accepted""
+end
+@enduml

@@ -1,0 +1,73 @@
+@startuml UC-31_approve_publish_schedule
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-31 — اعتماد الجدول ونشره
+
+actor "موظف الشؤون\nالأكاديمية" as U
+box "الخادم" #F3FAF3
+  participant "متحكم\nنسخ الجدول" as VC
+  participant "خدمة\nنسخ الجدول" as VS
+  participant "خدمة\nتوزيع الطلاب" as SS
+  participant "خدمة\nالإشعارات" as NS
+end box
+actor "المنسق والمدرّسون\nوالطلاب" as R
+
+U -> VC : يعتمد النسخة
+VC -> VS : يطلب الاعتماد
+VS -> VS : يشغّل قائمة التحقق
+alt بقيت تعارضات صلبة
+  VS --> VC : البنود غير المجتازة
+  VC --> U : يرفض الاعتماد
+else اجتازت النسخة القائمة
+  VS -> VS : يحوّل النسخة إلى معتمدة
+  VS -> NS : يطلب إشعار المنسق
+  NS ->> R : اعتُمدت النسخة
+  VS --> VC : النسخة معتمدة
+  VC --> U : يؤكد الاعتماد
+end
+U -> VC : ينشر النسخة
+VC -> VS : يطلب النشر
+VS -> VS : يعيد فحص النسخة ونطاقها
+VS -> VS : يؤرشف النسخة التي تحل محلها
+VS -> SS : يطلب توزيع الطلاب
+SS --> VS : نتيجة التوزيع
+alt ظهرت مشكلات في التوزيع
+  VS -> VS : يتراجع عن النشر كله
+  VS --> VC : المشكلات
+  VC --> U : لم يُنشر شيء
+else وُزّع الطلاب كلهم
+  VS -> VS : يرحّل العلامات والطلبات
+  VS -> NS : يطلب إعلان الجدول
+  NS ->> R : نُشر الجدول
+  VS --> VC : النسخة منشورة
+  VC --> U : يؤكد النشر
+end
+@enduml

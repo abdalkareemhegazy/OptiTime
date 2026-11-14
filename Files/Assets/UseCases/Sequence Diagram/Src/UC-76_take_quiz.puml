@@ -1,0 +1,85 @@
+@startuml UC-76_take_quiz
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-76 — أداء الكويز
+
+actor "الطالب" as STU
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "التسليم الآلي\nAutoSubmitExpiredAttemptsJob" as AUTO
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+STU -> UI : فتح كويزاتي واختيار كويز مفتوح
+UI -> API : طلب التعليمات\n""GET /api/quizzes/{id}/intro""
+API -> API : التحقق من الرمز والصلاحية\n""quizzes.attempt""
+API --> UI : التعليمات والمدة والمحاولات المتبقية\n""200 OK""
+STU -> UI : ابدأ المحاولة
+UI -> API : بدء محاولة\n""POST /api/quizzes/{id}/attempts""
+alt #FFEBEE الكويز غير متاح الآن
+  API --> UI : رفض الطلب\n""409 QUZ_NOT_OPEN""
+  UI --> STU : رسالة هذا الكويز غير متاح الآن
+else #FFEBEE استنفد الطالب محاولاته
+  API --> UI : رفض الطلب\n""409 QUZ_ATTEMPTS_EXHAUSTED""
+  UI --> STU : رسالة استنفدت محاولاتك
+else #E8F5E9 المحاولة مسموحة
+  API -> DB : إنشاء المحاولة بوقت انتهائها
+  API --> UI : الأسئلة بالترتيب المخلوط ووقت الانتهاء\n""201 Created""
+  UI --> STU : الأسئلة مع عدّاد تنازلي
+  loop #FFFFFF لكل إجابة
+    STU -> UI : الإجابة عن سؤال
+    UI -> API : حفظ تلقائي\n""PUT /api/quiz-attempts/{id}/answers/{questionId}""
+    API -> DB : حفظ الإجابة
+  end
+  opt #FFF8E1 حدث يمس النزاهة مثل مغادرة الصفحة
+    UI -> API : تسجيل الحدث\n""POST /api/quiz-attempts/{id}/events""
+  end
+  alt #E8F5E9 التسليم من الطالب
+    STU -> UI : تسليم ثم التأكيد
+    UI -> API : التسليم\n""POST /api/quiz-attempts/{id}/submit""
+    alt #FFEBEE انتهى الوقت أو سُلّمت مسبقاً
+      API --> UI : رفض الطلب\n""409 QUZ_ATTEMPT_EXPIRED""\n""409 QUZ_ALREADY_SUBMITTED""
+      UI --> STU : رسالة تبيّن السبب
+    else #E8F5E9 التسليم مقبول
+      API -> DB : تسليم المحاولة وتصحيح الموضوعي آلياً
+      API --> UI : النتيجة بحسب سياسة الإظهار\n""200 OK""
+      UI --> STU : النتيجة أو مراجعة الإجابات\nأو بيان انتظار تصحيح المقالي
+    end
+  else #FFF3E0 انتهاء الوقت دون تسليم
+    AUTO -> DB : تسليم المحاولة آلياً بما حُفظ\nوتصحيح الموضوعي
+  end
+end
+@enduml

@@ -1,0 +1,84 @@
+@startuml UC-107_natural_language_input
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-107 — إدخال التفرّغ والقيود بلغة طبيعية
+
+actor "عضو هيئة التدريس\nأو المنسق" as U
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "بوابة الذكاء\nAiGateway" as GW
+end box
+box "خدمة الذكاء الاصطناعي" #F3FAF3
+  participant "خدمة الذكاء\nFastAPI" as AIS
+end box
+box "خدمة خارجية" #FFFBF0
+  participant "مزوّد النماذج\nاللغوية" as LLM
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+U -> UI : فتح أوقات التفرّغ أو قواعد الجدولة\nثم الضغط على اكتب بلغتك
+U -> UI : كتابة العبارة
+UI -> API : تحويل العبارة\n""POST /api/ai/parse/availability""\n""POST /api/ai/parse/constraint""
+API -> API : التحقق من الرمز وصلاحية الشاشة\n""instructor_availability.update""\n""schedule_settings.update""
+API -> GW : فحص تفعيل الميزة لدوره وحصته
+alt #FFEBEE الميزة غير مفعّلة أو نفدت الحصة أو تعذّرت الخدمة
+  API --> UI : رفض الطلب\n""403""\n""429""\n""503""
+  UI --> U : الميزة غير متاحة مع إبقاء الإدخال اليدوي
+else #E8F5E9 الطلب مسموح
+  GW -> AIS : العبارة مع الفصل والفترات الزمنية\n""HMAC""
+  AIS -> LLM : طلب مخرجات مهيكلة وفق المخطط المحدد
+  LLM --> AIS : المخرجات المهيكلة
+  AIS --> API : خانات مقترحة أو قيد مهيكل
+  API -> API : التحقق من المخرجات كأي إدخال
+  alt #FFF3E0 مخرجات لا تطابق المخطط أو عبارة غامضة
+    API --> UI : سؤال توضيح محدد\n""200 OK""
+    UI --> U : طلب التوضيح بدل التخمين
+  else #E8F5E9 مخرجات صالحة
+    API --> UI : النتيجة للمراجعة\n""200 OK""
+    UI --> U : الخانات على الشبكة الأسبوعية\nأو القيد مع أثره المتوقع
+    U -> UI : التعديل عند الحاجة ثم تأكيد
+    UI -> API : الحفظ بالمسار العادي للشاشة\n""PUT /api/instructor/availability""\n""PUT /api/admin/scheduling-constraints""
+    alt #FFEBEE فشلت الفحوص المعتادة
+      API --> UI : رفض الطلب\n""409 AVL_TERM_CLOSED""
+      UI --> U : رسالة الفحص نفسها كالإدخال اليدوي
+    else #E8F5E9 الفحوص ناجحة
+      API -> DB : حفظ التفرّغ أو القيد
+      API --> UI : المحفوظ\n""200 OK""
+    end
+  end
+end
+note over API, DB : لا يُحفظ شيء لم يؤكده صاحبه\nويبقى الإدخال اليدوي متاحاً دائماً
+@enduml

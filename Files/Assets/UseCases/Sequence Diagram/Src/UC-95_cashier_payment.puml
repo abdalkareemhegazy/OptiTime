@@ -1,0 +1,77 @@
+@startuml UC-95_cashier_payment
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-95 — تسجيل دفعة في الصندوق
+
+actor "الموظف المالي" as FIN
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "تسجيل الدفعة\nRecordPaymentAction" as REC
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+FIN -> UI : البحث عن الطالب برقمه الجامعي
+UI -> API : حساب الطالب\n""GET /api/finance/students/{id}/account""
+API -> API : التحقق من الرمز والصلاحية\n""finance.view""
+alt #FFEBEE لا طالب بهذا الرقم
+  API --> UI : رفض الطلب\n""404 GEN_NOT_FOUND""
+  UI --> FIN : بيان أنه لا طالب بهذا الرقم
+else #E8F5E9 الطالب موجود
+  API --> UI : الفواتير المستحقة والرصيد\n""200 OK""
+  FIN -> UI : المبلغ والطريقة والمرجع والفواتير\nثم تسجيل الدفعة
+  UI -> API : التسجيل\n""POST /api/finance/payments""
+  API -> API : التحقق من الصلاحية\n""finance.payments.record""
+  alt #FFEBEE مبلغ غير صالح أو أكبر من المستحق\nأو بيانات ناقصة
+    API --> UI : رفض الطلب\n""422 FIN_AMOUNT_INVALID""
+    UI --> FIN : رسالة تبيّن الخطأ
+  else #FFEBEE فاتورة مدفوعة أو ملغاة
+    API --> UI : رفض الطلب\n""409 FIN_INVOICE_NOT_PAYABLE""
+    UI --> FIN : رسالة الفاتورة مدفوعة أو ملغاة
+  else #E8F5E9 الدفعة صالحة
+    API -> REC : تسجيل الدفعة وتطبيقها على الفواتير
+    REC -> DB : قيد الدفعة في الدفتر\nوتسجيلها في سجل التدقيق
+    REC -> DB : رفع العائق المالي عند السداد الكامل
+    API --> UI : الدفعة والإيصال\n""201 Created""
+    UI -> API : الإيصال\n""GET /api/finance/payments/{id}/receipt/pdf""
+    UI --> FIN : طباعة الإيصال على ورق بحجم قياسي
+  end
+end
+opt #FFF8E1 عكس دفعة خاطئة
+  FIN -> UI : عكس الدفعة بسبب
+  UI -> API : العكس بعد تأكيد الهوية\n""POST /api/finance/payments/{id}/reverse""
+  API -> DB : قيد عكسي وإعادة المستحق
+end
+@enduml

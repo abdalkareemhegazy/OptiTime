@@ -1,0 +1,73 @@
+@startuml UC-31_approve_publish_schedule
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-31 — Approve and Publish the Timetable
+
+actor "Academic Affairs\nOfficer" as U
+box "Server" #F3FAF3
+  participant "Version\nController" as VC
+  participant "Version\nService" as VS
+  participant "Seating\nService" as SS
+  participant "Notification\nService" as NS
+end box
+actor "Coordinator,\nInstructors, Students" as R
+
+U -> VC : Approve the version
+VC -> VS : Approve
+VS -> VS : Run the checklist
+alt hard conflicts remain
+  VS --> VC : Failing items
+  VC --> U : Refuse the approval
+else checklist passed
+  VS -> VS : Mark the version approved
+  VS -> NS : Notify the coordinator
+  NS ->> R : Version approved
+  VS --> VC : Approved
+  VC --> U : Confirm the approval
+end
+U -> VC : Publish the version
+VC -> VS : Publish
+VS -> VS : Re-check the version and its scope
+VS -> VS : Archive the version it replaces
+VS -> SS : Seat the students
+SS --> VS : Seating result
+alt seating problems
+  VS -> VS : Undo the whole publish
+  VS --> VC : Problems found
+  VC --> U : Nothing published
+else all students seated
+  VS -> VS : Carry marks and requests over
+  VS -> NS : Announce the timetable
+  NS ->> R : Timetable published
+  VS --> VC : Published
+  VC --> U : Confirm the publishing
+end
+@enduml

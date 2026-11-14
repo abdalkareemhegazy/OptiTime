@@ -1,0 +1,80 @@
+@startuml UC-34_close_session
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-34 (2/2) — إقفال جلسة العلامات
+
+actor "موظف شؤون\nالامتحانات" as EXM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== إقفال الجلسة ==
+EXM -> UI : الضغط على إقفال الجلسة بعد رصد علامات كل الطلاب
+UI -> UI : التحقق من عدم وجود تغييرات غير محفوظة في الكشف
+alt #FFEBEE توجد تغييرات غير محفوظة
+  UI --> EXM : رسالة هناك تغييرات غير محفوظة\nاحفظها قبل الإقفال
+else #E8F5E9 لا تغييرات غير محفوظة
+  UI -> API : طلب إقفال الجلسة\n""POST /api/exams/sessions/close""
+  API -> API : التحقق من الرمز والصلاحية\n""exam_sessions.update""
+  API -> DB : عدّ الطلاب الذين بلا علامة مكتملة
+  alt #FFEBEE ما زال هناك طلاب بلا علامة
+    API --> UI : رفض الطلب مع عدد المتبقين\n""422 incomplete""
+    UI --> EXM : رسالة ما زال هناك طلاب بلا علامة\nولا يمكن إقفال الجلسة قبل رصدها
+  else #FFEBEE تعذّر الوصول إلى الخادم
+    UI --> EXM : رسالة تعذّر إقفال الجلسة أعد المحاولة
+  else #E8F5E9 كل العلامات مكتملة
+    API -> DB : إقفال الجلسة ومنع تعديل علاماتها
+    API -> DB : تسجيل الإقفال في سجل التدقيق
+    API --> UI : حالة الجلسة\n""200 OK""
+    UI --> EXM : رسالة أُقفلت الجلسة
+  end
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 إعادة فتح جلسة مقفلة لتصحيح علاماتها
+  EXM -> UI : الضغط على إعادة الفتح
+  UI -> API : طلب إعادة الفتح\n""POST /api/exams/sessions/reopen""
+  API -> DB : إعادة الجلسة إلى مفتوحة
+  API --> UI : حالة الجلسة\n""200 OK""
+end
+note over UI, DB
+  تعديل مكوّنات العلامة وأوزانها ومجموعها 100 تماماً
+  ""PUT /api/exams/subjects/{offering}/components""
+  تنزيل كشف العلامات في أي وقت
+  ""GET /api/exams/grades/session-pdf""
+end note
+@enduml

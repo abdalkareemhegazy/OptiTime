@@ -1,0 +1,70 @@
+@startuml UC-61_schedule_conflicts
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-61 — معالجة تعارضات الجدول ومؤشر الجودة
+
+actor "منسق الجداول\nوالموارد" as U
+box "الخادم" #F3FAF3
+  participant "متحكم\nالجدول" as TC
+  participant "خدمة\nالتعارضات" as CS
+  participant "باحث\nالاقتراحات" as SF
+  participant "خدمة\nتوزيع الطلاب" as SS
+end box
+
+U -> TC : يفتح تعارضات نسخة الجدول
+TC -> CS : يطلب فحص النسخة
+CS -> CS : يحدد التعارضات الصلبة والمرنة\nويحسب مؤشر الجودة
+CS --> TC : التعارضات ومؤشر الجودة
+TC --> U : يعرض قائمة التعارضات
+U -> TC : يطلب حلولاً لتعارض
+TC -> SF : يطلب الحلول الممكنة
+SF -> SF : يجرّب النقل والتبديل والقاعة البديلة
+SF -> SF : يرتّب الحلول بحسب أثرها في الجودة
+SF --> TC : الحلول المقترحة
+TC --> U : يعرض الحلول وأثر كل منها
+U -> TC : يطبّق أحد الحلول
+TC -> TC : يتحقق من أن النسخة قابلة للتعديل
+alt النسخة تغيّرت أو مقفلة
+  TC --> U : يطلب إعادة تحميل النسخة
+else النسخة قابلة للتعديل
+  TC -> TC : يحفظ المحاضرات
+  TC -> SS : يطلب إعادة توزيع الطلاب
+  SS --> TC : نتيجة التوزيع
+  alt ظهرت مشكلات في التوزيع
+    TC -> TC : يتراجع عن التعديل
+    TC --> U : يرفض التعديل ويبيّن المشكلات
+  else لا مشكلات
+    TC -> CS : يطلب فحص النسخة من جديد
+    CS --> TC : التعارضات والمؤشر بعد التعديل
+    TC --> U : يعرض القائمة بعد التعديل
+  end
+end
+@enduml

@@ -1,0 +1,95 @@
+@startuml UC-103_process_requests
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-103 — معالجة الطلبات الإلكترونية
+
+actor "الجهة المعالِجة\nبحسب نوع الطلب" as PROC
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "قرار الخطوة\nDecideStepAction" as DEC
+  participant "محرك سير العمل\nWorkflowEngine" as WF
+  participant "منفّذات الأثر\nHandlerRegistry" as HND
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "الطالب" as STU
+
+PROC -> UI : فتح صندوق الطلبات
+UI -> API : الطلبات المسندة لدوري ونطاقي\n""GET /api/requests/inbox""
+API -> API : التحقق من الرمز والصلاحية\n""requests.process""
+alt #FFF3E0 لا طلبات في الصندوق
+  API --> UI : قائمة فارغة\n""200 OK""
+  UI --> PROC : بيان خلو الصندوق
+else #E8F5E9 توجد طلبات مسندة
+  API --> UI : الطلبات مع مدة الإنجاز المتبقية\n""200 OK""
+  PROC -> UI : فتح طلب
+  UI -> API : التفاصيل\n""GET /api/requests/{id}""
+  API --> UI : النموذج المعبأ والمرفقات\nوالخط الزمني والتعليقات\n""200 OK""
+  PROC -> UI : اختيار القرار مع تعليق
+  UI -> API : القرار\n""POST /api/requests/{id}/approve""\n""POST /api/requests/{id}/reject""\n""POST /api/requests/{id}/request-info""
+  API -> DEC : التحقق من أن الطلب مسند إليه\nوفي خطوته
+  alt #FFEBEE الطلب غير مسند إليه أو تجاوز خطوته
+    API --> UI : رفض الطلب\n""403 REQ_NOT_ASSIGNED""
+    UI --> PROC : رسالة هذا الطلب غير مسند إليك
+  else #E8F5E9 الطلب في خطوته
+    DEC -> DB : تسجيل القرار والتعليق
+    DEC -> WF : نقل الطلب في مساره
+    alt #FFF3E0 طلب معلومات
+      WF -> DB : إعادة الطلب إلى الطالب\nثم إلى الخطوة نفسها عند ردّه
+    else #FFF3E0 رفض
+      WF -> DB : إنهاء الطلب مرفوضاً
+    else #E8F5E9 اعتماد في خطوة وسيطة
+      WF -> DB : توجيه الطلب إلى الخطوة التالية\nوإشعار جهتها
+    else #E8F5E9 اعتماد في الخطوة الأخيرة
+      WF -> HND : تنفيذ الأثر الآلي لنوع الطلب
+      alt #FFEBEE تعذّر التنفيذ كأن يكون الفصل مغلقاً
+        HND -> DB : إبقاء الطلب معتمداً بانتظار التنفيذ\nوتنبيه المسؤول
+      else #E8F5E9 نُفّذ الأثر
+        HND -> DB : مثل رصد الانسحاب وتحرير المقعد\nوحساب الاسترداد أو تحويل الغياب بعذر
+      end
+    end
+    WF --> STU : إشعار بقرار الطلب
+    API --> UI : الطلب بحالته الجديدة\n""200 OK""
+  end
+end
+opt #FFF8E1 الإسناد إلى زميل
+  PROC -> UI : إسناد الطلب إلى زميل في الجهة نفسها
+  UI -> API : الإسناد\n""POST /api/requests/{id}/assign""
+  API -> DB : نقل الطلب إلى صندوق الزميل
+end
+loop #FFFFFF دورياً
+  WF -> DB : الطلبات المتجاوزة لمدة الإنجاز\nوتصعيدها إلى المشرف وإشعاره
+end
+@enduml

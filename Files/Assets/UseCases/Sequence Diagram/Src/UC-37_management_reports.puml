@@ -1,0 +1,99 @@
+@startuml UC-37_management_reports
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-37 — عرض تقارير الإدارة
+
+actor "الإدارة العليا" as EXE
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== فتح صفحة تقارير الإدارة ==
+EXE -> UI : فتح صفحة تقارير الإدارة من مجموعة الرئيسية
+UI -> UI : تحديد تبويبات التقارير المسموحة\nمن صلاحيات الحساب
+alt #FFEBEE لا يملك أي صلاحية تقارير
+  UI --> EXE : رسالة لا تقارير متاحة لحسابك\nراجع مدير النظام لمنحك ما يلزم
+else #E8F5E9 يملك صلاحية تقرير واحد على الأقل
+  UI -> API : طلب الفصول ونظرة عامة على الفصل الحالي\n""GET /api/management/semesters""\n""GET /api/management/reports/overview""
+  API -> DB : تحديد الفصل والتحقق من وجود جدول منشور له
+  DB --> API : الفصل والجدول المنشور
+  alt #FFEBEE لا فصل دراسي بعد
+    API --> UI : حالة فارغة\n""200 OK""
+    UI --> EXE : رسالة لا يوجد فصل دراسي بعد
+  else #FFF3E0 لم يُنشر جدول الفصل
+    API --> UI : حالة فارغة\n""200 OK""
+    UI --> EXE : رسالة لم يُنشر جدول هذا الفصل\nاختر فصلاً له جدول منشور
+  else #E8F5E9 الجدول منشور
+    API -> DB : حساب القراءات من الجدول المنشور\nساعات فعلية مقابل ساعات متاحة
+    API --> UI : النظرة العامة\n""200 OK""
+    UI --> EXE : عرض التبويبات المسموحة\nالقاعات والمختبرات وشكل الأسبوع وأوقات الذروة والميزات والمعدّات والمخالفات
+  end
+end
+
+== تبويب التقرير ==
+EXE -> UI : اختيار تبويب التقرير
+UI -> API : طلب التقرير المختار\n""GET /api/management/reports/classroom-occupancy""
+API -> API : التحقق من الرمز وصلاحية التقرير\n""reports.classroom_occupancy""
+alt #FFEBEE صلاحيته لا تشمل هذا التقرير
+  API --> UI : رفض الطلب\n""403""
+  UI --> EXE : رسالة صلاحيتك لا تشمل هذا التقرير
+else #FFEBEE خطأ في الخادم أو انقطاع الاتصال
+  UI --> EXE : رسالة تعذّر حساب القراءة\nمع زر إعادة المحاولة
+else #E8F5E9 التقرير مسموح
+  API -> DB : حساب إشغال القاعات من الجدول المنشور
+  API --> UI : أرقام وجداول ومخططات التقرير\n""200 OK""
+  UI --> EXE : عرض التقرير\nنسبة إشغال القاعات بالساعات وقاعات بلا أي حجز وشعب أكبر من قاعاتها
+end
+opt #FFF8E1 اختيار فصل آخر
+  EXE -> UI : اختيار فصل آخر
+  UI -> API : طلب إعادة حساب التقرير للفصل المختار
+  API --> UI : قراءات الفصل المختار
+end
+
+== تصدير التقرير ==
+EXE -> UI : الضغط على تصدير التقرير
+UI -> UI : إنشاء ملف التقرير من الصفحة المعروضة وتنزيله
+alt #FFEBEE فشل إنشاء الملف
+  UI --> EXE : رسالة تعذّر تصدير التقرير
+else #E8F5E9 الملف جاهز
+  UI --> EXE : رسالة صُدِّر التقرير
+end
+note over UI, API
+  زر تحديث القراءة يعيد حساب التقرير من الجدول المنشور
+  وصفحة إشغال القاعات تعرض الخريطة الحرارية للقراءة فقط
+end note
+@enduml

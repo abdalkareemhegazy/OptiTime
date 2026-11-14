@@ -1,0 +1,94 @@
+@startuml UC-49_faculties_departments
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-49 — إدارة الكليات والأقسام وقياداتها
+
+actor "مدير النظام\nأو العميد" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "إسناد القائد\nAssignLeaderAction" as LEAD
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== حفظ كلية أو قسم ==
+ADM -> UI : فتح الهيكل التنظيمي ثم كلية جديدة\nأو قسم جديد أو تعديل بطاقة
+UI -> API : حفظ الوحدة\n""POST /api/admin/departments""
+API -> API : التحقق من الرمز والصلاحية والنطاق\n""departments.create""
+alt #FFEBEE حقل ناقص أو رمز غير صحيح أو مستخدم
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ADM : رسالة تحت الحقل\nمثل هذا الرمز مستخدم لكلية أو قسم آخر
+else #E8F5E9 البيانات صالحة
+  API -> DB : حفظ الوحدة وتسجيلها في سجل التدقيق
+  API --> UI : الوحدة المحفوظة\n""201 Created""
+  UI --> ADM : رسالة تمت الإضافة
+end
+
+== تسمية القائد ==
+ADM -> UI : الضغط على تسمية رئيس القسم أو تغيير
+UI -> API : البحث عن الموظفين المؤهلين\n""GET /api/organization/leader-candidates""
+API --> UI : الموظفون القادرون على تسجيل الدخول\n""200 OK""
+ADM -> UI : اختيار الشخص وتاريخ انتهاء التكليف\nإن كان بالنيابة ثم تأكيد
+UI -> API : تسمية رئيس القسم\n""PUT /api/departments/{id}/head""
+API -> API : التحقق من الصلاحية وتأكيد الهوية الحديث\n""departments.update""
+opt #FFF8E1 لم يؤكد المستخدم هويته خلال المدة المحددة
+  API --> UI : طلب تأكيد الهوية\n""403 AUTH_STEP_UP_REQUIRED""
+  UI --> ADM : نافذة تأكيد الهوية
+  ADM -> UI : كلمة المرور أو رمز التحقق
+  UI -> API : إرسال التأكيد ثم إعادة الطلب\n""POST /api/auth/step-up""
+end
+alt #FFEBEE التأكيد غير صحيح
+  API --> UI : رفض التأكيد\n""422 AUTH_STEP_UP_INVALID""
+  UI --> ADM : رسالة لم يتغيّر شيء\nتسمية القائد تحتاج إلى تأكيد هويتك
+else #FFEBEE المسمّى ليس موظفاً قادراً على الدخول\nأو تاريخ الانتهاء ليس بعد اليوم
+  API --> UI : رفض الطلب\n""422 ORG_LEADER_INELIGIBLE""
+  UI --> ADM : رسالة تبيّن السبب
+else #FFEBEE الوحدة خارج نطاق دور المستخدم
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN_SCOPE""
+  UI --> ADM : رسالة دورك لا يسمح بهذا الإجراء
+else #E8F5E9 التسمية صالحة
+  API -> LEAD : إسناد الدور بنطاق الوحدة
+  LEAD -> DB : سحب دور القيادة من السلف في هذه الوحدة وحدها
+  LEAD -> DB : إسناد الدور إلى المسمّى مع تاريخ الانتهاء
+  API -> DB : تسجيل التعيين في سجل التعيينات وسجل التدقيق
+  API --> UI : القائد الجديد\n""200 OK""
+  UI --> ADM : رسالة سُمّي الشخص رئيساً للقسم
+end
+note over UI, API
+  تسمية العميد بالطريقة نفسها
+  ""PUT /api/faculties/{id}/dean""
+  وفي تاريخ الانتهاء يُسحب الدور تلقائياً
+end note
+@enduml

@@ -1,0 +1,89 @@
+@startuml UC-85_seating_proctors
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-85 — توزيع القاعات والمقاعد والمراقبين
+
+actor "موظف شؤون\nالامتحانات" as EXM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "توزيع المقاعد\nSeatingGenerator" as SEAT
+  participant "توزيع المراقبين\nAssignProctorsAction" as PRO
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "المراقبون" as INS
+
+EXM -> UI : توزيع القاعات للفترة
+UI -> API : التوزيع الآلي\n""POST /api/exam-periods/{id}/rooms/assign""
+API -> API : التحقق من الرمز والصلاحية\n""exams.manage""
+alt #FFEBEE سعة قاعات فترة غير كافية
+  API --> UI : رفض الطلب\n""409 EXM_ROOM_CAPACITY""
+  UI --> EXM : رسالة سعة قاعات الامتحان غير كافية\nمع الفترات المعنية
+else #E8F5E9 السعة كافية
+  API -> DB : إسناد القاعات بالغرف الأكبر أولاً
+  EXM -> UI : توزيع المقاعد
+  UI -> API : توليد المقاعد\n""POST /api/exams/{id}/seating/generate""
+  API -> SEAT : التوزيع على خرائط المقاعد
+  SEAT -> DB : قوائم الطلاب بعد استبعاد المحرومين
+  alt #FFEBEE قاعة بلا خريطة مقاعد أو سعة امتحان
+    SEAT --> API : القاعة الناقصة
+    API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+    UI --> EXM : بيان القاعة لتُستكمل سعتها
+  else #E8F5E9 الخرائط مكتملة
+    SEAT -> SEAT : تبديل المقررات في الصفوف المتجاورة
+    SEAT -> DB : حفظ مقعد لكل طالب
+    API --> UI : خرائط المقاعد وأعدادها\n""200 OK""
+  end
+end
+
+== المراقبون ==
+EXM -> UI : توزيع المراقبين
+UI -> API : التوزيع الآلي\n""POST /api/exam-periods/{id}/proctors/assign""
+API -> PRO : توزيع بالنسبة المحددة وعدالة الأحمال
+PRO -> DB : المأذون لهم بالمراقبة دون إجازة أو تداخل
+alt #FFF3E0 مراقبون غير كافين في فترة
+  PRO --> API : قاعات بلا مراقب
+  API --> UI : القاعات الناقصة لاستكمالها يدوياً
+else #E8F5E9 اكتمل التوزيع
+  PRO -> DB : حفظ المراقبين لكل قاعة
+  API --> UI : عدالة الأحمال لكل مراقب\n""200 OK""
+end
+API -> DB : إشعار المراقبين بمهامهم
+DB --> INS : مهمة مراقبة جديدة
+opt #FFF8E1 مستندات القاعات
+  EXM -> UI : تنزيل قوائم الأبواب وخرائط المقاعد\nوأوراق الحضور
+  UI -> API : المستندات\n""GET /api/exam-periods/{id}/documents""
+end
+@enduml

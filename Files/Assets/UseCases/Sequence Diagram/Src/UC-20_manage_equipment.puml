@@ -1,0 +1,91 @@
+@startuml UC-20_manage_equipment
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-20 — إدارة الأجهزة
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== إضافة صنف ووحداته ==
+CRD -> UI : الضغط على معدّات جديدة
+UI --> CRD : عرض نموذج الصنف\nالاسم بالعربية والإنجليزية والفئة والكلية وقابلية النقل
+CRD -> UI : إدخال بيانات الصنف واختيار فئته
+CRD -> UI : تحديد عدد الوحدات من 1 إلى 500 في المرة الواحدة\nوتفعيل قابلة للنقل إن كانت محمولة
+UI --> CRD : عرض أرقام الأصول التي ستأخذها الوحدات الجديدة
+CRD -> UI : الضغط على أضف الوحدات
+UI -> API : إرسال بيانات الصنف وعدد الوحدات\n""POST /api/equipment""
+API -> API : التحقق من الرمز والصلاحية\n""resources.create""
+alt #FFEBEE اسم فارغ أو فئة غير مختارة أو عدد وحدات خارج المجال
+  API --> UI : أخطاء الحقول\n""422""
+  UI --> CRD : رسالة الخطأ تحت الحقل
+else #FFEBEE رقم الأصل مستخدم أو الكفالة تنتهي قبل الشراء
+  API --> UI : رفض الطلب\n""422""
+  UI --> CRD : رسالة هذا الرقم لوحدة أخرى
+else #E8F5E9 البيانات صالحة
+  API -> DB : إنشاء الوحدات في عملية واحدة\nوإعطاء كل وحدة رقم أصلها الفريد
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : الوحدات الجديدة بأرقام أصولها\n""201 Created""
+  UI --> CRD : رسالة أُضيفت المعدّات مع عدد الوحدات
+end
+
+== نقل الوحدات أو تغيير حالتها ==
+CRD -> UI : فتح الصنف واختيار وحدات منه\nثم نقلها إلى قاعة أو المستودع أو تغيير حالتها
+UI -> API : طلب التعديل على الوحدات المختارة\n""POST /api/equipment/batch""
+API -> API : التحقق من الرمز والصلاحية\n""resources.update""
+alt #FFEBEE نقل وحدة مُخرجة من الخدمة إلى قاعة
+  API --> UI : رفض الطلب\n""422""
+  UI --> CRD : رسالة لا تدخل الوحدة المُخرجة من الخدمة أي قاعة\nأعدها إلى الخدمة أولاً
+else #E8F5E9 التعديل مسموح
+  API -> DB : حفظ المكان أو الحالة الجديدة لكل وحدة
+  API -> DB : تسجيل العملية في سجل التدقيق
+  API --> UI : الوحدات بعد التحديث\n""200 OK""
+  UI --> CRD : رسالة بنجاح العملية
+end
+
+== مسارات بديلة ==
+opt #FFF8E1 الإبلاغ عن عطل في وحدة
+  CRD -> UI : الضغط على أبلغ عن عطل من الوحدة
+  ref over CRD, DB : UC-22 إدارة الصيانة
+end
+note over UI, DB
+  تعديل الصنف يُحفظ على كل وحدات الصنف معاً
+  وتعديل وحدة يتناول رقم أصلها وتاريخ شرائها وكفالتها
+  وعند الحذف يُعرض خيار الإخراج من الخدمة بدلاً منه
+end note
+@enduml

@@ -1,0 +1,92 @@
+@startuml UC-28_follow_availability
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-28 — متابعة أوقات تفرّغ المدرّسين وتذكيرهم
+
+actor "المتابع\nمنسق أو رئيس قسم\nأو عميد" as FOL
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "المدرّس" as INS
+
+== فتح صفحة توفّر المدرّسين ==
+FOL -> UI : فتح صفحة توفّر المدرّسين من مجموعة الجدولة
+UI -> API : طلب نظرة عامة على التوفّر\n""GET /api/availability/overview""
+API -> API : التحقق من الرمز والصلاحية\n""instructor_availability.overview""
+alt #FFEBEE لا يملك صلاحية المتابعة
+  API --> UI : رفض الطلب\n""403""
+  UI --> FOL : التحويل إلى صفحة لا صلاحية
+else #FFEBEE لا فصل لمتابعة التوفّر فيه أو تعذّر التحميل
+  UI --> FOL : رسالة لا فصل لمتابعة التوفّر فيه\nأو تعذّر تحميل التوفّر مع زر إعادة المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : تحديد الفصل الذي تُجمع أوقاته\nوتحميل مدرّسي كلية المستخدم أو قسمه وأسابيعهم
+  DB --> API : المدرّسون وأسابيعهم
+  API --> UI : الأرقام والخريطة الحرارية وقائمة المدرّسين\n""200 OK""
+  UI --> FOL : عرض عدد من سلّم ومن لديه مسودة ومن لم يبدأ\nومن لا تتسع ساعاته لتدريسه والخريطة الحرارية والقائمة
+end
+
+== التصفية وفتح أسبوع مدرّس ==
+FOL -> UI : تصفية القائمة بالحالة أو القسم أو البحث بالاسم أو الترتيب
+UI -> UI : تحديث القائمة من البيانات المحمّلة
+FOL -> UI : فتح أسبوع مدرّس بعينه
+UI -> API : طلب أسبوع المدرّس\n""GET /api/availability/instructors/{instructorId}""
+API -> DB : قراءة الشبكة والأوقات المغلقة وأسبابها\nوكلمته للمنسق والتذكيرات السابقة
+API --> UI : أسبوع المدرّس\n""200 OK""
+UI --> FOL : عرض الأسبوع للقراءة فقط
+
+== إرسال التذكير ==
+FOL -> UI : الضغط على تذكير أمام مدرّس لم يسلّم\nأو على تذكير من لم يسلّم
+UI -> API : طلب التذكير\n""POST /api/availability/remind""
+API -> API : التحقق من الرمز والصلاحية\n""instructor_availability.remind""
+API -> DB : التحقق من أن المدرّس ضمن نطاق المستخدم ولم يسلّم\nومن مرور 12 ساعة على آخر تذكير
+alt #FFEBEE خارج النطاق أو سلّم أسبوعه أو ذُكّر قبل أقل من 12 ساعة
+  API --> UI : قائمة المتجاوَزين مع سبب كل منهم\n""200 OK""
+  UI --> FOL : رسالة ذُكّروا قبل قليل ولم يُرسل تذكير جديد\nأو لا أحد يحتاج تذكيراً الجميع سلّم
+else #E8F5E9 المدرّس يستحق التذكير
+  API -> DB : تسجيل التذكير
+  API -> NTF : إشعار المدرّس داخل التطبيق وفورياً\nيطلب تسليم أسبوعه مع موعد إغلاق النافذة
+  NTF --> INS : إشعار أعطِ أوقات تفرّغك
+  API --> UI : المدرّسون الذين ذُكّروا\n""200 OK""
+  UI --> FOL : رسالة ذُكّر مدرّس واحد أو ذُكّر عدد من المدرّسين
+end
+note over UI, API
+  يتابع موظف الشؤون الأكاديمية دون صلاحية التذكير
+  ويذكّر النظام من لم يسلّم تلقائياً
+  مرة بين ثلاثة أيام ويوم قبل إغلاق النافذة
+end note
+@enduml

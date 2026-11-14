@@ -1,0 +1,93 @@
+@startuml UC-101_leave_approval
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-101 — اعتماد طلبات الإجازة
+
+actor "المدير المباشر" as MGR
+actor "موظف شؤون\nالموظفين" as HRO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "قرار المدير\nManagerDecideLeaveAction" as MDL
+  participant "القرار النهائي\nHrDecideLeaveAction" as HDL
+  participant "أثر التدريس\nTeachingImpactAnalyzer" as TIA
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== قرار المدير المباشر ==
+MGR -> UI : فتح طلبات إجازة فريقي
+UI -> API : الطلبات بانتظار قراري\n""GET /api/hr/team/leave-requests""
+API -> API : التحقق من الرمز والصلاحية\n""hr.leaves.approve_team""
+API --> UI : الطلبات مع أرصدة أصحابها\nوتقويم إجازات الفريق\n""200 OK""
+MGR -> UI : الموافقة أو الرفض مع ملاحظة
+UI -> API : القرار\n""POST /api/hr/team/leave-requests/{id}/approve""\n""POST /api/hr/team/leave-requests/{id}/reject""
+API -> MDL : التحقق من أن الطلب لفريقه\nوما زال بانتظاره
+alt #FFEBEE الطلب ليس لفريق المدير
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN_SCOPE""
+  UI --> MGR : رسالة هذا خارج نطاق دورك
+else #FFEBEE لم يعد الطلب بانتظار قراره
+  API --> UI : رفض الطلب\n""409 GEN_INVALID_TRANSITION""
+  UI --> MGR : رسالة هذا الانتقال في الحالة غير مسموح
+else #FFF3E0 رفض بملاحظة
+  MDL -> DB : تعليم الطلب مرفوضاً دون خصم الرصيد\nوإشعار مقدّمه
+  API --> UI : الطلب مرفوضاً\n""200 OK""
+else #E8F5E9 موافقة
+  MDL -> DB : توجيه الطلب إلى شؤون الموظفين\nوإشعار مقدّمه بالمرحلة
+  API --> UI : الطلب بانتظار شؤون الموظفين\n""200 OK""
+end
+
+== الاعتماد النهائي ==
+HRO -> UI : فتح الطلبات الموافق عليها
+UI -> API : الطلبات\n""GET /api/hr/leave-requests""
+API -> API : التحقق من الصلاحية\n""hr.leaves.manage""
+API --> UI : الطلبات بانتظار الاعتماد النهائي\n""200 OK""
+HRO -> UI : الاعتماد النهائي أو الرفض
+UI -> API : القرار\n""POST /api/hr/leave-requests/{id}/approve""\n""POST /api/hr/leave-requests/{id}/reject""
+API -> HDL : إعادة فحص الرصيد والتداخل
+alt #FFEBEE تغيّر الرصيد أو نشأ تداخل
+  API --> UI : رفض الطلب\n""422 HR_INSUFFICIENT_BALANCE""\n""409 HR_LEAVE_OVERLAP""
+  UI --> HRO : رسالة تبيّن السبب
+else #FFF3E0 رفض بملاحظة
+  HDL -> DB : تعليم الطلب مرفوضاً وإشعار مقدّمه
+  API --> UI : الطلب مرفوضاً\n""200 OK""
+else #E8F5E9 اعتماد
+  HDL -> DB : خصم أيام الإجازة من الرصيد\nوتعليم الطلب معتمداً وإشعار مقدّمه
+  HDL -> TIA : فحص محاضرات مقدّم الطلب\nفي مدة الإجازة
+  opt #FFF8E1 مدرّس له محاضرات في المدة
+    ref over API, DB : UC-62 الإعادة الطارئة للجدولة واقتراح البدلاء
+  end
+  API --> UI : الطلب معتمداً\n""200 OK""
+end
+@enduml

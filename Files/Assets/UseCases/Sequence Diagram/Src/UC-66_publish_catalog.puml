@@ -1,0 +1,80 @@
+@startuml UC-66_publish_catalog
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-66 — نشر كتالوج التسجيل وفتح أدواره
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "المجدول الدوري\nDispatchWindowEventsJob" as JOB
+  participant "خدمة الإشعارات\nNotifications" as NTF
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+actor "طلاب الدور" as STU
+
+ACO -> UI : فتح التسجيل واختيار الفصل
+UI -> API : طلب حالة الاستعداد\n""GET /api/semesters/{id}/priority-groups""
+API --> UI : الأدوار وأعداد طلبتها\n""200 OK""
+ACO -> UI : الضغط على نشر الكتالوج
+UI -> API : نشر الكتالوج\n""POST /api/semesters/{id}/catalog/publish""
+API -> API : التحقق من الرمز والصلاحية\n""enrollment.manage""
+API -> DB : فحص الجدول المنشور ونافذة التسجيل
+alt #FFEBEE الجدول غير منشور
+  API --> UI : رفض الطلب\n""409 GEN_CONFLICT""
+  UI --> ACO : بيان أن الكتالوج يحتاج إلى جدول منشور
+else #FFEBEE لا نافذة تسجيل
+  API --> UI : رفض الطلب\n""409 CAL_NO_REGISTRATION_WINDOW""
+  UI --> ACO : رسالة أضف نافذة تسجيل أولاً
+else #E8F5E9 الاستعداد مكتمل
+  API -> DB : نشر الكتالوج وفتح الشعب\nوتسجيل النشر في سجل التدقيق
+  API --> UI : تم النشر\n""200 OK""
+  UI --> ACO : تأكيد النشر
+end
+
+== فتح الأدوار ==
+loop #FFFFFF عند لحظة بدء كل دور
+  JOB -> DB : إتاحة التسجيل لطلبة الدور
+  JOB -> NTF : إشعار طلبة الدور
+  NTF --> STU : حان دورك في التسجيل
+end
+
+== المراقبة ==
+ACO -> UI : فتح لوحة المراقبة
+UI -> API : طلب التسجيل الحي\n""GET /api/enrollment/monitor""
+API -> DB : التسجيلات في الدقيقة ونسب الامتلاء\nوقوائم الانتظار والأخطاء الشائعة
+API --> UI : المؤشرات\n""200 OK""
+UI --> ACO : لوحة المراقبة الحية
+@enduml

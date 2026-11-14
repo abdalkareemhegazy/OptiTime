@@ -1,0 +1,101 @@
+@startuml UC-29_generate_run
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-29 (1/2) — طلب التوليد وتنفيذه في الخلفية
+
+actor "منسق الجداول\nوالموارد" as CRD
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "المجدول الدوري\nschedule-generation:process" as WRK
+  control "محرك الجدولة\nScheduleGenerateService" as ENG
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== اختيار نطاق التوليد والخوارزمية ==
+CRD -> UI : فتح صفحة الجدول الأسبوعي\nوالتأكد من النسخة المعروضة على اللوح
+CRD -> UI : اختيار نطاق التوليد في استوديو التوليد\nكل الكليات أو كلية أو قسم
+CRD -> UI : اختيار الخوارزمية الجينية أو خوارزمية التراجع والتتبع
+CRD -> UI : الضغط على توليد جدول
+
+== تسجيل الطلب في الطابور ==
+UI -> API : طلب توليد الجدول\n""POST /api/schedule/generate""
+API -> API : التحقق من الرمز وصلاحية التوليد\n""schedule.generate""
+alt #FFEBEE لا يملك صلاحية التوليد
+  API --> UI : رفض الطلب\n""403 GEN_FORBIDDEN""
+  UI --> CRD : رسالة لا تملك صلاحية تنفيذ هذا
+else #FFEBEE تعذّر الوصول إلى الخادم
+  UI --> CRD : رسالة تعذر بدء المولّد\nتحقق من إعدادات الجدول ثم أعد المحاولة
+else #E8F5E9 الطلب مسموح
+  API -> DB : حفظ طلب التوليد بحالة في الانتظار
+  API -> DB : تسجيل الطلب في سجل التدقيق
+  API --> UI : رقم المهمة وحالتها\n""202 Accepted""
+  UI --> CRD : شاشة جارٍ بناء أسبوعك\nبحالة الطلب وترتيبه في الطابور
+end
+
+== المعالجة في الخلفية ==
+par #E3F2FD الواجهة تتابع حالة المهمة
+  loop #FFFFFF كل بضع ثوانٍ حتى تنتهي المهمة
+    UI -> API : متابعة حالة المهمة\n""GET /api/schedule/generate/{id}""
+    API --> UI : الحالة ونسبة التقدم وترتيب الطابور
+  end
+else #F3FAF3 المجدول الدوري ينفّذ المهمة
+  WRK -> DB : أخذ أقدم طلب في الانتظار\nوتحويله إلى جارٍ بعملية واحدة
+  WRK -> ENG : تشغيل الخوارزمية المختارة على الشعب والقاعات\nوأوقات التفرّغ والقيود
+  ENG -> ENG : التحقق من اكتمال قواعد الجدولة
+  alt #FFEBEE قواعد الجدولة غير مكتملة
+    ENG --> WRK : فشل مع بيان القواعد الناقصة
+  else #FFEBEE تعذّر إيجاد جدول يحقق القيود الصارمة أو تجاوز الوقت المسموح
+    ENG --> WRK : فشل مع السبب وعدد القيود الصارمة غير المحققة
+  else #E8F5E9 وُجد جدول صالح
+    ENG -> ENG : وضع المحاضرات بما يحقق القيود الصارمة\nويقلل عقوبة القيود المرنة
+    ENG -> ENG : التحقق من الجدول الناتج بمدقق القيود الصارمة
+    ENG --> WRK : الجلسات والمقاييس
+  end
+  WRK -> DB : حفظ النتيجة وتحويل المهمة إلى اكتملت أو فشلت
+  WRK -> DB : تسجيل النتيجة في سجل التدقيق
+  WRK --> CRD : إشعار الجدول جاهز للمراجعة\nأو إشعار فشل التوليد
+end
+alt #FFEBEE فشل التوليد
+  UI --> CRD : رسالة لم يُعثر على جدول صالح\nأو استغرق التوليد وقتاً طويلاً فأُوقف\nأو فشلت عملية التوليد
+else #E8F5E9 اكتمل التوليد
+  UI --> CRD : عرض الجدول المولَّد للمراجعة
+end
+note over UI, API
+  يعمل التوليد على الخادم فيمكن للمنسق مغادرة الصفحة
+  ويصله إشعار عند جاهزية الجدول
+  وتتابع المراجعة والإضافة إلى النسخة في المخطط الثاني
+end note
+@enduml

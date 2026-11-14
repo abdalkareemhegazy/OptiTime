@@ -1,0 +1,97 @@
+@startuml UC-41_system_settings
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-41 — ضبط إعدادات النظام ووضع الصيانة
+
+actor "مدير النظام" as ADM
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+  participant "خدمة الإعدادات\nSettingsService" as SET
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+== حفظ مجموعة إعدادات ==
+ADM -> UI : اختيار مجموعة من أقسام الإعدادات
+UI -> API : طلب المجموعة بقيمها وحدودها\n""GET /api/admin/settings/{group}""
+API -> API : التحقق من الرمز والصلاحية\n""settings.view""
+API -> SET : وصف المفاتيح بقيمها الحالية\nوالافتراضية وحدودها
+API --> UI : المفاتيح\n""200 OK""
+UI --> ADM : المفاتيح وتلميحاتها\nمع وسم ما خالف الافتراضي
+ADM -> UI : تعديل القيم المطلوبة
+UI -> UI : فحص كل قيمة بنوعها وحدودها
+alt #FFEBEE قيمة من نوع خاطئ أو خارج الحدود
+  UI --> ADM : رسالة تحت المفتاح\nمثل لا يقل عن الحد الأدنى
+else #E8F5E9 القيم صالحة
+  ADM -> UI : الضغط على حفظ
+  UI -> API : حفظ المجموعة\n""PUT /api/admin/settings/{group}""
+  API -> API : التحقق من الصلاحية\n""settings.manage""
+  opt #FFF8E1 مجموعة الأمان أو النسخ الاحتياطي دون تأكيد حديث
+    API --> UI : طلب تأكيد الهوية\n""403 AUTH_STEP_UP_REQUIRED""
+    UI --> ADM : نافذة تأكيد الهوية
+    ADM -> UI : كلمة المرور أو رمز التحقق الثنائي
+    UI -> API : إرسال التأكيد ثم إعادة الحفظ\n""POST /api/auth/step-up""
+  end
+  API -> SET : التحقق من القيم وحفظها
+  alt #FFEBEE رفض الخادم قيمة
+    API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+    UI --> ADM : رسالة بعض البيانات المدخلة غير صالحة
+  else #E8F5E9 حُفظت القيم
+    SET -> DB : حفظ القيم الجديدة
+    API -> DB : تسجيل التغيير في سجل التدقيق
+    API --> UI : المجموعة بعد الحفظ\n""200 OK""
+    UI --> ADM : رسالة حُفظت إعدادات المجموعة
+  end
+end
+
+== وضع الصيانة ==
+ADM -> UI : اختيار مغلق الآن أو موعد معلن\nمع المواعيد والرسالة باللغتين
+UI -> API : حفظ حالة الصيانة\n""POST /api/admin/maintenance""
+API -> API : التحقق من الصلاحية وتأكيد الهوية الحديث\n""settings.manage""
+alt #FFEBEE موعد البدء ناقص أو العودة في الماضي أو قبل البدء
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ADM : رسالة تبيّن خطأ الموعد
+else #E8F5E9 المواعيد صحيحة
+  API -> DB : حفظ حالة الصيانة\nوتسجيلها في سجل التدقيق
+  API --> UI : الحالة الجديدة\n""200 OK""
+  UI --> ADM : رسالة أُغلق النظام للصيانة\nأو أُعلن موعد الصيانة
+end
+note over UI, API
+  يرى غير مديري الإعدادات صفحة النظام في صيانة
+  ويُرفض أي طلب منهم برمز الصيانة
+  ""503 GEN_MAINTENANCE""
+  وتتحقق الصفحة كل ثلاثين ثانية وتعيدهم عند الفتح
+end note
+@enduml

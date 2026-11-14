@@ -1,0 +1,75 @@
+@startuml UC-88_admission_cycles
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #546E7A
+skinparam ActorBorderColor #37474F
+skinparam BoundaryBackgroundColor #E3F2FD
+skinparam BoundaryBorderColor #1E88E5
+skinparam ControlBackgroundColor #E8F5E9
+skinparam ControlBorderColor #43A047
+skinparam DatabaseBackgroundColor #F3E5F5
+skinparam DatabaseBorderColor #8E24AA
+skinparam sequence {
+  ArrowColor #37474F
+  LifeLineBorderColor #90A4AE
+  GroupBorderColor #78909C
+  DividerBackgroundColor #E3F2FD
+  DividerBorderColor #78909C
+  ReferenceBackgroundColor #FFF8E1
+  ReferenceBorderColor #546E7A
+}
+hide footbox
+autonumber
+' ===== المخطط =====
+title UC-88 — إدارة دورات القبول
+
+actor "موظف القبول" as ADO
+box "العميل" #F1F8FE
+  boundary "واجهة النظام\nVue 3" as UI
+end box
+box "الخادم" #F3FAF3
+  control "الخادم\nLaravel API" as API
+end box
+box "البيانات" #FBF4FC
+  database "قاعدة البيانات\nMySQL" as DB
+end box
+
+ADO -> UI : دورة جديدة بالاسم والسنة\nوتاريخي التقديم والرسوم
+UI -> API : إنشاء الدورة\n""POST /api/admission/cycles""
+API -> API : التحقق من الرمز والصلاحية\n""admission.cycles.manage""
+ADO -> UI : البرامج بسعاتها وشروطها\nومعادلة المفاضلة والمستندات المطلوبة
+UI -> API : برامج الدورة\n""PUT /api/admission/cycles/{id}/programs""
+UI -> API : المستندات المطلوبة\n""PUT /api/admission/cycles/{id}/document-types""
+alt #FFEBEE تواريخ أو سعات أو أوزان غير صالحة
+  API --> UI : رفض الطلب\n""422 GEN_VALIDATION_FAILED""
+  UI --> ADO : رسالة مع وسم الحقول
+else #E8F5E9 البيانات صالحة
+  API -> DB : حفظ الدورة مسودة بإعداداتها
+  API --> UI : الدورة\n""201 Created""
+end
+
+== فتح التقديم ==
+ADO -> UI : فتح التقديم
+UI -> API : تغيير الحالة\n""POST /api/admission/cycles/{id}/transition""
+API -> DB : فحص اكتمال الإعدادات
+alt #FFEBEE إعدادات ناقصة
+  API --> UI : رفض الطلب\n""409 GEN_INVALID_TRANSITION""
+  UI --> ADO : بيان النقص كبرنامج بلا سعة
+else #E8F5E9 الإعدادات مكتملة
+  API -> DB : نقل الدورة إلى مفتوحة للتقديم في موعدها\nوتسجيل الانتقال في سجل التدقيق
+  API --> UI : الحالة الجديدة\n""200 OK""
+  UI --> ADO : الدورة ظاهرة في البوابة العامة
+end
+note over API, DB
+  تُغلق الدورة تلقائياً في تاريخ الإغلاق
+  ويعرض الموظف تقارير القبول وقمع الطلبات
+end note
+@enduml

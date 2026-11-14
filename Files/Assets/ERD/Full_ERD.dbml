@@ -1,0 +1,2924 @@
+// OptiTime: مخطط الكيانات والعلاقات للنظام كاملاً (DBML، يُلصق في dbdiagram.io)
+// 181 جدولاً في 25 مجموعة، و263 علاقة، والمخطط مقسوم إلى 8 أقسام في مجلد Parts.
+// يضم كل جدول تحتاجه حالة من حالات الاستخدام الـ 113 أو متطلب من متطلبات وثيقة المتطلبات الـ 256،
+// ولا يضم جدولاً لا يحتاجه أي منهما. ولكل جدول أعمدته الحقيقية كما في قاعدة البيانات أو تصميمها.
+// لا تظهر أعمدة التتبّع (created_at و updated_at و deleted_at و created_by و updated_by) لأنها في كل جدول،
+// ولا الأعمدة المنسوخة من جدول آخر لتسريع البحث، ولا أعمدة التشغيل الداخلي (مثل منع تكرار الإشعار).
+// ولا يضم جدولاً مشتقاً يُحسب من جداول أخرى، ولا جدولين يحفظان الشيء نفسه.
+// تُرسم العلاقة حين ينتمي السجل إلى الجدول الآخر أو يخصّه أو يُسند إليه.
+// ولا تُرسم لأعمدة من نفّذ الإجراء (…_by)، فسجل التدقيق يحفظ ذلك، ولا لعلاقة تُعرف من علاقة مرسومة أخرى.
+
+Project OptiTime {
+  database_type: 'MySQL'
+  Note: 'نظام جدولة الموارد التعليمية وإدارتها المدعوم بالذكاء الاصطناعي'
+}
+
+// ==================== 01. الهوية والصلاحيات ====================
+
+Table users {
+  id uuid [pk]
+  role_id uuid [ref: > roles.id]
+  department_id uuid [ref: > departments.id]
+  full_name varchar(150)
+  email varchar(190) [unique]
+  avatar_url text
+  password_hash varchar(255)
+  password_updated_at timestamp
+  is_active boolean
+  last_login_at timestamp
+  is_protected boolean
+  name_en varchar(150)
+  phone varchar(20)
+  username varchar(50) [unique]
+  user_type varchar(20)
+  status varchar(30)
+  locale varchar(5)
+  theme varchar(10)
+  must_change_password boolean
+  two_factor_secret text
+  two_factor_recovery_codes text
+  two_factor_confirmed_at timestamp
+  email_verified_at timestamp
+  last_login_ip varchar(45)
+  failed_login_attempts smallint
+  locked_until timestamp
+  administrative_unit_id uuid [ref: > administrative_units.id]
+  employee_number varchar(20) [unique]
+  Note: 'حسابات كل من يدخل النظام'
+}
+
+Table roles {
+  id uuid [pk]
+  code varchar(50) [unique]
+  name_ar varchar(120)
+  name_en varchar(120)
+  sidebar_color varchar(20)
+  description text
+  is_system boolean
+  is_active boolean
+  scope_level varchar(20)
+  requires_two_factor boolean
+  Note: 'الأدوار وصلاحياتها'
+}
+
+Table permissions {
+  id uuid [pk]
+  code varchar(100) [unique]
+  module varchar(80)
+  action varchar(80)
+  description text
+  is_system boolean
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_sensitive boolean
+  Note: 'الصلاحيات الدقيقة لكل وحدة'
+}
+
+Table role_permissions {
+  role_id uuid [ref: > roles.id]
+  permission_id uuid [ref: > permissions.id]
+  granted_at timestamp
+  granted_by uuid
+  indexes {
+    (role_id, permission_id) [pk]
+  }
+  Note: 'صلاحيات كل دور'
+}
+
+Table user_roles {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  role_id uuid [ref: > roles.id]
+  scope_type varchar(20)
+  scope_id uuid
+  starts_at timestamp
+  ends_at timestamp
+  assigned_by uuid
+  Note: 'أدوار الحساب ونطاق كل دور ومدته'
+}
+
+Table personal_access_tokens {
+  id bigint [pk]
+  tokenable_id uuid [ref: > users.id]
+  name varchar(255)
+  ip_address varchar(45)
+  user_agent varchar(255)
+  last_used_at timestamp
+  expires_at timestamp
+  impersonator_id uuid
+  Note: 'جلسات الدخول لكل جهاز، ومنها الدخول باسم مستخدم آخر'
+}
+
+Table password_histories {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  password_hash varchar(255)
+  Note: 'كلمات المرور السابقة لمنع تكرارها'
+}
+
+Table login_attempts {
+  id uuid [pk]
+  identifier varchar(191)
+  user_id uuid
+  ip varchar(45)
+  user_agent varchar(255)
+  succeeded boolean
+  failure_reason varchar(40)
+  Note: 'سجل محاولات الدخول'
+}
+
+Table auth_otps {
+  id uuid [pk]
+  email varchar(190)
+  purpose varchar(40)
+  otp_hash varchar(255)
+  payload_json json
+  attempts tinyint
+  expires_at timestamp
+  Note: 'رموز التحقق المرسلة إلى البريد'
+}
+
+TableGroup "الهوية والصلاحيات" [color: #1E3A8A] {
+  users
+  roles
+  permissions
+  role_permissions
+  user_roles
+  personal_access_tokens
+  password_histories
+  login_attempts
+  auth_otps
+}
+
+// ==================== 02. الإشعارات والإعلانات ====================
+
+Table notifications {
+  id varchar(80) [pk]
+  user_id uuid [ref: > users.id]
+  title varchar(190)
+  message text
+  type varchar(50)
+  priority varchar(20)
+  is_read boolean
+  payload json
+  read_at timestamp
+  Note: 'إشعارات المستخدمين'
+}
+
+Table user_settings {
+  user_id uuid [pk, ref: - users.id]
+  email_schedule_updates boolean
+  email_reminders boolean
+  push_announcements boolean
+  push_system_alerts boolean
+  weekly_digest boolean
+  Note: 'تفضيلات الإشعارات لكل مستخدم'
+}
+
+Table user_device_tokens {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  fcm_token text
+  device_label varchar(80)
+  platform varchar(30)
+  last_seen_at timestamp
+  Note: 'أجهزة المستخدم للإشعارات الفورية'
+}
+
+Table notification_templates {
+  id uuid [pk]
+  key varchar(60)
+  channel varchar(15)
+  locale varchar(5)
+  subject varchar(255)
+  body text
+  is_active boolean
+  Note: 'قوالب رسائل البريد والإشعارات'
+}
+
+Table announcements {
+  id uuid [pk]
+  title_ar varchar(255)
+  title_en varchar(255)
+  body_ar text
+  body_en text
+  audience json
+  priority varchar(10)
+  channels json
+  is_pinned boolean
+  status varchar(15)
+  publish_at timestamp
+  expires_at timestamp
+  recipients_count int
+  author_id uuid
+  Note: 'الإعلانات للجامعة أو الكلية أو القسم أو الشعبة'
+}
+
+Table announcement_files {
+  announcement_id uuid [ref: > announcements.id]
+  file_id uuid [ref: > files.id]
+  indexes {
+    (announcement_id, file_id) [pk]
+  }
+  Note: 'مرفقات الإعلان'
+}
+
+Table announcement_reads {
+  announcement_id uuid [ref: > announcements.id]
+  user_id uuid [ref: > users.id]
+  read_at timestamp
+  indexes {
+    (announcement_id, user_id) [pk]
+  }
+  Note: 'من قرأ الإعلان ومتى'
+}
+
+TableGroup "الإشعارات والإعلانات" [color: #0284C7] {
+  notifications
+  user_settings
+  user_device_tokens
+  notification_templates
+  announcements
+  announcement_files
+  announcement_reads
+}
+
+// ==================== 03. إدارة النظام ====================
+
+Table system_settings {
+  key varchar(100) [pk]
+  group varchar(40)
+  value json
+  type varchar(20)
+  is_public boolean
+  Note: 'إعدادات النظام مجمّعة حسب المجال'
+}
+
+Table files {
+  id uuid [pk]
+  disk varchar(20)
+  path varchar(500)
+  original_name varchar(255)
+  extension varchar(10)
+  mime_type varchar(120)
+  size_bytes bigint
+  checksum_sha256 char(64)
+  fileable_type varchar(100)
+  fileable_id uuid
+  collection varchar(50)
+  visibility varchar(20)
+  scan_status varchar(20)
+  uploaded_by uuid
+  Note: 'الملفات المرفوعة'
+}
+
+Table audit_logs {
+  id uuid [pk]
+  actor_user_id uuid [ref: > users.id]
+  event_type varchar(20)
+  module varchar(80)
+  action varchar(120)
+  description text
+  target_table varchar(80)
+  target_id uuid
+  request_id varchar(120)
+  ip_address varchar(45)
+  user_agent varchar(255)
+  metadata json
+  before_data json
+  after_data json
+  Note: 'سجل التدقيق: من فعل ماذا ومتى، ولذلك لا تُرسم أعمدة من نفّذ الإجراء في الجداول الأخرى'
+}
+
+Table status_transitions {
+  id uuid [pk]
+  subject_type varchar(100)
+  subject_id uuid
+  from_status varchar(30)
+  to_status varchar(30)
+  action varchar(40)
+  actor_id uuid
+  comment text
+  meta json
+  Note: 'سجل انتقالات الحالة لأي سجل: الفصل ونسخة الجدول والبلاغات والطلبات والحجوزات'
+}
+
+Table imports {
+  id uuid [pk]
+  number varchar(30) [unique]
+  type varchar(40)
+  file_id uuid [ref: > files.id]
+  status varchar(30)
+  headers json
+  column_mapping json
+  options json
+  total_rows int
+  valid_rows int
+  imported_rows int
+  updated_rows int
+  skipped_rows int
+  failed_rows int
+  errors json
+  context_type varchar(100)
+  context_id uuid
+  started_at timestamp
+  finished_at timestamp
+  Note: 'عمليات الاستيراد من ملفات Excel'
+}
+
+Table exports {
+  id uuid [pk]
+  number varchar(30) [unique]
+  type varchar(60)
+  format varchar(10)
+  params json
+  status varchar(20)
+  file_id uuid [ref: > files.id]
+  rows_count int
+  error text
+  expires_at timestamp
+  started_at timestamp
+  finished_at timestamp
+  Note: 'عمليات التصدير إلى ملفات'
+}
+
+Table backups {
+  id uuid [pk]
+  type varchar(20)
+  trigger varchar(20)
+  disk varchar(30)
+  path varchar(500)
+  file_name varchar(255)
+  size_bytes bigint
+  checksum_sha256 char(64)
+  is_encrypted boolean
+  status varchar(20)
+  initiated_by uuid
+  meta json
+  started_at timestamp
+  finished_at timestamp
+  error text
+  Note: 'النسخ الاحتياطية'
+}
+
+Table restores {
+  id uuid [pk]
+  backup_id uuid [ref: > backups.id]
+  safety_backup_id uuid
+  status varchar(20)
+  initiated_by uuid
+  confirmed_2fa_at timestamp
+  started_at timestamp
+  finished_at timestamp
+  notes text
+  error text
+  meta json
+  Note: 'عمليات الاستعادة من نسخة احتياطية'
+}
+
+Table api_keys {
+  id uuid [pk]
+  name varchar(100)
+  key_prefix varchar(12)
+  key_hash char(64) [unique]
+  scopes json
+  allowed_ips json
+  last_used_at timestamp
+  expires_at timestamp
+  revoked_at timestamp
+  Note: 'مفاتيح دخول الأنظمة الخارجية'
+}
+
+Table integrations {
+  key varchar(40) [pk]
+  driver varchar(40)
+  config_encrypted text
+  is_enabled boolean
+  last_tested_at timestamp
+  last_test_result varchar(20)
+  last_test_message text
+  Note: 'إعدادات الخدمات المتصلة بالنظام'
+}
+
+Table health_check_results {
+  id uuid [pk]
+  check_name varchar(60)
+  status varchar(20)
+  message varchar(120)
+  meta json
+  Note: 'نتائج فحوص صحة النظام'
+}
+
+TableGroup "إدارة النظام" [color: #475569] {
+  system_settings
+  files
+  audit_logs
+  status_transitions
+  imports
+  exports
+  backups
+  restores
+  api_keys
+  integrations
+  health_check_results
+}
+
+// ==================== 04. الهيكل التنظيمي ====================
+
+Table campuses {
+  id uuid [pk]
+  code varchar(10) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  address_ar varchar(255)
+  address_en varchar(255)
+  is_active boolean
+  Note: 'فروع الجامعة'
+}
+
+Table buildings {
+  id uuid [pk]
+  campus_id uuid [ref: > campuses.id]
+  code varchar(10) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  floors_count smallint
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  is_active boolean
+  Note: 'مباني كل فرع'
+}
+
+Table faculties {
+  id uuid [pk]
+  code varchar(50) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  graduation_hours int
+  studying_level int
+  color varchar(20)
+  icon_url text
+  is_active boolean
+  building_id uuid [ref: > buildings.id]
+  dean_user_id uuid [ref: > users.id]
+  Note: 'الكليات وعمداؤها'
+}
+
+Table departments {
+  id uuid [pk]
+  faculty_id uuid [ref: > faculties.id]
+  code varchar(50) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  icon_url text
+  is_active boolean
+  head_user_id uuid [ref: > users.id]
+  Note: 'الأقسام ورؤساؤها'
+}
+
+Table programs {
+  id uuid [pk]
+  department_id uuid [ref: > departments.id]
+  code varchar(20) [unique]
+  name_ar varchar(200)
+  name_en varchar(200)
+  degree_level varchar(20)
+  total_credit_hours smallint
+  duration_semesters tinyint
+  max_duration_semesters tinyint
+  level_thresholds json
+  is_active boolean
+  grading_scheme_id uuid [ref: > grading_schemes.id]
+  Note: 'البرامج الأكاديمية لكل قسم'
+}
+
+Table administrative_units {
+  id uuid [pk]
+  parent_id uuid [ref: > administrative_units.id]
+  code varchar(20) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  manager_user_id uuid [ref: > users.id]
+  building_id uuid [ref: > buildings.id]
+  email varchar(190)
+  phone varchar(30)
+  is_active boolean
+  Note: 'الوحدات الإدارية كالمالية والمكتبة'
+}
+
+TableGroup "الهيكل التنظيمي" [color: #0F766E] {
+  campuses
+  buildings
+  faculties
+  departments
+  programs
+  administrative_units
+}
+
+// ==================== 05. التقويم الأكاديمي ====================
+
+Table academic_years {
+  id uuid [pk]
+  code varchar(9) [unique]
+  starts_on date
+  ends_on date
+  is_current boolean
+  Note: 'السنوات الأكاديمية'
+}
+
+Table semesters {
+  id uuid [pk]
+  code varchar(50) [unique]
+  start_date date
+  end_date date
+  is_active boolean
+  academic_year_id uuid [ref: > academic_years.id]
+  type varchar(10)
+  name_ar varchar(150)
+  name_en varchar(150)
+  classes_start_date date
+  classes_end_date date
+  weeks_count smallint
+  status varchar(20)
+  Note: 'الفصول الدراسية ومراحلها'
+}
+
+Table semester_windows {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  type varchar(30)
+  starts_at datetime
+  ends_at datetime
+  is_active boolean
+  notes text
+  Note: 'نوافذ الفصل كالتسجيل والتفرغ ورصد العلامات'
+}
+
+Table holidays {
+  id uuid [pk]
+  name_ar varchar(150)
+  name_en varchar(150)
+  category varchar(20)
+  starts_on date
+  ends_on date
+  affects_classes boolean
+  affects_exams boolean
+  affects_staff boolean
+  Note: 'العطل وما توقفه'
+}
+
+Table registration_priority_groups {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  priority smallint
+  name_ar varchar(100)
+  name_en varchar(100)
+  criteria json
+  opens_at datetime
+  announced_at timestamp
+  Note: 'أدوار التسجيل لمجموعات الطلاب'
+}
+
+Table calendar_feeds {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  token_hash varchar(64) [unique]
+  token_prefix varchar(8)
+  with_lectures boolean
+  last_used_at timestamp
+  Note: 'روابط الاشتراك بالتقويم'
+}
+
+TableGroup "التقويم الأكاديمي" [color: #0369A1] {
+  academic_years
+  semesters
+  semester_windows
+  holidays
+  registration_priority_groups
+  calendar_feeds
+}
+
+// ==================== 06. المقررات والخطط الدراسية ====================
+
+Table grading_schemes {
+  id uuid [pk]
+  name_ar varchar(100)
+  name_en varchar(100)
+  max_points decimal(3,2)
+  pass_mark decimal(5,2)
+  is_default boolean
+  Note: 'سلالم التقدير'
+}
+
+Table grading_scale_items {
+  id uuid [pk]
+  grading_scheme_id uuid [ref: > grading_schemes.id]
+  letter varchar(3)
+  min_mark decimal(5,2)
+  max_mark decimal(5,2)
+  grade_points decimal(3,2)
+  description_ar varchar(50)
+  description_en varchar(50)
+  is_passing boolean
+  counts_in_gpa boolean
+  counts_as_earned boolean
+  is_special boolean
+  sort smallint
+  Note: 'حروف كل سلّم ونقاطها'
+}
+
+Table courses {
+  id uuid [pk]
+  department_id uuid [ref: > departments.id]
+  code varchar(50)
+  name_ar varchar(190)
+  name_en varchar(190)
+  required_hours int
+  room_consumed_hours int
+  lab_consumed_hours int
+  has_lab_component boolean
+  credit_hours tinyint
+  category varchar(15)
+  level tinyint
+  description_ar text
+  description_en text
+  grading_mode varchar(15)
+  is_repeatable boolean
+  is_active boolean
+  Note: 'كتالوج المقررات'
+}
+
+Table course_prerequisites {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  prerequisite_course_id uuid [ref: > courses.id]
+  type varchar(15)
+  group_no smallint
+  min_grade varchar(3)
+  Note: 'المتطلبات السابقة والمتزامنة'
+}
+
+Table course_equivalencies {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  equivalent_course_id uuid [ref: > courses.id]
+  is_bidirectional boolean
+  notes text
+  Note: 'المقررات المعادلة'
+}
+
+Table course_constraints {
+  id uuid [pk]
+  course_id uuid [unique, ref: - courses.id]
+  min_student_year_level int
+  max_student_year_level int
+  notes text
+  Note: 'السنوات الدراسية المسموح لها بالمقرر'
+}
+
+Table course_topics {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  week_no smallint
+  title_ar varchar(255)
+  title_en varchar(255)
+  description text
+  sort smallint
+  component varchar(10)
+  Note: 'مفردات المقرر الأسبوعية'
+}
+
+Table course_assessment_components {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  name_ar varchar(100)
+  name_en varchar(100)
+  type varchar(20)
+  weight decimal(5,2)
+  max_mark decimal(6,2)
+  is_final_exam boolean
+  sort smallint
+  Note: 'قالب مكوّنات علامة المقرر'
+}
+
+Table study_plans {
+  id uuid [pk]
+  program_id uuid [ref: > programs.id]
+  code varchar(30) [unique]
+  name_ar varchar(200)
+  name_en varchar(200)
+  effective_from_year smallint
+  total_credit_hours smallint
+  status varchar(15)
+  notes text
+  cloned_from_id uuid
+  approved_by uuid
+  approved_at datetime
+  Note: 'الخطط الدراسية لكل برنامج'
+}
+
+Table study_plan_groups {
+  id uuid [pk]
+  study_plan_id uuid [ref: > study_plans.id]
+  type varchar(30)
+  name_ar varchar(150)
+  name_en varchar(150)
+  min_credit_hours smallint
+  sort smallint
+  Note: 'مجموعات متطلبات الخطة'
+}
+
+Table study_plan_courses {
+  id uuid [pk]
+  study_plan_id uuid
+  study_plan_group_id uuid [ref: > study_plan_groups.id]
+  course_id uuid [ref: > courses.id]
+  recommended_level smallint
+  recommended_semester smallint
+  sort smallint
+  Note: 'مقررات كل مجموعة في الخطة'
+}
+
+TableGroup "المقررات والخطط الدراسية" [color: #4338CA] {
+  grading_schemes
+  grading_scale_items
+  courses
+  course_prerequisites
+  course_equivalencies
+  course_constraints
+  course_topics
+  course_assessment_components
+  study_plans
+  study_plan_groups
+  study_plan_courses
+}
+
+// ==================== 07. القاعات والموارد ====================
+
+Table rooms {
+  id uuid [pk]
+  name_ar varchar(190)
+  name_en varchar(190)
+  type varchar(30)
+  capacity int
+  location_ar varchar(190)
+  location_en varchar(190)
+  status varchar(30)
+  notes_ar text
+  notes_en text
+  faculty_id uuid [ref: > faculties.id]
+  building_id uuid [ref: > buildings.id]
+  code varchar(20) [unique]
+  department_id uuid [ref: > departments.id]
+  floor smallint
+  exam_capacity smallint
+  seat_rows smallint
+  seat_columns smallint
+  is_accessible boolean
+  is_schedulable boolean
+  is_bookable boolean
+  Note: 'القاعات والمختبرات والمدرجات'
+}
+
+Table features {
+  id uuid [pk]
+  key varchar(40) [unique]
+  name_ar varchar(100)
+  name_en varchar(100)
+  icon varchar(40)
+  sort smallint
+  is_active boolean
+  Note: 'ميزات القاعات'
+}
+
+Table room_features {
+  id uuid [pk]
+  room_id uuid [ref: > rooms.id]
+  feature_id uuid [ref: > features.id]
+  quantity smallint
+  Note: 'ميزات كل قاعة وعددها'
+}
+
+Table equipment {
+  id uuid [pk]
+  asset_tag varchar(255) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  category varchar(40)
+  faculty_id uuid [ref: > faculties.id]
+  room_id uuid [ref: > rooms.id]
+  is_portable boolean
+  status varchar(20)
+  serial_number varchar(80)
+  purchased_on date
+  warranty_until date
+  notes text
+  Note: 'الأجهزة والتجهيزات برقم أصل'
+}
+
+Table maintenance_logs {
+  id uuid [pk]
+  reference varchar(20) [unique]
+  room_id uuid [ref: > rooms.id]
+  equipment_id uuid [ref: > equipment.id]
+  target_type varchar(10)
+  target_label varchar(200)
+  category varchar(20)
+  title varchar(200)
+  description text
+  priority varchar(10)
+  status varchar(20)
+  blocks_usage boolean
+  previous_status varchar(30)
+  starts_at datetime
+  expected_until datetime
+  assignee varchar(150)
+  reported_by uuid
+  taken_at datetime
+  taken_by uuid
+  resolved_at datetime
+  resolved_by uuid
+  resolution_notes text
+  schedule_session_id uuid
+  session_date date
+  cannot_teach boolean
+  lecture_decision varchar(10)
+  lecture_room_id uuid
+  decision_note text
+  decided_at datetime
+  decided_by uuid
+  class_session_id uuid [ref: > class_sessions.id]
+  Note: 'بلاغات الأعطال وصيانتها'
+}
+
+Table resource_requests {
+  id uuid [pk]
+  reference varchar(20) [unique]
+  requester_id uuid
+  schedule_session_id uuid [ref: > schedule_sessions.id]
+  lecture_label varchar(200)
+  request_type varchar(12)
+  first_date date
+  last_date date
+  room_family varchar(12)
+  room_type varchar(30)
+  features json
+  min_seats smallint
+  equipment_category varchar(30)
+  equipment_name_ar varchar(150)
+  equipment_name_en varchar(150)
+  quantity smallint
+  item varchar(200)
+  reason text
+  status varchar(12)
+  room_id uuid [ref: > rooms.id]
+  reviewed_by uuid
+  reviewed_at datetime
+  review_notes text
+  closed_at datetime
+  Note: 'طلبات المدرّسين لقاعات أو تجهيزات'
+}
+
+Table resource_request_units {
+  resource_request_id uuid [ref: > resource_requests.id]
+  equipment_id uuid [ref: > equipment.id]
+  indexes {
+    (resource_request_id, equipment_id) [pk]
+  }
+  Note: 'الأجهزة المخصصة لكل طلب'
+}
+
+Table room_reservations {
+  id uuid [pk]
+  reference varchar(20) [unique]
+  room_id uuid [ref: > rooms.id]
+  room_label varchar(200)
+  user_id uuid [ref: > users.id]
+  purpose varchar(12)
+  title varchar(200)
+  notes text
+  starts_at datetime
+  ends_at datetime
+  attendees smallint
+  status varchar(12)
+  check_in_required boolean
+  checked_in_at datetime
+  series_id uuid
+  reviewed_by uuid
+  reviewed_at datetime
+  review_notes text
+  closed_at datetime
+  booked_by uuid
+  Note: 'حجوزات القاعات'
+}
+
+TableGroup "القاعات والموارد" [color: #B45309] {
+  rooms
+  features
+  room_features
+  equipment
+  maintenance_logs
+  resource_requests
+  resource_request_units
+  room_reservations
+}
+
+// ==================== 08. أعضاء هيئة التدريس ====================
+
+Table instructors {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  specialization_id uuid [ref: > specializations.id]
+  min_work_hours_per_week int
+  max_work_hours_per_week int
+  academic_rank varchar(30)
+  highest_degree varchar(20)
+  specialization_ar varchar(200)
+  specialization_en varchar(200)
+  is_part_time boolean
+  can_proctor boolean
+  office_location varchar(150)
+  office_hours json
+  Note: 'الملف التدريسي لعضو هيئة التدريس'
+}
+
+Table specializations {
+  id uuid [pk]
+  code varchar(50) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_active boolean
+  Note: 'قائمة التخصصات'
+}
+
+Table instructor_qualified_courses {
+  id uuid [pk]
+  instructor_id uuid [ref: > instructors.id]
+  course_id uuid [ref: > courses.id]
+  components json
+  preference tinyint
+  source varchar(20)
+  set_by uuid
+  Note: 'المقررات التي يؤهَّل المدرّس لتدريسها'
+}
+
+Table instructor_availability_profiles {
+  id uuid [pk]
+  instructor_id uuid [ref: > instructors.id]
+  notes text
+  semester_id uuid [ref: > semesters.id]
+  status varchar(15)
+  submitted_at timestamp
+  submitted_by uuid
+  Note: 'أسبوع تفرّغ المدرّس في كل فصل'
+}
+
+Table instructor_availability_cells {
+  id uuid [pk]
+  availability_profile_id uuid [ref: > instructor_availability_profiles.id]
+  day_value varchar(10)
+  start_time time
+  end_time time
+  status varchar(20)
+  reason_code varchar(30)
+  reason varchar(150)
+  Note: 'الأوقات المفضّلة والمتاحة والمغلقة في الأسبوع'
+}
+
+Table instructor_availability_reminders {
+  id uuid [pk]
+  semester_id uuid
+  instructor_id uuid [ref: > instructors.id]
+  sent_by uuid
+  automatic boolean
+  Note: 'تذكيرات تسليم التفرّغ'
+}
+
+TableGroup "أعضاء هيئة التدريس" [color: #7C3AED] {
+  instructors
+  specializations
+  instructor_qualified_courses
+  instructor_availability_profiles
+  instructor_availability_cells
+  instructor_availability_reminders
+}
+
+// ==================== 09. الجدول الدراسي ====================
+
+Table course_offerings {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  semester_id uuid [ref: > semesters.id]
+  is_active boolean
+  status varchar(15)
+  expected_students int
+  forecast_demand int
+  forecast_lower int
+  forecast_upper int
+  prediction_model_id uuid [ref: > prediction_models.id]
+  planned_theory_sections smallint
+  planned_lab_sections smallint
+  source varchar(15)
+  demand json
+  adjusted boolean
+  notes text
+  estimated_at timestamp
+  confirmed_at timestamp
+  confirmed_by uuid
+  Note: 'المقررات المطروحة في الفصل وتقدير طلبها بالمعادلة وبنموذج التنبؤ'
+}
+
+Table course_sections {
+  id uuid [pk]
+  course_id uuid
+  section_name varchar(120)
+  section_type varchar(20)
+  capacity int
+  meetings_per_week tinyint
+  meeting_minutes smallint
+  semester_id uuid
+  course_offering_id uuid [ref: > course_offerings.id]
+  component varchar(10)
+  section_number varchar(5)
+  parent_section_id uuid [ref: > course_sections.id]
+  delivery_mode varchar(15)
+  language varchar(5)
+  restrictions json
+  status varchar(15)
+  cancelled_reason text
+  notes text
+  Note: 'شعب كل مقرر مطروح'
+}
+
+Table course_section_instructors {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  instructor_id uuid [ref: > instructors.id]
+  role varchar(15)
+  load_share decimal(4,2)
+  Note: 'مدرّسو كل شعبة وأحمالهم'
+}
+
+Table semester_schedule_plans {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  status varchar(30)
+  selected_algorithm varchar(30)
+  generated_at timestamp
+  notes text
+  faculty_id uuid [ref: > faculties.id]
+  name varchar(150)
+  version_no smallint
+  source varchar(15)
+  cloned_from_id uuid
+  quality_score decimal(5,2)
+  hard_conflicts_count int
+  soft_conflicts_count int
+  lock_version int
+  checklist json
+  checked_at timestamp
+  submitted_by uuid
+  submitted_at timestamp
+  reviewed_by uuid
+  reviewed_at timestamp
+  approved_by uuid
+  approved_at timestamp
+  published_by uuid
+  published_at timestamp
+  archived_by uuid
+  archived_at timestamp
+  conflicts_checked_at timestamp
+  quality_breakdown json
+  Note: 'نسخ الجدول الدراسي ومسار اعتمادها'
+}
+
+Table schedule_sessions {
+  id uuid [pk]
+  room_id uuid [ref: > rooms.id]
+  schedule_plan_id uuid [ref: > semester_schedule_plans.id]
+  section_instructor_id uuid [ref: > course_section_instructors.id]
+  course_offering_id uuid
+  day_value varchar(10)
+  start_time time
+  end_time time
+  conflict_state varchar(20)
+  conflict_reasons text
+  grades_entry_status varchar(20)
+  grades_marked_done_at timestamp
+  week_pattern varchar(20)
+  is_locked boolean
+  locked_by uuid
+  locked_at timestamp
+  Note: 'محاضرات الجدول الأسبوعي'
+}
+
+Table schedule_comments {
+  id uuid [pk]
+  schedule_plan_id uuid [ref: > semester_schedule_plans.id]
+  schedule_session_id uuid [ref: > schedule_sessions.id]
+  author_id uuid
+  body text
+  is_resolved boolean
+  resolved_by uuid
+  resolved_at timestamp
+  Note: 'ملاحظات المراجعة على النسخة'
+}
+
+Table schedule_conflicts {
+  id uuid [pk]
+  schedule_plan_id uuid [ref: > semester_schedule_plans.id]
+  conflict_key varchar(32)
+  type varchar(40)
+  severity varchar(5)
+  rule varchar(120)
+  session_ids json
+  details json
+  status varchar(10)
+  note text
+  ignored_by uuid
+  ignored_at timestamp
+  resolved_at timestamp
+  Note: 'تعارضات النسخة'
+}
+
+Table schedule_generation_jobs {
+  id uuid [pk]
+  requested_by_user_id uuid
+  status varchar(20)
+  algorithm varchar(20)
+  semester_id uuid [ref: > semesters.id]
+  request_payload json
+  result_payload json
+  error_message text
+  progress tinyint
+  queued_at timestamp
+  started_at timestamp
+  finished_at timestamp
+  faculty_id uuid
+  department_id uuid
+  mode varchar(20)
+  relaxed_rule varchar(60)
+  phase varchar(20)
+  best_objective decimal(14,4)
+  objective_value decimal(14,4)
+  hard_violations int
+  placed_count int
+  unplaced_count int
+  bent_count int
+  stats json
+  Note: 'عمليات توليد الجدول بمحرك الجدولة'
+}
+
+TableGroup "الجدول الدراسي" [color: #2563EB] {
+  course_offerings
+  course_sections
+  course_section_instructors
+  semester_schedule_plans
+  schedule_sessions
+  schedule_comments
+  schedule_conflicts
+  schedule_generation_jobs
+}
+
+// ==================== 10. إعدادات الجدولة ====================
+
+Table schedule_settings {
+  id uuid [pk]
+  day_start time
+  day_end time
+  gap_minutes int
+  max_daily_lectures int
+  capacity_threshold int
+  step_minutes smallint
+  quality_minimum tinyint
+  Note: 'إعدادات الأسبوع الدراسي'
+}
+
+Table schedule_setting_study_days {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  day_value varchar(10)
+  enabled boolean
+  Note: 'أيام الدراسة'
+}
+
+Table schedule_setting_break_times {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  break_key varchar(100)
+  start_time time
+  end_time time
+  enabled boolean
+  Note: 'الاستراحات'
+}
+
+Table schedule_setting_constraints {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  category varchar(30)
+  constraint_key varchar(100)
+  enabled boolean
+  weight decimal(5,2)
+  Note: 'قواعد الجدولة الصارمة والمرنة وقواعد القاعات وأوزانها'
+}
+
+Table schedule_setting_load_ranges {
+  id uuid [pk]
+  schedule_setting_id uuid [ref: > schedule_settings.id]
+  load_key varchar(100)
+  min_value int
+  max_value int
+  Note: 'حدود الأحمال'
+}
+
+Table scheduling_constraints {
+  id uuid [pk]
+  scope_type varchar(20)
+  scope_id uuid
+  rule_key varchar(60)
+  value json
+  is_hard boolean
+  weight smallint
+  is_active boolean
+  Note: 'قيود خاصة بكلية أو قسم أو مدرّس أو قاعة أو مقرر'
+}
+
+Table time_slots {
+  id uuid [pk]
+  day_value varchar(10)
+  starts_at time
+  ends_at time
+  kind varchar(20)
+  is_active boolean
+  sort smallint
+  Note: 'الفترات الزمنية للأسبوع'
+}
+
+TableGroup "إعدادات الجدولة" [color: #64748B] {
+  schedule_settings
+  schedule_setting_study_days
+  schedule_setting_break_times
+  schedule_setting_constraints
+  schedule_setting_load_ranges
+  scheduling_constraints
+  time_slots
+}
+
+// ==================== 11. الجلسات خلال الفصل ====================
+
+Table class_sessions {
+  id uuid [pk]
+  semester_id uuid
+  schedule_session_id uuid [ref: > schedule_sessions.id]
+  section_id uuid [ref: > course_sections.id]
+  instructor_id uuid [ref: > instructors.id]
+  room_id uuid [ref: > rooms.id]
+  planned_room_id uuid
+  date date
+  start_time time
+  end_time time
+  week_no smallint
+  sitting_no smallint
+  kind varchar(10)
+  status varchar(12)
+  change_source varchar(20)
+  change_ref uuid
+  original_session_id uuid
+  topic varchar(255)
+  planned_instructor_id uuid
+  Note: 'جلسات المحاضرات الفعلية بتواريخها'
+}
+
+Table session_changes {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  type varchar(20)
+  source varchar(20)
+  source_id uuid
+  old_values json
+  new_values json
+  reason text
+  decided_at timestamp
+  voided_at timestamp
+  voided_by uuid
+  Note: 'سجل تغييرات الجلسات'
+}
+
+Table lecture_requests {
+  id uuid [pk]
+  schedule_session_id uuid
+  instructor_id uuid
+  request_type varchar(20)
+  requested_date date
+  note text
+  status varchar(20)
+  review_note text
+  reviewed_at timestamp
+  requested_start time
+  requested_end time
+  requested_room_id uuid
+  reason_code varchar(40)
+  class_session_id uuid [ref: > class_sessions.id]
+  Note: 'طلبات الاعتذار عن محاضرة أو تعويضها'
+}
+
+Table substitutions {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  original_instructor_id uuid
+  substitute_instructor_id uuid [ref: > instructors.id]
+  leave_request_id uuid [ref: > leave_requests.id]
+  reason text
+  status varchar(15)
+  proposed_at timestamp
+  proposed_by uuid
+  confirmed_at timestamp
+  confirmed_by uuid
+  cancelled_at timestamp
+  cancelled_by uuid
+  cancel_reason varchar(20)
+  cancel_note text
+  lecture_request_id uuid [ref: > lecture_requests.id]
+  Note: 'المدرّسون البدلاء للجلسات'
+}
+
+TableGroup "الجلسات خلال الفصل" [color: #0891B2] {
+  class_sessions
+  session_changes
+  lecture_requests
+  substitutions
+}
+
+// ==================== 12. سجلات الطلاب ====================
+
+Table students {
+  user_id uuid [pk, ref: - users.id]
+  university_number varchar(40) [unique]
+  completed_hours int
+  year_level int
+  study_status varchar(30)
+  program_id uuid [ref: > programs.id]
+  advisor_id uuid [ref: > instructors.id]
+  gender varchar(6)
+  date_of_birth date
+  place_of_birth varchar(120)
+  nationality char(2)
+  residency varchar(15)
+  id_document_type varchar(15)
+  id_document_number text
+  id_document_hash char(64) [unique]
+  address_country char(2)
+  address_city varchar(80)
+  address_line varchar(190)
+  guardian_name varchar(150)
+  guardian_relation varchar(15)
+  guardian_phone varchar(20)
+  certificate_type varchar(30)
+  certificate_year smallint
+  certificate_score decimal(8,2)
+  certificate_score_max decimal(8,2)
+  certificate_country char(2)
+  certificate_institution varchar(150)
+  Note: 'ملف الطالب وبرنامجه ومرشده الأكاديمي'
+}
+
+Table student_semester_records {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  registered_hours smallint
+  attempted_hours smallint
+  earned_hours smallint
+  gpa_hours smallint
+  quality_points decimal(8,2)
+  semester_gpa decimal(5,4)
+  cumulative_gpa decimal(5,4)
+  academic_standing varchar(20)
+  level_at_end smallint
+  is_final boolean
+  computed_at timestamp
+  Note: 'سجل الطالب في كل فصل: ساعاته ومعدله ووضعه الأكاديمي'
+}
+
+Table graduations {
+  id uuid [pk]
+  student_id uuid [unique, ref: - students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  final_gpa decimal(5,4)
+  total_earned_hours smallint
+  classification varchar(20)
+  honors boolean
+  certificate_number varchar(30) [unique]
+  verification_code char(12) [unique]
+  approved_by uuid
+  graduated_on date
+  Note: 'تخرج الطالب وتقدير التخرج ومرتبة الشرف'
+}
+
+Table registration_holds {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  type varchar(20)
+  reason_ar text
+  reason_en text
+  blocks json
+  source_type varchar(100)
+  source_id uuid
+  is_automatic boolean
+  placed_by uuid
+  placed_at timestamp
+  released_by uuid
+  released_at timestamp
+  release_reason text
+  Note: 'العوائق المالية والأكاديمية وغيرها، وما يمنعه كل عائق'
+}
+
+TableGroup "سجلات الطلاب" [color: #15803D] {
+  students
+  student_semester_records
+  graduations
+  registration_holds
+}
+
+// ==================== 13. تسجيل المقررات ====================
+
+Table carts {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid
+  status varchar(15)
+  confirmation_number varchar(20) [unique]
+  idempotency_key uuid [unique]
+  invoice_id uuid [ref: > invoices.id]
+  total_hours smallint
+  confirmed_at timestamp
+  last_validated_at timestamp
+  expires_at timestamp
+  Note: 'سلة تسجيل الطالب في الفصل، وتأكيدها برقم تأكيد واحد'
+}
+
+Table cart_items {
+  id uuid [pk]
+  cart_id uuid [ref: > carts.id]
+  section_id uuid [ref: > course_sections.id]
+  component varchar(10)
+  action varchar(10)
+  replaces_enrollment_section_id uuid
+  held_until timestamp
+  validation_status varchar(10)
+  validation_messages json
+  Note: 'الشعب المختارة في السلة مع حجز مؤقت لمقاعدها'
+}
+
+Table enrollments {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  course_offering_id uuid [ref: > course_offerings.id]
+  cart_id uuid [ref: > carts.id]
+  status varchar(15)
+  source varchar(20)
+  is_repeat boolean
+  repeats_enrollment_id uuid
+  credit_hours smallint
+  counts_in_gpa boolean
+  enrolled_at timestamp
+  dropped_at timestamp
+  withdrawn_at timestamp
+  status_reason text
+  Note: 'تسجيل الطالب في مقرر مطروح'
+}
+
+Table enrollment_sections {
+  id uuid [pk]
+  enrollment_id uuid [ref: > enrollments.id]
+  section_id uuid [ref: > course_sections.id]
+  component varchar(10)
+  status varchar(15)
+  added_at timestamp
+  released_at timestamp
+  Note: 'شعب التسجيل النظرية والعملية'
+}
+
+Table waitlist_entries {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  student_id uuid [ref: > students.user_id]
+  priority smallint
+  joined_at timestamp
+  status varchar(15)
+  offered_at timestamp
+  offer_expires_at timestamp
+  skip_count smallint
+  last_skip_reason varchar(40)
+  resolved_at timestamp
+  Note: 'قوائم انتظار الشعب الممتلئة'
+}
+
+Table enrollment_overrides {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid
+  course_offering_id uuid [ref: > course_offerings.id]
+  section_id uuid [ref: > course_sections.id]
+  service_request_id uuid [ref: > service_requests.id]
+  type varchar(25)
+  reason text
+  granted_by uuid
+  expires_at timestamp
+  used_at timestamp
+  revoked_at timestamp
+  Note: 'استثناءات التسجيل الموثقة لمقرر أو شعبة أو فصل'
+}
+
+TableGroup "تسجيل المقررات" [color: #16A34A] {
+  carts
+  cart_items
+  enrollments
+  enrollment_sections
+  waitlist_entries
+  enrollment_overrides
+}
+
+// ==================== 14. الإرشاد الأكاديمي ====================
+
+Table advising_clearances {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  advisor_id uuid
+  status varchar(15)
+  planned_hours smallint
+  planned_courses json
+  student_notes text
+  advisor_notes text
+  submitted_at timestamp
+  decided_at timestamp
+  Note: 'خطة الطالب للفصل ومقرراتها، وتصريح المرشد بالتسجيل'
+}
+
+Table advising_appointments {
+  id uuid [pk]
+  advisor_id uuid [ref: > instructors.id]
+  student_id uuid [ref: > students.user_id]
+  starts_at timestamp
+  ends_at timestamp
+  location varchar(150)
+  online_link varchar(500)
+  purpose varchar(255)
+  student_notes text
+  status varchar(15)
+  cancelled_by uuid
+  cancel_reason varchar(255)
+  Note: 'مواعيد الإرشاد التي يحددها المرشد ويحجزها الطلاب'
+}
+
+Table advising_notes {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  advisor_id uuid
+  advising_appointment_id uuid
+  body_encrypted text
+  visibility varchar(20)
+  category varchar(20)
+  Note: 'ملاحظات الإرشاد السرية'
+}
+
+Table academic_warnings {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  type varchar(30)
+  severity varchar(10)
+  details json
+  status varchar(15)
+  acknowledged_by_student_at timestamp
+  advisor_action_notes text
+  resolved_at timestamp
+  Note: 'الإنذارات الأكاديمية ومتابعتها'
+}
+
+TableGroup "الإرشاد الأكاديمي" [color: #65A30D] {
+  advising_clearances
+  advising_appointments
+  advising_notes
+  academic_warnings
+}
+
+// ==================== 15. الحضور والغياب ====================
+
+Table attendance_records {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  enrollment_id uuid [ref: > enrollments.id]
+  status varchar(10)
+  minutes_late smallint
+  method varchar(10)
+  marked_by uuid
+  marked_at timestamp
+  note varchar(255)
+  Note: 'حضور كل طالب في كل جلسة'
+}
+
+Table attendance_qr_tokens {
+  id uuid [pk]
+  class_session_id uuid [ref: > class_sessions.id]
+  secret char(32)
+  started_by uuid
+  started_at timestamp
+  stopped_at timestamp
+  Note: 'رمز QR المتغير لتسجيل حضور الجلسة'
+}
+
+Table attendance_warnings {
+  id uuid [pk]
+  enrollment_id uuid [ref: > enrollments.id]
+  level varchar(15)
+  absence_percent decimal(5,2)
+  status varchar(15)
+  approved_by uuid
+  approved_at timestamp
+  revoked_reason text
+  Note: 'إنذارات الغياب وقرارات الحرمان'
+}
+
+TableGroup "الحضور والغياب" [color: #CA8A04] {
+  attendance_records
+  attendance_qr_tokens
+  attendance_warnings
+}
+
+// ==================== 16. التعلّم الإلكتروني ====================
+
+Table course_materials {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  course_topic_id uuid [ref: > course_topics.id]
+  file_id uuid [ref: > files.id]
+  title varchar(255)
+  description text
+  type varchar(10)
+  url varchar(1000)
+  week_no smallint
+  is_published boolean
+  published_at timestamp
+  downloads_count int
+  uploaded_by uuid
+  Note: 'محتوى المادة وملفاتها لكل شعبة'
+}
+
+Table section_topic_progress {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  course_topic_id uuid [ref: > course_topics.id]
+  class_session_id uuid
+  status varchar(10)
+  covered_on date
+  notes text
+  Note: 'تقدّم الشعبة في مفردات المقرر'
+}
+
+Table question_banks {
+  id uuid [pk]
+  course_id uuid [ref: > courses.id]
+  owner_id uuid
+  name varchar(150)
+  is_shared boolean
+  Note: 'بنوك الأسئلة لكل مقرر'
+}
+
+Table questions {
+  id uuid [pk]
+  question_bank_id uuid [ref: > question_banks.id]
+  type varchar(20)
+  body text
+  options json
+  explanation text
+  difficulty varchar(10)
+  default_points decimal(6,2)
+  accepted_answers json
+  tags json
+  version int
+  previous_version_id uuid
+  Note: 'أسئلة بنك الأسئلة وخياراتها'
+}
+
+Table quizzes {
+  id uuid [pk]
+  section_id uuid [ref: > course_sections.id]
+  assessment_component_id uuid [ref: > assessment_components.id]
+  title varchar(255)
+  instructions text
+  starts_at timestamp
+  ends_at timestamp
+  duration_minutes smallint
+  max_attempts smallint
+  grading_method varchar(10)
+  shuffle_questions boolean
+  shuffle_options boolean
+  questions_per_attempt smallint
+  show_results varchar(15)
+  show_correct_answers boolean
+  total_points decimal(7,2)
+  passing_points decimal(7,2)
+  status varchar(15)
+  results_released_at timestamp
+  Note: 'الاختبارات القصيرة لكل شعبة'
+}
+
+Table quiz_questions {
+  quiz_id uuid [ref: > quizzes.id]
+  question_id uuid [ref: > questions.id]
+  points decimal(6,2)
+  sort smallint
+  indexes {
+    (quiz_id, question_id) [pk]
+  }
+  Note: 'أسئلة كل اختبار ودرجاتها'
+}
+
+Table quiz_accommodations {
+  id uuid [pk]
+  quiz_id uuid [ref: > quizzes.id]
+  student_id uuid [ref: > students.user_id]
+  extra_minutes smallint
+  extra_attempts smallint
+  reason varchar(255)
+  Note: 'تسهيلات خاصة لطالب في اختبار'
+}
+
+Table quiz_attempts {
+  id uuid [pk]
+  quiz_id uuid [ref: > quizzes.id]
+  student_id uuid [ref: > students.user_id]
+  attempt_no smallint
+  status varchar(15)
+  started_at timestamp
+  expires_at timestamp
+  submitted_at timestamp
+  questions_snapshot json
+  score decimal(7,2)
+  max_score decimal(7,2)
+  needs_manual_grading boolean
+  ip varchar(45)
+  user_agent text
+  Note: 'محاولات الطلاب في الاختبارات'
+}
+
+Table quiz_answers {
+  id uuid [pk]
+  quiz_attempt_id uuid [ref: > quiz_attempts.id]
+  question_id uuid [ref: > questions.id]
+  selected_option_ids json
+  text_answer text
+  numeric_answer decimal(14,4)
+  is_flagged boolean
+  is_correct boolean
+  points_awarded decimal(6,2)
+  feedback text
+  graded_by uuid
+  saved_at timestamp
+  Note: 'إجابات كل محاولة'
+}
+
+Table quiz_attempt_events {
+  id uuid [pk]
+  quiz_attempt_id uuid [ref: > quiz_attempts.id]
+  type varchar(20)
+  meta json
+  occurred_at timestamp
+  Note: 'أحداث النزاهة أثناء المحاولة'
+}
+
+TableGroup "التعلّم الإلكتروني" [color: #9333EA] {
+  course_materials
+  section_topic_progress
+  question_banks
+  questions
+  quizzes
+  quiz_questions
+  quiz_accommodations
+  quiz_attempts
+  quiz_answers
+  quiz_attempt_events
+}
+
+// ==================== 17. العلامات ====================
+
+Table assessment_components {
+  id uuid [pk]
+  course_offering_id uuid [ref: > course_offerings.id]
+  name_ar varchar(100)
+  name_en varchar(100)
+  type varchar(20)
+  weight decimal(5,2)
+  max_mark decimal(6,2)
+  is_final_exam boolean
+  sort smallint
+  Note: 'مكوّنات علامة المقرر المطروح وأوزانها'
+}
+
+Table grade_sheets {
+  id uuid [pk]
+  course_offering_id uuid [unique, ref: - course_offerings.id]
+  status varchar(12)
+  closed_at timestamp
+  closed_by uuid
+  reopened_at timestamp
+  submitted_at timestamp
+  department_reviewed_at timestamp
+  verified_at timestamp
+  approved_at timestamp
+  published_at timestamp
+  return_reason text
+  Note: 'كشف علامات المقرر المطروح ومسار اعتماده'
+}
+
+Table final_grades {
+  id uuid [pk]
+  course_offering_id uuid [ref: > course_offerings.id]
+  student_id uuid [ref: > students.user_id]
+  total decimal(5,2)
+  letter varchar(4)
+  grade_points decimal(4,2)
+  is_passed boolean
+  graded_at timestamp
+  Note: 'العلامة النهائية للطالب في المقرر من 100'
+}
+
+Table grade_marks {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  assessment_component_id uuid [ref: > assessment_components.id]
+  mark decimal(6,2)
+  entered_by uuid
+  entered_at datetime
+  Note: 'علامة الطالب في كل مكوّن'
+}
+
+Table verification_marks {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  assessment_component_id uuid [ref: > assessment_components.id]
+  mark decimal(6,2)
+  status varchar(10)
+  resolution varchar(15)
+  resolved_mark decimal(6,2)
+  resolution_note text
+  entered_by uuid
+  entered_at timestamp
+  resolved_by uuid
+  resolved_at timestamp
+  Note: 'الإدخال المزدوج للعلامة من شؤون الامتحانات وحل الفروقات'
+}
+
+Table grade_change_requests {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  service_request_id uuid [ref: > service_requests.id]
+  requested_by uuid
+  changes json
+  old_total decimal(5,2)
+  new_total decimal(5,2)
+  old_letter varchar(3)
+  new_letter varchar(3)
+  requires_dean boolean
+  reason text
+  attachment_file_id uuid
+  status varchar(25)
+  applied_by uuid
+  applied_at timestamp
+  Note: 'طلبات تعديل علامة منشورة واعتمادها'
+}
+
+Table grade_histories {
+  id uuid [pk]
+  final_grade_id uuid [ref: > final_grades.id]
+  grade_change_request_id uuid
+  field varchar(30)
+  old_value varchar(50)
+  new_value varchar(50)
+  reason text
+  changed_by uuid
+  Note: 'سجل تغييرات العلامة'
+}
+
+Table official_transcripts {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  service_request_id uuid [ref: > service_requests.id]
+  file_id uuid [ref: > files.id]
+  transcript_number varchar(20) [unique]
+  verification_code char(12) [unique]
+  data_hash char(64)
+  cumulative_gpa decimal(5,4)
+  language varchar(2)
+  issued_by uuid
+  issued_at timestamp
+  revoked_at timestamp
+  Note: 'كشوف العلامات الرسمية برمز تحقق'
+}
+
+TableGroup "العلامات" [color: #DC2626] {
+  assessment_components
+  grade_sheets
+  final_grades
+  grade_marks
+  verification_marks
+  grade_change_requests
+  grade_histories
+  official_transcripts
+}
+
+// ==================== 18. الامتحانات ====================
+
+Table exam_periods {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  type varchar(12)
+  name_ar varchar(150)
+  name_en varchar(150)
+  starts_on date
+  ends_on date
+  suspends_classes boolean
+  rules json
+  status varchar(15)
+  published_at timestamp
+  Note: 'فترات الامتحانات وقواعدها'
+}
+
+Table exam_slots {
+  id uuid [pk]
+  exam_period_id uuid [ref: > exam_periods.id]
+  date date
+  starts_at time
+  ends_at time
+  label varchar(30)
+  is_active boolean
+  Note: 'فترات الامتحان في كل يوم'
+}
+
+Table exams {
+  id uuid [pk]
+  exam_period_id uuid [ref: > exam_periods.id]
+  course_offering_id uuid [ref: > course_offerings.id]
+  exam_slot_id uuid [ref: > exam_slots.id]
+  duration_minutes smallint
+  mode varchar(10)
+  expected_students int
+  is_locked boolean
+  status varchar(15)
+  notes text
+  Note: 'امتحان المقرر المطروح وموعده'
+}
+
+Table exam_sections {
+  exam_id uuid [ref: > exams.id]
+  section_id uuid [ref: > course_sections.id]
+  indexes {
+    (exam_id, section_id) [pk]
+  }
+  Note: 'الشعب التي يجمعها الامتحان'
+}
+
+Table exam_rooms {
+  id uuid [pk]
+  exam_id uuid [ref: > exams.id]
+  room_id uuid [ref: > rooms.id]
+  seats_allocated smallint
+  Note: 'قاعات الامتحان والمقاعد المخصصة فيها'
+}
+
+Table exam_seat_assignments {
+  id uuid [pk]
+  exam_room_id uuid [ref: > exam_rooms.id]
+  enrollment_id uuid [ref: > enrollments.id]
+  seat_label varchar(10)
+  seat_row smallint
+  seat_column smallint
+  attendance varchar(10)
+  attendance_marked_by uuid
+  attendance_marked_at timestamp
+  Note: 'مقعد كل طالب في الامتحان وحضوره'
+}
+
+Table exam_proctors {
+  id uuid [pk]
+  exam_slot_id uuid [ref: > exam_slots.id]
+  room_id uuid [ref: > rooms.id]
+  user_id uuid [ref: > users.id]
+  role varchar(10)
+  confirmed_at timestamp
+  Note: 'المراقبون في كل قاعة وفترة'
+}
+
+Table exam_incidents {
+  id uuid [pk]
+  exam_id uuid [ref: > exams.id]
+  student_id uuid [ref: > students.user_id]
+  room_id uuid
+  type varchar(20)
+  description text
+  action_taken text
+  reported_by uuid
+  reported_at timestamp
+  follow_up_status varchar(15)
+  Note: 'حوادث يوم الامتحان كالغش أو المرض'
+}
+
+TableGroup "الامتحانات" [color: #E11D48] {
+  exam_periods
+  exam_slots
+  exams
+  exam_sections
+  exam_rooms
+  exam_seat_assignments
+  exam_proctors
+  exam_incidents
+}
+
+// ==================== 19. تقييم المقررات ====================
+
+Table evaluation_forms {
+  id uuid [pk]
+  semester_id uuid [ref: > semesters.id]
+  name_ar varchar(150)
+  name_en varchar(150)
+  opens_at timestamp
+  closes_at timestamp
+  status varchar(20)
+  min_responses_to_show smallint
+  Note: 'استبانات تقييم المقررات في كل فصل'
+}
+
+Table evaluation_questions {
+  id uuid [pk]
+  evaluation_form_id uuid [ref: > evaluation_forms.id]
+  category varchar(20)
+  type varchar(15)
+  body_ar text
+  body_en text
+  is_required boolean
+  sort smallint
+  Note: 'أسئلة الاستبانة'
+}
+
+Table evaluation_invitations {
+  id uuid [pk]
+  evaluation_form_id uuid [ref: > evaluation_forms.id]
+  enrollment_section_id uuid [ref: > enrollment_sections.id]
+  completed_at timestamp
+  Note: 'دعوات الطلاب للتقييم، لتتبّع المشاركة فقط'
+}
+
+Table evaluation_responses {
+  id uuid [pk]
+  evaluation_form_id uuid [ref: > evaluation_forms.id]
+  section_id uuid [ref: > course_sections.id]
+  instructor_id uuid [ref: > instructors.id]
+  submitted_on date
+  Note: 'الاستجابات دون أي رابط بهوية الطالب'
+}
+
+Table evaluation_answers {
+  id uuid [pk]
+  evaluation_response_id uuid [ref: > evaluation_responses.id]
+  evaluation_question_id uuid [ref: > evaluation_questions.id]
+  value_int smallint
+  value_text text
+  Note: 'إجابات كل استجابة'
+}
+
+TableGroup "تقييم المقررات" [color: #A21CAF] {
+  evaluation_forms
+  evaluation_questions
+  evaluation_invitations
+  evaluation_responses
+  evaluation_answers
+}
+
+// ==================== 20. القبول ====================
+
+Table admission_cycles {
+  id uuid [pk]
+  intake_semester_id uuid [ref: > semesters.id]
+  name_ar varchar(150)
+  name_en varchar(150)
+  opens_at timestamp
+  closes_at timestamp
+  decisions_publish_at timestamp
+  application_fee decimal(10,2)
+  max_preferences smallint
+  status varchar(25)
+  Note: 'دورات القبول ومواعيدها'
+}
+
+Table admission_programs {
+  id uuid [pk]
+  admission_cycle_id uuid [ref: > admission_cycles.id]
+  program_id uuid [ref: > programs.id]
+  capacity smallint
+  waitlist_capacity smallint
+  min_high_school_score decimal(5,2)
+  required_tracks json
+  score_formula json
+  accepted_count smallint
+  Note: 'البرامج المفتوحة في الدورة وسعتها وشروطها'
+}
+
+Table document_types {
+  id uuid [pk]
+  key varchar(40) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_required boolean
+  applies_to json
+  max_size_mb smallint
+  allowed_mimes json
+  Note: 'أنواع المستندات المطلوبة للتقديم'
+}
+
+Table applicants {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  national_id_encrypted text
+  national_id_hash char(64)
+  first_name_ar varchar(50)
+  father_name_ar varchar(50)
+  grandfather_name_ar varchar(50)
+  family_name_ar varchar(50)
+  full_name_en varchar(150)
+  gender varchar(6)
+  birth_date date
+  nationality char(2)
+  phone varchar(20)
+  address json
+  guardian json
+  high_school json
+  entrance_exam_score decimal(5,2)
+  special_needs text
+  Note: 'المتقدمون للقبول وبياناتهم'
+}
+
+Table applications {
+  id uuid [pk]
+  application_number varchar(20) [unique]
+  admission_cycle_id uuid [ref: > admission_cycles.id]
+  applicant_id uuid [ref: > applicants.id]
+  student_id uuid [unique, ref: - students.user_id]
+  status varchar(25)
+  composite_score decimal(6,3)
+  rank_in_program int
+  decided_program_id uuid
+  conditions text
+  decision_notes text
+  reviewed_by uuid
+  decided_by uuid
+  decided_at timestamp
+  offer_sent_at timestamp
+  offer_expires_at timestamp
+  responded_at timestamp
+  submitted_at timestamp
+  Note: 'طلبات الالتحاق وقراراتها، والطالب الذي ينشأ عن قبول العرض'
+}
+
+Table application_preferences {
+  id uuid [pk]
+  application_id uuid [ref: > applications.id]
+  admission_program_id uuid [ref: > admission_programs.id]
+  priority smallint
+  allocation_result varchar(15)
+  Note: 'رغبات المتقدم مرتبة'
+}
+
+Table application_documents {
+  id uuid [pk]
+  application_id uuid [ref: > applications.id]
+  document_type_id uuid [ref: > document_types.id]
+  file_id uuid [ref: > files.id]
+  status varchar(15)
+  rejection_reason text
+  verified_by uuid
+  verified_at timestamp
+  Note: 'مستندات الطلب ومراجعتها'
+}
+
+TableGroup "القبول" [color: #DB2777] {
+  admission_cycles
+  admission_programs
+  document_types
+  applicants
+  applications
+  application_preferences
+  application_documents
+}
+
+// ==================== 21. المالية ====================
+
+Table fee_types {
+  id uuid [pk]
+  key varchar(40) [unique]
+  name_ar varchar(150)
+  name_en varchar(150)
+  is_refundable boolean
+  gl_account_code varchar(30)
+  is_active boolean
+  Note: 'أنواع الرسوم'
+}
+
+Table fee_structures {
+  id uuid [pk]
+  academic_year_id uuid [ref: > academic_years.id]
+  fee_type_id uuid [ref: > fee_types.id]
+  program_id uuid [ref: > programs.id]
+  student_category varchar(20)
+  calculation varchar(20)
+  amount decimal(10,2)
+  currency char(3)
+  effective_from date
+  Note: 'قيمة كل رسم لكل برنامج وسنة أكاديمية'
+}
+
+Table invoices {
+  id uuid [pk]
+  invoice_number varchar(20) [unique]
+  student_id uuid [ref: > students.user_id]
+  applicant_id uuid [ref: > applicants.id]
+  semester_id uuid [ref: > semesters.id]
+  issue_date date
+  due_date date
+  subtotal decimal(12,2)
+  discount_total decimal(12,2)
+  total decimal(12,2)
+  paid_total decimal(12,2)
+  balance decimal(12,2)
+  currency char(3)
+  status varchar(20)
+  source_type varchar(30)
+  source_id uuid
+  notes text
+  Note: 'فواتير الطلاب والمتقدمين للقبول'
+}
+
+Table invoice_items {
+  id uuid [pk]
+  invoice_id uuid [ref: > invoices.id]
+  fee_type_id uuid [ref: > fee_types.id]
+  scholarship_award_id uuid [ref: > scholarship_awards.id]
+  description_ar varchar(255)
+  description_en varchar(255)
+  quantity decimal(8,2)
+  unit_price decimal(10,2)
+  discount_amount decimal(10,2)
+  amount decimal(12,2)
+  related_type varchar(30)
+  related_id uuid
+  Note: 'بنود الفاتورة'
+}
+
+Table payments {
+  id uuid [pk]
+  payment_number varchar(20) [unique]
+  receipt_number varchar(20)
+  student_id uuid [ref: > students.user_id]
+  payer_type varchar(20)
+  payer_id uuid
+  amount decimal(12,2)
+  currency char(3)
+  method varchar(20)
+  gateway varchar(30)
+  gateway_reference varchar(120)
+  status varchar(20)
+  idempotency_key uuid [unique]
+  paid_at timestamp
+  received_by uuid
+  reversal_reason text
+  notes text
+  Note: 'الدفعات الإلكترونية والنقدية'
+}
+
+Table payment_allocations {
+  id uuid [pk]
+  payment_id uuid [ref: > payments.id]
+  invoice_id uuid [ref: > invoices.id]
+  amount decimal(12,2)
+  Note: 'توزيع كل دفعة على الفواتير'
+}
+
+Table gateway_transactions {
+  id uuid [pk]
+  payment_id uuid [ref: > payments.id]
+  gateway varchar(30)
+  event varchar(40)
+  reference varchar(120)
+  request_payload json
+  response_payload json
+  signature_verified boolean
+  http_status smallint
+  Note: 'سجل التخاطب مع بوابة الدفع'
+}
+
+Table student_ledger_entries {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  type varchar(20)
+  amount decimal(12,2)
+  balance_after decimal(12,2)
+  reference_type varchar(30)
+  reference_id uuid
+  description_ar varchar(255)
+  Note: 'دفتر حساب الطالب، قيوده لا تُعدَّل'
+}
+
+Table installment_plans {
+  id uuid [pk]
+  invoice_id uuid [ref: > invoices.id]
+  service_request_id uuid [ref: > service_requests.id]
+  total_amount decimal(12,2)
+  down_payment decimal(12,2)
+  installments_count smallint
+  status varchar(15)
+  approved_by uuid
+  Note: 'خطط تقسيط الفواتير'
+}
+
+Table installments {
+  id uuid [pk]
+  installment_plan_id uuid [ref: > installment_plans.id]
+  sequence smallint
+  due_date date
+  amount decimal(12,2)
+  paid_amount decimal(12,2)
+  status varchar(15)
+  Note: 'أقساط كل خطة'
+}
+
+Table scholarships {
+  id uuid [pk]
+  name_ar varchar(150)
+  name_en varchar(150)
+  type varchar(25)
+  coverage_type varchar(15)
+  value decimal(10,2)
+  applies_to_fee_types json
+  min_gpa_to_maintain decimal(3,2)
+  min_hours_to_maintain smallint
+  max_semesters smallint
+  sponsor_name varchar(150)
+  budget decimal(14,2)
+  is_active boolean
+  Note: 'المنح وشروط استمرارها'
+}
+
+Table scholarship_awards {
+  id uuid [pk]
+  scholarship_id uuid [ref: > scholarships.id]
+  student_id uuid [ref: > students.user_id]
+  from_semester_id uuid
+  to_semester_id uuid
+  status varchar(15)
+  suspension_reason text
+  semesters_used smallint
+  approved_by uuid
+  Note: 'منح الطلاب ومدتها'
+}
+
+Table fines {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  invoice_item_id uuid [ref: > invoice_items.id]
+  type varchar(25)
+  amount decimal(10,2)
+  reason_ar varchar(255)
+  source_type varchar(30)
+  source_id uuid
+  status varchar(15)
+  waived_by uuid
+  waiver_reason text
+  issued_by uuid
+  Note: 'الغرامات، ومنها غرامات تأخير الكتب'
+}
+
+Table refunds {
+  id uuid [pk]
+  payment_id uuid [ref: > payments.id]
+  invoice_id uuid [ref: > invoices.id]
+  amount decimal(12,2)
+  reason varchar(30)
+  method varchar(20)
+  status varchar(15)
+  requested_by uuid
+  approved_by uuid
+  processed_at timestamp
+  bank_details_encrypted text
+  notes text
+  Note: 'المبالغ المستردة للطلاب'
+}
+
+TableGroup "المالية" [color: #047857] {
+  fee_types
+  fee_structures
+  invoices
+  invoice_items
+  payments
+  payment_allocations
+  gateway_transactions
+  student_ledger_entries
+  installment_plans
+  installments
+  scholarships
+  scholarship_awards
+  fines
+  refunds
+}
+
+// ==================== 22. الطلبات الإلكترونية ====================
+
+Table request_types {
+  id uuid [pk]
+  key varchar(40) [unique]
+  module varchar(30)
+  name_ar varchar(150)
+  name_en varchar(150)
+  description_ar text
+  fee_type_id uuid [ref: > fee_types.id]
+  requester_roles json
+  form_schema json
+  workflow json
+  required_documents json
+  fee_amount decimal(10,2)
+  sla_days smallint
+  window_type varchar(30)
+  handler_key varchar(60)
+  is_active boolean
+  Note: 'أنواع الطلبات الإلكترونية ونماذجها وخطوات اعتمادها'
+}
+
+Table service_requests {
+  id uuid [pk]
+  request_number varchar(20) [unique]
+  request_type_id uuid [ref: > request_types.id]
+  requester_id uuid [ref: > users.id]
+  invoice_id uuid [ref: > invoices.id]
+  semester_id uuid
+  payload json
+  status varchar(20)
+  current_step smallint
+  current_role varchar(50)
+  current_assignee_id uuid
+  outcome json
+  submitted_at timestamp
+  due_at timestamp
+  completed_at timestamp
+  Note: 'الطلبات الإلكترونية المقدمة'
+}
+
+Table request_steps {
+  id uuid [pk]
+  service_request_id uuid [ref: > service_requests.id]
+  step_no smallint
+  role varchar(50)
+  assignee_id uuid
+  decision varchar(15)
+  comment text
+  decided_at timestamp
+  Note: 'خطوات اعتماد الطلب وقراراتها'
+}
+
+Table request_comments {
+  id uuid [pk]
+  service_request_id uuid [ref: > service_requests.id]
+  author_id uuid
+  body text
+  is_internal boolean
+  attachment_file_id uuid
+  Note: 'المراسلات على الطلب'
+}
+
+TableGroup "الطلبات الإلكترونية" [color: #0E7490] {
+  request_types
+  service_requests
+  request_steps
+  request_comments
+}
+
+// ==================== 23. شؤون الموظفين ====================
+
+Table employees {
+  id uuid [pk]
+  user_id uuid [unique, ref: - users.id]
+  position_id uuid [ref: > positions.id]
+  manager_employee_id uuid [ref: > employees.id]
+  national_id_encrypted text
+  national_id_hash char(64)
+  employment_type varchar(20)
+  hire_date date
+  gender varchar(6)
+  birth_date date
+  nationality char(2)
+  marital_status varchar(15)
+  address json
+  emergency_contact json
+  bank_account_encrypted text
+  status varchar(15)
+  termination_date date
+  termination_reason text
+  Note: 'الملف الوظيفي للموظف ومديره المباشر'
+}
+
+Table positions {
+  id uuid [pk]
+  code varchar(20) [unique]
+  title_ar varchar(150)
+  title_en varchar(150)
+  category varchar(20)
+  grade varchar(20)
+  is_active boolean
+  Note: 'المسميات الوظيفية'
+}
+
+Table contracts {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  file_id uuid [ref: > files.id]
+  contract_number varchar(30) [unique]
+  type varchar(20)
+  start_date date
+  end_date date
+  probation_end_date date
+  salary_encrypted text
+  currency char(3)
+  weekly_hours smallint
+  status varchar(15)
+  renewal_of_id uuid
+  notes text
+  Note: 'عقود الموظفين'
+}
+
+Table leave_types {
+  id uuid [pk]
+  key varchar(30) [unique]
+  name_ar varchar(100)
+  name_en varchar(100)
+  default_days_per_year smallint
+  is_paid boolean
+  requires_attachment boolean
+  max_consecutive_days smallint
+  min_notice_days smallint
+  carry_over_max smallint
+  affects_teaching boolean
+  is_active boolean
+  Note: 'أنواع الإجازات وقواعدها'
+}
+
+Table leave_balances {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  leave_type_id uuid [ref: > leave_types.id]
+  year smallint
+  entitled_days decimal(5,1)
+  carried_over_days decimal(5,1)
+  used_days decimal(5,1)
+  pending_days decimal(5,1)
+  adjustment_days decimal(5,1)
+  Note: 'رصيد كل موظف من كل نوع إجازة في السنة'
+}
+
+Table leave_requests {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  instructor_id uuid
+  leave_type_id uuid [ref: > leave_types.id]
+  starts_on date
+  ends_on date
+  reason text
+  suggested_substitute_id uuid
+  status varchar(20)
+  manager_id uuid
+  manager_decided_at timestamp
+  manager_comment text
+  cancelled_at timestamp
+  cancelled_by uuid
+  affects_sessions_count smallint
+  days_count decimal(5,1)
+  hr_decided_at timestamp
+  rejection_reason text
+  Note: 'طلبات الإجازة واعتمادها'
+}
+
+Table staff_attendance {
+  id uuid [pk]
+  employee_id uuid [ref: > employees.id]
+  date date
+  check_in_at timestamp
+  check_out_at timestamp
+  status varchar(15)
+  late_minutes smallint
+  early_leave_minutes smallint
+  source varchar(15)
+  leave_request_id uuid
+  notes varchar(255)
+  Note: 'دوام الموظفين من أجهزة البصمة'
+}
+
+Table performance_cycles {
+  id uuid [pk]
+  year smallint
+  name_ar varchar(150)
+  name_en varchar(150)
+  starts_on date
+  ends_on date
+  status varchar(15)
+  criteria_template json
+  Note: 'دورات تقييم الأداء'
+}
+
+Table performance_reviews {
+  id uuid [pk]
+  performance_cycle_id uuid [ref: > performance_cycles.id]
+  employee_id uuid [ref: > employees.id]
+  reviewer_id uuid
+  status varchar(20)
+  self_score decimal(5,2)
+  manager_score decimal(5,2)
+  final_score decimal(5,2)
+  rating varchar(25)
+  evaluation_score decimal(5,2)
+  strengths text
+  improvements text
+  goals json
+  employee_comments text
+  acknowledged_at timestamp
+  Note: 'تقييم أداء كل موظف في الدورة'
+}
+
+TableGroup "شؤون الموظفين" [color: #C2410C] {
+  employees
+  positions
+  contracts
+  leave_types
+  leave_balances
+  leave_requests
+  staff_attendance
+  performance_cycles
+  performance_reviews
+}
+
+// ==================== 24. المكتبة ====================
+
+Table library_items {
+  id uuid [pk]
+  type varchar(20)
+  isbn varchar(20)
+  issn varchar(20)
+  title varchar(500)
+  subtitle varchar(500)
+  authors varchar(500)
+  publisher varchar(200)
+  publication_year smallint
+  edition varchar(50)
+  language varchar(5)
+  call_number varchar(50)
+  subjects json
+  description text
+  cover_file_id uuid
+  is_digital boolean
+  digital_file_id uuid [ref: > files.id]
+  access_level varchar(20)
+  is_loanable boolean
+  replacement_cost decimal(10,2)
+  Note: 'كتالوج المكتبة ومؤلفو كل مادة'
+}
+
+Table library_copies {
+  id uuid [pk]
+  library_item_id uuid [ref: > library_items.id]
+  barcode varchar(30) [unique]
+  location varchar(100)
+  status varchar(20)
+  condition varchar(15)
+  acquired_on date
+  price decimal(10,2)
+  Note: 'النسخ الورقية وأماكنها'
+}
+
+Table borrowing_policies {
+  id uuid [pk]
+  role_id uuid [ref: > roles.id]
+  item_type varchar(20)
+  max_items smallint
+  loan_days smallint
+  max_renewals smallint
+  grace_days smallint
+  fine_per_day decimal(8,2)
+  max_fine_ratio decimal(4,2)
+  Note: 'سياسة الإعارة لكل دور ونوع مادة'
+}
+
+Table loans {
+  id uuid [pk]
+  library_copy_id uuid [ref: > library_copies.id]
+  borrower_user_id uuid [ref: > users.id]
+  fine_id uuid [ref: > fines.id]
+  borrowed_at timestamp
+  due_at timestamp
+  returned_at timestamp
+  renewals_count smallint
+  status varchar(15)
+  issued_by uuid
+  returned_to uuid
+  return_condition varchar(15)
+  Note: 'إعارة النسخ وإرجاعها'
+}
+
+Table library_holds {
+  id uuid [pk]
+  library_item_id uuid [ref: > library_items.id]
+  user_id uuid [ref: > users.id]
+  library_copy_id uuid
+  status varchar(15)
+  requested_at timestamp
+  ready_at timestamp
+  pickup_expires_at timestamp
+  Note: 'حجوزات النسخ المعارة'
+}
+
+TableGroup "المكتبة" [color: #92400E] {
+  library_items
+  library_copies
+  borrowing_policies
+  loans
+  library_holds
+}
+
+// ==================== 25. الذكاء الاصطناعي ====================
+
+Table ai_providers {
+  id uuid [pk]
+  provider varchar(20) [unique]
+  key_encrypted text
+  key_hint varchar(12)
+  model varchar(120)
+  base_url varchar(255)
+  price_input decimal(10,4)
+  price_output decimal(10,4)
+  last_tested_at timestamp
+  last_test_ok boolean
+  last_test_ms int
+  last_test_code varchar(60)
+  Note: 'مزوّدو النماذج اللغوية ومفاتيحهم'
+}
+
+Table ai_feature_access {
+  id uuid [pk]
+  feature varchar(40)
+  role_code varchar(40)
+  enabled boolean
+  daily_limit int
+  Note: 'تفعيل كل ميزة ذكاء لكل دور وحصتها اليومية'
+}
+
+Table ai_conversations {
+  id uuid [pk]
+  user_id uuid [ref: > users.id]
+  role_code varchar(40)
+  title varchar(160)
+  messages_count int
+  last_message_at timestamp
+  Note: 'محادثات المساعد الذكي'
+}
+
+Table ai_messages {
+  id uuid [pk]
+  conversation_id uuid [ref: > ai_conversations.id]
+  role varchar(12)
+  content text
+  tools json
+  cards json
+  status varchar(16)
+  error_code varchar(60)
+  input_tokens int
+  output_tokens int
+  feedback tinyint
+  feedback_note varchar(500)
+  feedback_at timestamp
+  Note: 'رسائل كل محادثة'
+}
+
+Table ai_usage_logs {
+  id uuid [pk]
+  user_id uuid
+  role_code varchar(40)
+  feature varchar(40)
+  provider varchar(20)
+  model varchar(120)
+  status varchar(16)
+  error_code varchar(60)
+  input_tokens int
+  output_tokens int
+  cost_usd decimal(12,6)
+  latency_ms int
+  tool_calls smallint
+  conversation_id uuid
+  Note: 'سجل استخدام الذكاء وكلفته'
+}
+
+Table knowledge_documents {
+  id uuid [pk]
+  code varchar(60) [unique]
+  title_ar varchar(200)
+  title_en varchar(200)
+  category varchar(30)
+  summary_ar text
+  summary_en text
+  Note: 'لوائح الجامعة'
+}
+
+Table knowledge_document_versions {
+  id uuid [pk]
+  knowledge_document_id uuid [ref: > knowledge_documents.id]
+  version_label varchar(30)
+  effective_from date
+  status varchar(12)
+  stored_file_id uuid [ref: > files.id]
+  file_name varchar(200)
+  change_note text
+  pages smallint
+  characters int
+  articles_count smallint
+  chunks_count smallint
+  embedder varchar(200)
+  last_error varchar(60)
+  uploaded_by uuid
+  indexed_at timestamp
+  embedded_at timestamp
+  retired_at timestamp
+  retired_by uuid
+  Note: 'إصدارات كل لائحة وتاريخ نفاذها'
+}
+
+Table knowledge_chunks {
+  id uuid [pk]
+  knowledge_document_version_id uuid [ref: > knowledge_document_versions.id]
+  position smallint
+  article varchar(40)
+  article_title varchar(300)
+  heading varchar(300)
+  part tinyint
+  text text
+  embedding text
+  Note: 'مقاطع اللوائح وتضميناتها للبحث'
+}
+
+Table prediction_models {
+  id uuid [pk]
+  kind varchar(20)
+  version varchar(20)
+  algorithm varchar(40)
+  features json
+  metrics json
+  baseline_metrics json
+  trained_from_semester_id uuid
+  trained_to_semester_id uuid
+  status varchar(15)
+  trained_at timestamp
+  activated_at timestamp
+  activated_by uuid
+  Note: 'نماذج التنبؤ بالطلب وبخطر التعثر وإصداراتها ودقتها'
+}
+
+Table student_risk_scores {
+  id uuid [pk]
+  student_id uuid [ref: > students.user_id]
+  semester_id uuid [ref: > semesters.id]
+  prediction_model_id uuid [ref: > prediction_models.id]
+  score decimal(5,4)
+  level varchar(10)
+  factors json
+  computed_at timestamp
+  Note: 'مؤشر خطر التعثر لكل طالب وأبرز أسبابه'
+}
+
+Table simulations {
+  id uuid [pk]
+  base_semester_id uuid [ref: > semesters.id]
+  schedule_generation_job_id uuid [ref: > schedule_generation_jobs.id]
+  name varchar(150)
+  parameters json
+  status varchar(15)
+  results json
+  Note: 'محاكاة الاحتمالات المستقبلية على نسخة معزولة من بيانات الفصل'
+}
+
+TableGroup "الذكاء الاصطناعي" [color: #6D28D9] {
+  ai_providers
+  ai_feature_access
+  ai_conversations
+  ai_messages
+  ai_usage_logs
+  knowledge_documents
+  knowledge_document_versions
+  knowledge_chunks
+  prediction_models
+  student_risk_scores
+  simulations
+}

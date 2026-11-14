@@ -1,0 +1,63 @@
+@startuml UC-29_generate_run
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-29 — Generate the Timetable
+
+actor "Coordinator" as U
+box "Server" #F3FAF3
+  participant "Generation\nController" as GC
+  participant "Job Processor\n(every minute)" as JP
+  participant "Generation\nService" as GS
+  participant "Scheduling\nEngine" as SE
+  participant "Notification\nService" as NS
+end box
+
+U -> GC : Request a timetable\n(term, scope, algorithm)
+GC -> GC : Create a queued generation job
+GC --> U : Job queued
+JP -> JP : Pick the oldest queued job
+JP -> GS : Generate the timetable
+GS -> GS : Load rooms, sections,\navailability and rules
+alt rules incomplete
+  GS --> JP : Missing rules
+else data ready
+  GS -> SE : Solve with the chosen algorithm
+  loop until the time limit or no more gain
+    SE -> SE : Place lectures and improve quality
+  end
+  SE --> GS : Placed and unplaced lectures
+  GS -> GS : Verify hard constraints\nand score the quality
+  GS --> JP : Timetable and its measures
+end
+JP -> JP : Save the result
+JP -> NS : Report the result
+NS ->> U : Timetable ready, or failed with the reason
+@enduml

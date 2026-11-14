@@ -1,0 +1,69 @@
+@startuml UC-84_exam_schedule
+skinparam dpi 150
+' ===== النمط الموحّد (مثل مخططات النشاط) =====
+skinparam defaultFontName Tahoma
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowFontColor #263238
+skinparam TitleFontSize 16
+skinparam TitleFontStyle bold
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #546E7A
+skinparam ParticipantFontSize 13
+skinparam ActorBackgroundColor #FFFFFF
+skinparam ActorBorderColor #37474F
+skinparam ActorFontSize 13
+skinparam ActorFontStyle bold
+skinparam SequenceLifeLineBorderColor #90A4AE
+skinparam SequenceBoxBorderColor #90A4AE
+skinparam SequenceBoxFontSize 14
+skinparam SequenceBoxFontStyle bold
+skinparam SequenceGroupBorderColor #FFB300
+skinparam SequenceGroupBackgroundColor #FFF8E1
+skinparam SequenceGroupFontColor #37474F
+skinparam SequenceGroupHeaderFontColor #37474F
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 16
+skinparam BoxPadding 12
+hide footbox
+' ===== المخطط =====
+title UC-84 — جدولة الامتحانات
+
+actor "موظف شؤون\nالامتحانات" as U
+box "الخادم" #F3FAF3
+  participant "متحكم\nالامتحانات" as EX
+  participant "منشئ قائمة\nالامتحانات" as LB
+  participant "محرك جدولة\nالامتحانات" as ES
+  participant "خدمة\nالإشعارات" as NS
+end box
+actor "الطلاب\nوالمدرّسون" as R
+
+U -> EX : ينشئ فترة الامتحانات وفتراتها اليومية
+EX -> EX : يتحقق من التواريخ والقواعد
+U -> EX : يطلب قائمة الامتحانات
+EX -> LB : يطلب امتحاناً لكل مقرر
+LB --> EX : الامتحانات وأعداد طلابها
+U -> EX : يطلب توليد جدول الامتحانات
+EX -> ES : يطلب جدولة الامتحانات
+ES -> ES : يبني رسم التعارض\nمن تسجيلات الطلاب
+ES -> ES : يوزّع الامتحانات على الفترات\nبتلوين رسم التعارض
+ES -> ES : يباعد بين امتحانات كل طالب
+alt بقيت امتحانات بلا فترة
+  ES --> EX : الامتحانات المتعارضة
+  EX --> U : يقترح زيادة الفترات
+else وُضعت الامتحانات كلها
+  ES --> EX : جدول الامتحانات
+  EX --> U : يعرض الجدول للمراجعة
+end
+U -> EX : ينشر الجدول
+EX -> EX : يفحص التعارضات والمقاعد والمراقبين
+alt لم يتحقق شرط
+  EX --> U : يعرض الشروط غير المتحققة
+else تحققت الشروط
+  EX -> NS : يطلب إعلان الجدول
+  NS ->> R : نُشر جدول الامتحانات
+  EX --> U : يؤكد النشر
+end
+@enduml
