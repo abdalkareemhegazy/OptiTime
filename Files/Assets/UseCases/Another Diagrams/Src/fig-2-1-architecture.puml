@@ -1,0 +1,75 @@
+@startuml fig-2-1-architecture
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam dpi 150
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam nodesep 35
+skinparam ranksep 45
+skinparam rectangle {
+  BorderColor #546E7A
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #F7FAFC
+  BorderColor #90A4AE
+  FontSize 15
+  FontStyle bold
+}
+top to bottom direction
+
+actor "المستخدمون\nحاسوب · لوحي · جوال" as USERS
+
+package "جهاز المستخدم" {
+  rectangle "تطبيق الويب\nVue 3 SPA\nعربي · إنجليزي · RTL" as SPA #BBDEFB
+}
+
+package "خادم الإنتاج" {
+  rectangle "خادم الويب\nApache 2.4 / Nginx\nTLS 1.2+" as WEB #CFD8DC
+  rectangle "الواجهة البرمجية\nLaravel · Sanctum\nREST / JSON" as API #C8E6C9
+  rectangle "محرك الجدولة\nتراجع مع إرضاء القيود + جينية\nومدقق تعارضات مستقل" as ENGINE #C8E6C9
+  rectangle "المجدول وعمّال الطابور\nمهام دورية كل دقيقة" as JOBS #C8E6C9
+  rectangle "قاعدة البيانات\nMySQL / MariaDB\nUUID · utf8mb4" as DB #FFF59D
+  rectangle "تخزين الملفات والنسخ\nخاص · روابط موقّعة" as FILES #FFF59D
+}
+
+package "خدمة الذكاء الاصطناعي" {
+  rectangle "خدمة الذكاء الاصطناعي\nPython FastAPI\nالمساعد · RAG · التنبؤ" as AI #C8E6C9
+}
+
+package "خدمات خارجية" as EXT {
+  rectangle "Firebase Cloud Messaging\nإشعارات فورية" as FCM #E1BEE7
+  rectangle "خادم البريد SMTP\nرموز الاستعادة" as SMTP #E1BEE7
+  rectangle "تطبيقات التقويم\nاشتراك ics" as CAL #E1BEE7
+  rectangle "مزوّد النماذج اللغوية\nGemini · Claude · OpenAI · محلي" as LLM #E1BEE7
+  rectangle "بوابة الدفع\nWebhook موقّع" as PAY #E1BEE7
+  rectangle "أجهزة البصمة\nوالرسائل القصيرة" as DEV #E1BEE7
+}
+
+USERS --> SPA
+SPA --> WEB : HTTPS
+WEB --> API : REST
+API --> ENGINE : "طابور التوليد"
+JOBS --> ENGINE
+API --> DB : SQL
+ENGINE --> DB
+JOBS --> DB
+API --> FILES
+
+API --> FCM
+API --> SMTP
+CAL --> API : "رابط اشتراك"
+
+API <--> AI : "HMAC · أدوات قراءة"
+AI --> LLM
+PAY --> API
+DEV --> API
+
+FCM -[hidden]right- SMTP
+SMTP -[hidden]right- CAL
+CAL -[hidden]right- LLM
+LLM -[hidden]right- PAY
+PAY -[hidden]right- DEV
+@enduml

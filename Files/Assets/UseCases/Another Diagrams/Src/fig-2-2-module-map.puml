@@ -1,0 +1,66 @@
+@startuml fig-2-2-module-map
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam dpi 150
+skinparam defaultTextAlignment center
+skinparam ArrowColor #546E7A
+skinparam ArrowFontSize 11
+skinparam rectangle {
+  FontSize 13
+  BorderColor #546E7A
+}
+left to right direction
+
+rectangle "الذكاء الاصطناعي\nIntelligence" as AI #E1BEE7
+
+rectangle "القبول\nAdmission" as ADM #E3F2FD
+rectangle "سجلات الطلاب\nStudents" as STD #E3F2FD
+rectangle "الإرشاد\nAdvising" as ADV #E3F2FD
+rectangle "الخطط والمقررات\nCurriculum" as CUR #E3F2FD
+rectangle "الموارد\nResources" as RES #E3F2FD
+rectangle "الجدولة\nScheduling" as SCH #E3F2FD
+rectangle "تسجيل المقررات\nEnrollment" as ENR #E3F2FD
+rectangle "الحضور\nAttendance" as ATT #E3F2FD
+rectangle "التعلّم\nLearning" as LRN #E3F2FD
+rectangle "الامتحانات\nExams" as EXM #E3F2FD
+rectangle "الدرجات\nGrades" as GRD #E3F2FD
+rectangle "المالية\nFinance" as FIN #E3F2FD
+rectangle "المكتبة\nLibrary" as LIB #E3F2FD
+rectangle "شؤون الموظفين\nHR" as HR #E3F2FD
+rectangle "الطلبات الإلكترونية\nRequests" as REQ #E3F2FD
+rectangle "تقييم المقررات\nEvaluations" as EVL #E3F2FD
+
+rectangle "المنصة المشتركة: الهوية · النظام · الهيكل التنظيمي · التقويم\nIdentity · System · Organization · Calendar" as BASE #C8E6C9
+rectangle "التواصل (إشعارات)\nCommunication" as COM #FFF59D
+rectangle "التقارير والتحليلات\nReporting" as RPT #FFF59D
+
+ADM --> STD : قبول
+STD --> ADV : خطة ومرشد
+ADV --> ENR : تصريح
+CUR --> SCH
+RES --> SCH
+SCH --> ENR : نشر الجدول
+FIN --> ENR : عائق مالي
+ENR --> FIN : فاتورة
+SCH --> ATT : جلسات
+ATT --> EXM : حرمان
+ENR --> EXM : رسم التعارض
+EXM --> GRD
+LRN --> GRD : نتائج الكويز
+CUR --> GRD : سلّم الدرجات
+GRD --> STD : معدل ووضع
+STD --> ADV : إنذارات
+GRD --> FIN : مراجعة المنح
+GRD --> EVL : إطلاق النتائج
+HR --> SCH : بدلاء
+LIB --> FIN : غرامة
+REQ --> ENR : انسحاب
+REQ --> GRD
+REQ --> EXM
+SCH --> AI : تقرير التوليد
+AI --> SCH : تفرّغ وقيود
+AI --> ADV : خطر التعثّر
+BASE ..> COM
+COM ..> RPT
+@enduml

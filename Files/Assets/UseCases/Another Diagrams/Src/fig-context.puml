@@ -1,0 +1,46 @@
+@startuml fig-context
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam dpi 150
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam nodesep 28
+skinparam ranksep 110
+skinparam rectangle {
+  BorderColor #546E7A
+  FontSize 14
+}
+left to right direction
+
+rectangle "مدير النظام\nوالإدارة العليا" as A1 #BBDEFB
+rectangle "المنسق والشؤون الأكاديمية\nوشؤون الامتحانات" as A2 #BBDEFB
+rectangle "العمداء\nورؤساء الأقسام" as A3 #BBDEFB
+rectangle "أعضاء هيئة التدريس" as A4 #BBDEFB
+rectangle "الطلاب والمتقدّمون" as A5 #BBDEFB
+rectangle "موظفو الخدمات" as A6 #BBDEFB
+
+rectangle "OptiTime\n\nنظام جدولة الموارد\nوالعمليات التعليمية\nالمدعوم بالذكاء الاصطناعي" as SYS #A5D6A7
+
+rectangle "Firebase Cloud Messaging" as FCM #E1BEE7
+rectangle "خادم البريد SMTP" as SMTP #E1BEE7
+rectangle "تطبيقات التقويم" as CAL #E1BEE7
+rectangle "خدمة الذكاء الاصطناعي\nومزوّد النماذج اللغوية" as AI #E1BEE7
+rectangle "بوابة الدفع الإلكتروني" as PAY #E1BEE7
+rectangle "أجهزة البصمة\nومزوّد الرسائل القصيرة" as DEV #E1BEE7
+
+A1 <--> SYS : "إدارة النظام والأمن\nوالتقارير والمراقبة"
+A2 <--> SYS : "الطرح والجدولة والاعتماد\nوالدرجات والامتحانات"
+A3 <--> SYS : "مراجعة الجداول\nوالأحمال والطلبات"
+A4 <--> SYS : "التفرّغ والجدول\nوالطلبات"
+A5 <--> SYS : "الجدول والدرجات\nوالتسجيل والدفع"
+A6 <--> SYS : "مالية ومكتبة\nوموارد بشرية وقبول"
+
+SYS --> FCM : "إشعارات فورية"
+SYS --> SMTP : "رموز الاستعادة والبريد"
+SYS <-- CAL : "اشتراك ics"
+SYS <--> AI : "أسئلة وأدوات قراءة"
+SYS <-- PAY : "إشعار الدفع"
+SYS <-- DEV : "الدوام والرسائل"
+@enduml

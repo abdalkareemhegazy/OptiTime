@@ -1,0 +1,40 @@
+@startuml fig-semester-states
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 14
+skinparam dpi 150
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam state {
+  BackgroundColor #E3F2FD
+  BorderColor #546E7A
+  FontSize 14
+  StartColor #37474F
+  EndColor #37474F
+}
+hide empty description
+top to bottom direction
+
+state "التخطيط\nplanning" as S1
+state "الجدولة\nscheduling" as S2
+state "التسجيل\nregistration" as S3
+state "الدراسة\nin_progress" as S4
+state "الامتحانات\nexams" as S5
+state "رصد العلامات\ngrading" as S6
+state "الإغلاق\nclosed" as S7 #CFD8DC
+
+[*] --> S1
+S1 --> S2 : ملزم: طرح فعّال واحد على الأقل
+S2 --> S3 : ملزم: جدول منشور\nتنبيه: أقسام بلا محاضرات
+S3 --> S4 : تنبيه: قبل أول يوم دراسة
+S4 --> S5 : ملزم: أيام الامتحانات محددة
+S5 --> S6 : تنبيه: قبل نهاية الامتحانات
+S6 --> S7 : ملزم: لا كشف علامات مفتوح
+S7 --> S6 : رجوع بسبب مكتوب\nمن أي مرحلة إلى سابقتها
+
+note right of S7
+  لا يُعدَّل الفصل المغلق
+  قبل إعادة فتحه
+end note
+@enduml
