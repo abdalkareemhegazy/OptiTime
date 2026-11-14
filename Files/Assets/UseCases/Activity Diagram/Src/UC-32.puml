@@ -1,0 +1,87 @@
+@startuml UC-32
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-32 — عرض الجدول الأسبوعي
+
+|#F1F8FE|الطالب أو عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|الطالب أو عضو هيئة التدريس|
+start
+:فتح صفحة جدولي الأسبوعي
+من مجموعة مساحتي;
+|النظام|
+:التحقق من صلاحية عرض الجدول;
+if (لا يملك صلاحية العرض) then (نعم)
+  #FFEBEE:التحويل إلى صفحة لا صلاحية;
+  end
+else (لا)
+  repeat
+    :تحديد الفصل النشط وتحميل الجدول
+    المنشور لمحاضرات المستخدم;
+    if (تعذّر التحميل بسبب\nخطأ في الخادم) then (نعم)
+      #FFEBEE:رسالة تعذّر تحميل الجدول
+      مع زر إعادة المحاولة;
+    endif
+  repeat while (فشل التحميل) is (إعادة المحاولة) not (تم التحميل)
+  if (لا فصل نشط أو لم يُنشر الجدول\nأو لا محاضرات باسم المستخدم) then (نعم)
+    #FFEBEE:رسالة تبيّن السبب
+    لا يوجد فصل نشط أو لم يُنشر الجدول بعد
+    أو لا محاضرات باسمك;
+    end
+  else (لا)
+    :عرض الأرقام الإجمالية
+    والمحاضرة التالية;
+    :عرض الجدول الأسبوعي على شبكة الأيام
+    مع تعليم اليوم الحالي وتسمية العطلة;
+    note right
+      عند نشر نسخة جديدة أو نقل محاضرة
+      أو إلغاء موعدها يصل المستخدم
+      إشعار فوري ويتحدّث جدوله
+    end note
+  endif
+endif
+|الطالب أو عضو هيئة التدريس|
+:اختيار محاضرة;
+|النظام|
+:عرض المقرر والشعبة والمدرّس والقاعة
+واليوم والوقت وما طرأ على موعد بعينه
+من نقل أو إلغاء;
+|الطالب أو عضو هيئة التدريس|
+if (تنزيل ملف الجدول) then (نعم)
+  :الضغط على تنزيل ملف الجدول;
+  |النظام|
+  if (فشل إنشاء الملف أو تنزيله) then (نعم)
+    #FFEBEE:رسالة تعذّر تنزيل ملف الجدول;
+  else (لا)
+    :إنشاء ملف الجدول وتنزيله;
+  endif
+  |الطالب أو عضو هيئة التدريس|
+endif
+if (الاشتراك في التقويم) then (نعم)
+  #FFF3E0:اختيار اشترك أو نزّل من التقويم الأكاديمي
+  لتحديث الجدول تلقائياً في التقويم الشخصي;
+endif
+if (إجراء لعضو هيئة\nالتدريس على المحاضرة) then (نعم)
+  #FFF3E0:UC-33 تقديم طلب اعتذار أو تعويض|
+  #FFF3E0:UC-24 طلب موارد إضافية|
+endif
+stop
+@enduml

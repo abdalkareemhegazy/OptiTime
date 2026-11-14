@@ -1,0 +1,91 @@
+@startuml UC-31
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-31 — اعتماد الجدول ونشره
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|موظف الشؤون الأكاديمية|
+start
+:فتح صفحة اعتماد الجداول
+واختيار نسخة من قائمة بانتظار المراجعة;
+|النظام|
+:عرض محاضرات النسخة على الجدول الأسبوعي
+وقائمة التحقق والملاحظات ومسار النسخة;
+|موظف الشؤون الأكاديمية|
+:مراجعة المحاضرات ومقارنتها
+بالنسخة السارية عند الحاجة;
+if (قرار الموظف) then (اعتماد ثم نشر)
+  :الضغط على اعتماد;
+  |النظام|
+  :إعادة تشغيل قائمة التحقق;
+  if (تعارضات صلبة أو بنود\nلم تجتز القائمة) then (نعم)
+    #FFEBEE:رسالة في النسخة تعارضات صلبة
+    تمنع اعتمادها ويُرجعها الموظف
+    إلى المنسق بملاحظات;
+    end
+  else (لا)
+    :تحويل النسخة إلى معتمدة
+    وإشعار المنسق;
+  endif
+  |موظف الشؤون الأكاديمية|
+  :الضغط على نشر;
+  |النظام|
+  :التحقق من تعارض النسخة مع نسخة سارية
+  للمؤسسة كلها وإعادة فحص القائمة;
+  if (جدول الفصل منشور للمؤسسة كلها\nأو تعارضات صلبة) then (نعم)
+    #FFEBEE:رسالة تمنع النشر
+    مع بيان السبب والبنود المانعة;
+    end
+  else (لا)
+    :أرشفة النسخة التي حلّت محلها
+    ونشر هذه النسخة;
+    :توزيع الطلاب على محاضرات النسخة
+    وفحص المشكلات;
+    if (تعذّر توزيع الطلاب\nدون مشكلات) then (نعم)
+      #FFEBEE:التراجع عن العملية كلها
+      ورسالة تعذّر توزيع الطلاب
+      على النسخة ولم يُنشر شيء;
+      end
+    else (لا)
+      :ترحيل العلامات وكشوف العلامات
+      المقفلة والطلبات إلى المحاضرات المقابلة;
+      :تسجيل النشر في سجل النسخة
+      وإشعار المنسق والمدرّسين والطلاب;
+      #E8F5E9:رسالة نُشرت النسخة;
+    endif
+  endif
+else (إرجاع بملاحظات)
+  |موظف الشؤون الأكاديمية|
+  #FFF3E0:كتابة ملاحظة على محاضرة
+  ثم الضغط على إرجاع بملاحظات
+  وكتابة سبب الإرجاع;
+  |النظام|
+  if (سبب الإرجاع فارغ) then (نعم)
+    #FFEBEE:رسالة يُكتب سبب الإرجاع;
+    end
+  else (لا)
+    #FFF3E0:تحويل النسخة إلى مُرجَعة بملاحظات
+    وإشعار المنسق بالإرجاع;
+  endif
+endif
+stop
+@enduml

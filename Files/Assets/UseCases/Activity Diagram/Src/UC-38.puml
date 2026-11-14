@@ -1,0 +1,103 @@
+@startuml UC-38
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-38 — إنشاء نسخة احتياطية واستعادتها
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:فتح صفحة النسخ الاحتياطي
+من مجموعة النظام;
+repeat
+  :اختيار نوع النسخة
+  كاملة أو البيانات أو الملفات;
+  :الضغط على خذ نسخة الآن;
+  |النظام|
+  :إنشاء أرشيف الجداول والملفات المرفوعة
+  بحسب النوع مع توقيع للتحقق;
+  :تشفير الأرشيف وحفظه على الخادم;
+  :تسجيل العملية في سجل التدقيق;
+  if (تعذّر إكمال النسخة الاحتياطية) then (نعم)
+    #FFEBEE:رسالة تعذّر إكمال النسخة الاحتياطية
+    وتظهر النسخة بحالة فشلت;
+  else (لا)
+    #E8F5E9:عرض النسخة في القائمة بحالة اكتملت
+    مع حجمها وعدد جداولها وصفوفها;
+  endif
+  |مدير النظام|
+repeat while (لم تكتمل النسخة) is (نعم) not (لا)
+if (الحاجة إلى الاستعادة) then (نعم)
+  repeat
+    #FFF3E0:تفعيل وضع الصيانة
+    لإغلاق النظام أمام المستخدمين;
+    #FFF3E0:الضغط على استعادة
+    أمام النسخة المطلوبة;
+    |النظام|
+    #FFF3E0:عرض نافذة استعادة نسخة
+    الحالة التي سيعود إليها النظام
+    وأن ما تغيّر بعدها يُفقد
+    وأن نسخة أمان تُؤخذ أولاً;
+    |مدير النظام|
+    #FFF3E0:كتابة ملاحظة اختيارية وتأكيد فهم
+    فقدان التغييرات ثم الضغط على استعادة;
+    |النظام|
+    #FFF3E0:طلب تأكيد هوية المدير
+    بكلمة المرور أو رمز التحقق الثنائي;
+    |مدير النظام|
+    #FFF3E0:تأكيد الهوية;
+    |النظام|
+    :التحقق من التأكيد ومن تفعيل وضع الصيانة
+    ومن أن النسخة محفوظة وسليمة;
+    if (التأكيد غير صحيح\nأو أُلغي) then (نعم)
+      #FFEBEE:رسالة التأكيد غير صحيح
+      ولا تبدأ الاستعادة;
+    elseif (النظام غير مغلق\nللصيانة) then (نعم)
+      #FFEBEE:رسالة يجب تفعيل وضع الصيانة
+      قبل الاستعادة;
+    elseif (النسخة غير محفوظة\nأو ملفها تالف) then (نعم)
+      #FFEBEE:رسالة هذه النسخة لم تعد محفوظة
+      على الخادم أو ملف النسخة تالف;
+    else (لا)
+      :أخذ نسخة أمان
+      من الحالة الحالية;
+      :إفراغ الجداول وإعادة ملئها من النسخة
+      عدا سجل التدقيق وجلسات الأجهزة
+      وسجل النسخ والاستعادات;
+      if (لم تكتمل الاستعادة) then (نعم)
+        #FFEBEE:رسالة لم تكتمل الاستعادة
+        أُخذت نسخة أمان قبل بدئها;
+      else (لا)
+        :تسجيل الاستعادة في سجل الاستعادات
+        وفي سجل التدقيق;
+        #E8F5E9:رسالة اكتملت الاستعادة
+        راجع النظام ثم أعد فتحه;
+        note right
+          يبقى النظام مغلقاً للصيانة
+          حتى يعيد المدير فتحه
+        end note
+      endif
+    endif
+    |مدير النظام|
+  repeat while (لم تكتمل الاستعادة) is (نعم) not (لا)
+endif
+stop
+@enduml

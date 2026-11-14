@@ -1,0 +1,70 @@
+@startuml UC-54
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-54 — تحديد المتطلبات السابقة والمعادلات
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:فتح قسم المتطلبات في نموذج المقرر;
+|النظام|
+:عرض المجموعات الحالية والمعادلات;
+|المستخدم|
+repeat
+  :إضافة مجموعات سابقة ببدائلها وأدنى تقدير
+  ومتطلبات متزامنة ثم حفظ;
+  |النظام|
+  :وسم المقررات التي لا تصلح مع السبب;
+  if (المقرر يتطلب نفسه أو مكرر\nأو مؤرشف أو معادل) then (نعم)
+    #FFEBEE:رسالة تبيّن سبب الرفض;
+  elseif (أدنى تقدير خارج السلّم\nأو متطلبات فوق الحد) then (نعم)
+    #FFEBEE:رسالة تبيّن الحد المسموح;
+  else (لا)
+    :كشف الحلقات في الكتالوج كله;
+    if (المتطلبات تُغلق حلقة) then (نعم)
+      #FFEBEE:رسالة المقررات في حلقة
+      ولم يُحفظ شيء;
+    else (لا)
+      :حفظ المجموعات كاملة
+      وتسجيلها في سجل التدقيق;
+    endif
+  endif
+  |المستخدم|
+repeat while (لم تُحفظ المتطلبات) is (نعم) not (لا)
+repeat
+  :إضافة المقررات المعادلة ثم حفظ;
+  |النظام|
+  if (يعادل نفسه أو مقرراً يتطلبه\nأو مقرراً خارج النطاق) then (نعم)
+    #FFEBEE:رسالة تبيّن سبب الرفض;
+  else (لا)
+    #E8F5E9:حفظ المعادلات ثنائية الاتجاه;
+  endif
+  |المستخدم|
+repeat while (لم تُحفظ المعادلات) is (نعم) not (لا)
+if (فتح خريطة المتطلبات) then (نعم)
+  |النظام|
+  #FFF3E0:عرض المقررات بعمقها والحواف
+  وقسم الحلقات إن وُجدت;
+else (لا)
+endif
+stop
+@enduml

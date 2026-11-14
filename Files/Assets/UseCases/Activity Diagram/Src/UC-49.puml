@@ -1,0 +1,70 @@
+@startuml UC-49
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-49 — إدارة الكليات والأقسام وقياداتها
+
+|#F1F8FE|مدير النظام أو العميد|
+|#F3FAF3|النظام|
+|مدير النظام أو العميد|
+start
+:فتح الهيكل التنظيمي;
+|النظام|
+:عرض الكليات والأقسام وقادتها;
+|مدير النظام أو العميد|
+repeat
+  :كلية جديدة أو قسم جديد أو تعديل بطاقة
+  وإدخال البيانات ثم حفظ;
+  |النظام|
+  if (حقل ناقص أو رمز غير صحيح\nأو قيمة خارج الحدود) then (نعم)
+    #FFEBEE:رسالة تحت الحقل;
+  elseif (الرمز مستخدم) then (نعم)
+    #FFEBEE:رسالة هذا الرمز مستخدم
+    لكلية أو قسم آخر;
+  else (لا)
+    :حفظ الوحدة وتسجيلها في سجل التدقيق;
+    #E8F5E9:رسالة تمت الإضافة;
+  endif
+  |مدير النظام أو العميد|
+repeat while (لم تُحفظ الوحدة) is (نعم) not (لا)
+repeat
+  :تسمية عميد أو رئيس قسم
+  واختيار الشخص وتاريخ التكليف ثم تأكيد;
+  |النظام|
+  :طلب تأكيد الهوية إن لم تكن حديثة;
+  if (التأكيد غير صحيح) then (نعم)
+    #FFEBEE:رسالة تسمية القائد تحتاج
+    إلى تأكيد هويتك;
+  elseif (المسمّى غير مؤهل\nأو التاريخ ليس بعد اليوم) then (نعم)
+    #FFEBEE:رسالة تبيّن سبب الرفض;
+  elseif (الوحدة خارج النطاق) then (نعم)
+    #FFEBEE:رسالة دورك لا يسمح بهذا الإجراء;
+    end
+  else (لا)
+    :سحب دور القيادة من السلف في الوحدة
+    وإسناده إلى المسمّى بنطاقها;
+    :تسجيل التعيين في سجل التعيينات
+    وسجل التدقيق;
+    #E8F5E9:رسالة سُمّي الشخص للمنصب;
+  endif
+  |مدير النظام أو العميد|
+repeat while (لم تتم التسمية) is (نعم) not (لا)
+stop
+@enduml

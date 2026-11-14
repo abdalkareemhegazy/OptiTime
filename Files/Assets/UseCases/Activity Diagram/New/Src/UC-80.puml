@@ -1,0 +1,38 @@
+@startuml UC-80
+skinparam dpi 150
+' ===== النمط الموحّد =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-80 — الإدخال المزدوج واعتماد الكشوف ونشرها\n<size:13><color:#455A64>الفاعل: موظف شؤون الامتحانات</color></size>
+
+start
+repeat :يفتح كشفاً راجعه القسم;
+  :يُدخل علامة الامتحان النهائي لكل طالب
+  أو يستورد ملف التحقق;
+  :يطّلع على الفروقات
+  بين إدخاله وإدخال المدرّس;
+  while (هل بقي فرق غير محلول؟) is (نعم)
+    :يختار العلامة الصحيحة
+    ويكتب ملاحظة;
+  endwhile (لا)
+  :يعتمد الكشف;
+repeat while (هل بقيت كشوف لم تُعتمد؟) is (نعم) not (لا)
+:يختار الكشوف المعتمدة
+لقسم أو كلية;
+:يضغط نشر
+ويؤكد هويته;
+stop
+@enduml

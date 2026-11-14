@@ -1,0 +1,65 @@
+@startuml UC-75
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-75 — إنشاء كويز ونشره
+
+|#F1F8FE|عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|عضو هيئة التدريس|
+start
+:إنشاء بنك أسئلة أو فتح بنك قائم;
+repeat
+  :إضافة الأسئلة بأنواعها وإجاباتها ودرجاتها
+  أو استيرادها من ملف;
+  |النظام|
+  if (سؤال ناقص أو ملف غير صالح) then (نعم)
+    #FFEBEE:رسالة مع وسم الأسئلة;
+  else (لا)
+    :حفظ الأسئلة;
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم تُحفظ الأسئلة) is (نعم) not (لا)
+repeat
+  :إنشاء كويز بأسئلة من البنك ودرجاتها
+  والمواعيد والمدة والمحاولات والسياسة;
+  :الضغط على نشر;
+  |النظام|
+  if (بلا أسئلة أو مواعيد غير صحيحة) then (نعم)
+    #FFEBEE:رسالة تبيّن النقص;
+  else (لا)
+    :نشر الكويز وإشعار الطلاب عند فتحه;
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم يُنشر الكويز) is (نعم) not (لا)
+:تصحيح الإجابات المقالية بعد الإغلاق;
+|النظام|
+:إعادة حساب درجات المحاولات;
+|عضو هيئة التدريس|
+:ترحيل الدرجات إلى دفتر الدرجات;
+|النظام|
+if (لا مكوّن مرتبط\nأو الكشف لا يُعدَّل) then (نعم)
+  #FFEBEE:رسالة لا يمكن تعديل الكشف
+  في مرحلته الحالية;
+else (لا)
+  #E8F5E9:نقل الدرجات إلى مكوّن التقييم;
+endif
+stop
+@enduml

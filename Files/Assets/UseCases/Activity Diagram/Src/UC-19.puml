@@ -1,0 +1,71 @@
+@startuml UC-19
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-19 — تحديد سعة الامتحان
+
+|#F1F8FE|منسق الجداول والموارد|
+|#F3FAF3|النظام|
+|منسق الجداول والموارد|
+start
+:فتح قسم المقاعد في نموذج القاعة;
+|النظام|
+:عرض حقل عدد المقاعد وحقل مقاعد الامتحان
+بقيمته الافتراضية نصف المقاعد
+وكلها في قاعة الامتحانات;
+note right
+  ترك الحقل فارغاً يعتمد القيمة الافتراضية
+  نصف مقاعد التدريس
+  وكلها في قاعة الامتحانات
+end note
+|منسق الجداول والموارد|
+repeat
+  :إدخال عدد مقاعد الامتحان;
+  if (تحديد خريطة المقاعد) then (نعم)
+    #FFF3E0:إدخال عدد الصفوف
+    وعدد المقاعد في الصف;
+    |النظام|
+    #FFF3E0:حساب مقاعد الخريطة وعرضها
+    مع مقاعد الامتحان
+    ورسم الخريطة أثناء الكتابة;
+    |منسق الجداول والموارد|
+  endif
+  :حفظ نموذج القاعة;
+  |النظام|
+  :مقارنة مقاعد الامتحان بمقاعد القاعة
+  وفحص اكتمال خريطة المقاعد;
+  if (مقاعد الامتحان أكثر\nمن مقاعد القاعة) then (نعم)
+    #FFEBEE:رسالة لا تكون مقاعد الامتحان
+    أكثر من مقاعد القاعة;
+  elseif (الخريطة ناقصة أو لا تتسع\nللامتحان أو خارج المجال) then (نعم)
+    #FFEBEE:رسالة أعطِ الصفوف والمقاعد
+    في الصف معاً أو الخريطة لا تتسع
+    للامتحان أو الأبعاد خارج المجال;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ القاعة;
+  else (لا)
+    :حفظ مقاعد الامتحان وخريطتها
+    مع بيانات القاعة;
+    #E8F5E9:رسالة حُفظت القاعة مع رمزها;
+  endif
+  |منسق الجداول والموارد|
+repeat while (لم تُحفظ القاعة) is (نعم) not (لا)
+stop
+@enduml

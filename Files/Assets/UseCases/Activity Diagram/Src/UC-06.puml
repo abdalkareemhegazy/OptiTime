@@ -1,0 +1,73 @@
+@startuml UC-06
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-06 — التحقق الثنائي برمز التحقق
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة المصادقة|
+|المستخدم|
+start
+:قراءة الرمز المكوّن من 6 أرقام
+من رسالة البريد الإلكتروني;
+repeat
+  :إدخال الرمز في حقل رمز التحقق
+  ثم الضغط على متابعة;
+  |النظام|
+  :التحقق من أن الرمز مكوّن من 6 أرقام;
+  if (الحقل فارغ أو الرمز\nليس من 6 أرقام) then (نعم)
+    #FFEBEE:رسالة يجب أن يكون رمز التحقق
+    مكوناً من 6 أرقام;
+  endif
+  |المستخدم|
+repeat while (صيغة الرمز غير صحيحة) is (نعم) not (لا)
+|النظام|
+:حفظ الرمز وفتح خطوة كلمة مرور جديدة;
+repeat
+  |المستخدم|
+  :UC-07 تغيير كلمة المرور|
+  |النظام|
+  :إرسال البريد والرمز وكلمة المرور الجديدة
+  إلى خدمة المصادقة;
+  |خدمة المصادقة|
+  if (لا رمز صادر\nأو انتهت صلاحيته) then (نعم)
+    #FFEBEE:رفض الطلب برسالة انتهاء الصلاحية
+    وطلب رمز جديد;
+    end
+  elseif (بلغت المحاولات الخاطئة\nخمس محاولات) then (نعم)
+    #FFEBEE:حذف الرمز ورفض الطلب
+    برسالة تجاوز المحاولات;
+    end
+  elseif (الرمز لا يطابق\nالرمز المخزّن) then (نعم)
+    #FFEBEE:زيادة عدّاد المحاولات الخاطئة
+    ورفض الطلب برسالة الرمز غير صحيح;
+  else (لا)
+    :اعتماد الرمز وحذفه
+    حتى لا يُستخدم مرة أخرى;
+  endif
+  |المستخدم|
+repeat while (الرمز غير مطابق) is (نعم) not (لا)
+|النظام|
+:إتمام تغيير كلمة المرور
+وإنهاء جلسات الحساب;
+#E8F5E9:رسالة تمت إعادة تعيين كلمة المرور بنجاح;
+stop
+@enduml

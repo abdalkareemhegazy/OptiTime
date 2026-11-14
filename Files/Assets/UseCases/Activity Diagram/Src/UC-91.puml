@@ -1,0 +1,60 @@
+@startuml UC-91
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-91 — مراجعة الخطة الفصلية ومنح تصريح التسجيل
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|#FFFBF0|المرشد الأكاديمي|
+|الطالب|
+start
+:فتح خطتي للفصل;
+|النظام|
+:اقتراح خطة من الخطة والمتطلبات المستوفاة
+والمطروح مع أولوية الراسبة;
+|الطالب|
+repeat
+  :تعديل الخطة ثم التقديم للمرشد;
+  |النظام|
+  if (نافذة الإرشاد مغلقة) then (نعم)
+    #FFEBEE:رسالة الفترة المخصصة مغلقة;
+    end
+  elseif (الخطة تتجاوز حد الساعات) then (نعم)
+    #FFEBEE:رسالة يتجاوز الحد الأعلى لساعاتك;
+  else (لا)
+    :حفظ الخطة مقدّمة وإشعار المرشد;
+  endif
+  |الطالب|
+repeat while (لم تُقدَّم الخطة) is (نعم) not (لا)
+|المرشد الأكاديمي|
+:فتح الخطة مع التدقيق ومؤشرات الخطر;
+:منح التصريح أو الإعادة بملاحظات;
+|النظام|
+if (خارج نطاقه أو لم تعد\nبانتظار المراجعة) then (نعم)
+  #FFEBEE:رسالة تبيّن السبب;
+elseif (القرار) then (إعادة)
+  #FFF3E0:إعادة الخطة بالملاحظات وإشعار الطالب;
+else (منح)
+  :تسجيل التصريح ليستعمله خط التحقق;
+  #E8F5E9:إشعار الطالب بالتصريح;
+endif
+stop
+@enduml

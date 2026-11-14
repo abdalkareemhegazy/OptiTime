@@ -1,0 +1,64 @@
+@startuml UC-64
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-64 — عرض التدقيق الأكاديمي
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+if (من يفتح التدقيق) then (الطالب لنفسه)
+  :فتح خطتي وتقدّمي;
+else (المرشد أو الموظف)
+  :فتح ملف الطالب ثم التدقيق الأكاديمي;
+endif
+|النظام|
+if (يحق للمستخدم الاطلاع\nعلى الطالب) then (لا)
+  #FFEBEE:رسالة هذا خارج نطاق دورك;
+  end
+else (نعم)
+endif
+:تحديد الخطة السارية لبرنامجه وسنة قبوله;
+if (توجد خطة سارية) then (لا)
+  #FFEBEE:بيان أنه لا خطة سارية;
+  end
+else (نعم)
+endif
+repeat
+  :مقابلة المقررات الناجحة والمعادلة والجارية
+  بمجموعات الخطة;
+  if (تعذّر التحميل) then (نعم)
+    #FFEBEE:رسالة تعذّر الوصول إلى الخادم
+    مع زر إعادة المحاولة;
+  endif
+repeat while (أعاد المستخدم المحاولة) is (نعم) not (لا)
+:عرض كل مجموعة بحدها وما أُنجز
+وما يجري وما بقي;
+:عرض الساعات المنجزة والمعدل ونسبة الإنجاز;
+|المستخدم|
+:فتح مجموعة لعرض مقرراتها المتبقية;
+if (تنزيل التدقيق) then (نعم)
+  |النظام|
+  #FFF3E0:إنشاء ملف التدقيق وتنزيله;
+else (لا)
+endif
+stop
+@enduml

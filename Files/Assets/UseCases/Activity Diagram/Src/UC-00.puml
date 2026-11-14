@@ -1,0 +1,54 @@
+@startuml UC-00
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title دليل قراءة مخططات النشاط
+
+|#F1F8FE|الفاعل|
+|#F3FAF3|النظام|
+|#FFFBF0|فاعل أو خدمة أخرى|
+|الفاعل|
+start
+:نشاط يقوم به الفاعل;
+|النظام|
+:نشاط يقوم به النظام;
+if (شرط أو قرار) then (نعم)
+  #E8F5E9:نتيجة ناجحة;
+elseif (استثناء من السيناريو) then (نعم)
+  #FFEBEE:رسالة خطأ أو حالة استثناء;
+else (لا)
+  #FFF3E0:مسار بديل أو اختياري;
+endif
+|الفاعل|
+repeat
+  :تكرار حتى يتحقق شرط;
+repeat while (شرط العودة) is (نعم) not (لا)
+|فاعل أو خدمة أخرى|
+:حالة استخدام أخرى|
+note right
+  ملاحظة توضيحية
+end note
+|النظام|
+if (مسار ينقطع عند استثناء) then (نعم)
+  end
+else (لا)
+  stop
+endif
+@enduml

@@ -1,0 +1,68 @@
+@startuml UC-73
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-73 — متابعة الغياب واعتماد الحرمان
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|النظام|
+start
+:إعادة حساب نسبة الغياب بعد كل حفظ للحضور;
+if (بلغت النسبة عتبة إنذار) then (نعم)
+  :إطلاق الإنذار وإشعار الطالب;
+else (لا)
+endif
+|موظف الشؤون الأكاديمية|
+:فتح الحرمان واختيار الفصل;
+|النظام|
+:إعداد القوائم المبدئية
+لمن تجاوز عتبة الحرمان;
+if (توجد قوائم) then (لا)
+  #FFEBEE:بيان خلو القوائم;
+  end
+else (نعم)
+endif
+|موظف الشؤون الأكاديمية|
+repeat
+  :مراجعة القوائم واستبعاد أصحاب الأعذار
+  ثم اعتماد الحرمان والتأكيد;
+  |النظام|
+  if (المرحلة لا تسمح بالاعتماد) then (نعم)
+    #FFEBEE:رسالة هذا الانتقال غير مسموح;
+    end
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر الوصول إلى الخادم
+    دون اعتماد أي جزء;
+  else (لا)
+    :رصد رمز الحرمان للمحرومين
+    واستبعادهم من مقاعد الامتحان;
+    :تسجيل الاعتماد وإشعار المحرومين ومدرّسيهم;
+    #E8F5E9:تأكيد الاعتماد;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم يُعتمد الحرمان) is (نعم) not (لا)
+if (رفع الحرمان بعذر موثّق) then (نعم)
+  |النظام|
+  #FFF3E0:حذف الرمز وإعادة الطالب إلى الامتحان;
+else (لا)
+endif
+stop
+@enduml

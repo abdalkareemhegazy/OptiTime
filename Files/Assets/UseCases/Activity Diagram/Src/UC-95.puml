@@ -1,0 +1,63 @@
+@startuml UC-95
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-95 — تسجيل دفعة في الصندوق
+
+|#F1F8FE|الموظف المالي|
+|#F3FAF3|النظام|
+|الموظف المالي|
+start
+repeat
+  :البحث عن الطالب برقمه الجامعي;
+  |النظام|
+  if (لا طالب بهذا الرقم) then (نعم)
+    #FFEBEE:بيان أنه لا طالب بهذا الرقم;
+  else (لا)
+    :عرض الفواتير المستحقة والرصيد;
+  endif
+  |الموظف المالي|
+repeat while (لم يُعثر على الطالب) is (نعم) not (لا)
+repeat
+  :المبلغ والطريقة والمرجع والفواتير
+  ثم تسجيل الدفعة;
+  |النظام|
+  if (مبلغ غير صالح أو بيانات ناقصة) then (نعم)
+    #FFEBEE:رسالة تبيّن الخطأ;
+  elseif (فاتورة مدفوعة أو ملغاة) then (نعم)
+    #FFEBEE:رسالة الفاتورة مدفوعة أو ملغاة;
+  else (لا)
+    :تسجيل الدفعة وتطبيقها وقيدها;
+    :طباعة الإيصال;
+    if (سُدّد المستحق بالكامل) then (نعم)
+      :رفع العائق المالي وإشعار الطالب;
+    endif
+    #E8F5E9:اكتمال تسجيل الدفعة;
+  endif
+  |الموظف المالي|
+repeat while (لم تُسجَّل الدفعة) is (نعم) not (لا)
+if (عكس دفعة خاطئة) then (نعم)
+  #FFF3E0:العكس بسبب بعد تأكيد الهوية;
+  |النظام|
+  #FFF3E0:قيد عكسي وإعادة المستحق;
+else (لا)
+endif
+stop
+@enduml

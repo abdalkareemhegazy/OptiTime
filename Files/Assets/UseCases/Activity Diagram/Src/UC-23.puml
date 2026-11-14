@@ -1,0 +1,71 @@
+@startuml UC-23
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-23 — عرض الموارد
+
+|#F1F8FE|عضو هيئة التدريس أو الموظف|
+|#F3FAF3|النظام|
+|عضو هيئة التدريس أو الموظف|
+start
+:فتح صفحة حجوزاتي للقاعات
+والانتقال إلى ابحث عن قاعة;
+|النظام|
+:عرض نموذج البحث عن قاعة شاغرة;
+|عضو هيئة التدريس أو الموظف|
+repeat
+  :اختيار التاريخ ووقتي البدء والانتهاء;
+  :إدخال عدد الحضور واختيار نوع القاعة;
+  if (تحديد الميزات أو المبنى\nأو حصر النتائج في الحجز الفوري) then (نعم)
+    #FFF3E0:تحديد الميزات المطلوبة والمبنى;
+  endif
+  |النظام|
+  :التحقق من صحة التاريخ والوقت وعدد الحضور;
+  if (تاريخ مضى أو وقت\nانتهاء لا يلي البدء\nأو عدد حضور غير صحيح) then (نعم)
+    #FFEBEE:رسالة الخطأ المناسبة
+    والعودة إلى معايير البحث;
+  elseif (تعذّر البحث) then (نعم)
+    #FFEBEE:رسالة تعذّر البحث حاول مجدداً;
+  else (لا)
+    :البحث عن القاعات التي في الخدمة
+    وتتسع للحضور ولا تشغلها محاضرة
+    أو حجز أو صيانة;
+    if (لا توجد قاعة شاغرة) then (نعم)
+      #FFEBEE:رسالة لا قاعة شاغرة في هذا الوقت
+      جرّب وقتاً آخر أو عدداً أقل من الحضور;
+    else (لا)
+      :عرض القاعات الشاغرة مرتبة
+      ما يُحجز فوراً أولاً ثم الأصغر المناسبة;
+    endif
+  endif
+  |عضو هيئة التدريس أو الموظف|
+repeat while (لم تظهر قاعات شاغرة) is (نعم) not (لا)
+:فتح قاعة لعرض يومها كاملاً;
+|النظام|
+:عرض شريط اليوم للقاعة
+محاضرات وحجوزات وصيانة وأوقات شاغرة;
+|عضو هيئة التدريس أو الموظف|
+if (الإجراء التالي) then (حجز القاعة)
+  #FFF3E0:UC-26 حجز قاعة دراسية|
+else (طلب مورد إضافي)
+  #FFF3E0:UC-24 طلب موارد إضافية|
+endif
+stop
+@enduml

@@ -1,0 +1,63 @@
+@startuml UC-65
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-65 — ترشيح المتخرجين واعتماد دفعة التخرج
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|موظف الشؤون الأكاديمية|
+start
+:فتح مرشحو التخرج واختيار الفصل;
+|النظام|
+if (درجات الفصل منشورة) then (لا)
+  #FFEBEE:بيان أن الدرجات لم تُنشر بعد;
+  end
+else (نعم)
+endif
+:UC-64 عرض التدقيق الأكاديمي لكل مرشح|
+if (يوجد مستوفون) then (لا)
+  #FFEBEE:بيان أنه لا مرشحين مستوفين;
+  end
+else (نعم)
+endif
+:عرض المستوفين بتقديرهم ومرتبة شرفهم
+والعوائق المانعة;
+|موظف الشؤون الأكاديمية|
+repeat
+  :مراجعة مرشح والضغط على اعتماد;
+  |النظام|
+  if (على المرشح عائق يمنع التخرج) then (نعم)
+    #FFEBEE:رفض اعتماده مع بيان العائق;
+  else (لا)
+    :تعليم المرشح معتمداً;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (مرشح آخر) is (نعم) not (لا)
+:اعتماد الدفعة ثم التأكيد;
+|النظام|
+:إعادة التحقق من كل معتمد
+وإخراج من تغيّر وضعه مع السبب;
+:تحويل الحالة إلى متخرج وحفظ التقدير
+ومرتبة الشرف وسنة التخرج;
+:تسجيل الاعتماد وإشعار المتخرجين;
+#E8F5E9:رسالة اعتماد الدفعة وعدد المتخرجين;
+stop
+@enduml

@@ -1,0 +1,67 @@
+@startuml UC-99
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-99 — إدارة ملفات الموظفين وعقودهم
+
+|#F1F8FE|موظف شؤون الموظفين|
+|#F3FAF3|النظام|
+|#FFFBF0|جهاز البصمة|
+|#FBF4FC|الموظف|
+|موظف شؤون الموظفين|
+start
+repeat
+  :بيانات الموظف ووظيفته ووحدته
+  وراتبه وحسابه البنكي وحسابه;
+  |النظام|
+  if (بيانات ناقصة أو حساب\nمرتبط بموظف آخر) then (نعم)
+    #FFEBEE:رسالة بعض البيانات المدخلة غير صالحة;
+  else (لا)
+    :حفظ الملف مع قصر الراتب
+    والحساب البنكي على شؤون الموظفين;
+  endif
+  |موظف شؤون الموظفين|
+repeat while (لم يُحفظ الملف) is (نعم) not (لا)
+repeat
+  :نوع العقد وتاريخا بدئه وانتهائه;
+  |النظام|
+  if (الانتهاء قبل البدء\nأو تداخل مع عقد قائم) then (نعم)
+    #FFEBEE:بيان الخطأ;
+  else (لا)
+    :حفظ العقد وجدولة التنبيه قبل انتهائه;
+  endif
+  |موظف شؤون الموظفين|
+repeat while (لم يُحفظ العقد) is (نعم) not (لا)
+|جهاز البصمة|
+:إرسال بصمات الحضور والانصراف
+بمفتاح الجهاز;
+|النظام|
+if (مفتاح غير صالح\nأو خارج نطاقه) then (نعم)
+  #FFEBEE:رفض الإرسال دون تسجيل أي بصمة;
+  end
+else (لا)
+endif
+:تسجيل البصمات وحساب دوام كل يوم;
+|الموظف|
+:فتح ملفي الوظيفي ودوامي;
+|النظام|
+#E8F5E9:عرض الملف والعقد والدوام الشهري;
+stop
+@enduml

@@ -1,0 +1,68 @@
+@startuml UC-94
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-94 — عرض الرصيد والدفع الإلكتروني
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|#FFFBF0|بوابة الدفع|
+|الطالب|
+start
+:فتح الرصيد;
+|النظام|
+:عرض الرصيد والفواتير والحركات;
+|الطالب|
+repeat
+  :ادفع الآن لفاتورة بمبلغ محدد;
+  |النظام|
+  if (الفاتورة غير قابلة للدفع\nأو المبلغ غير صالح) then (نعم)
+    #FFEBEE:رسالة تبيّن السبب;
+  else (لا)
+    :إنشاء معاملة معرّفة بمفتاح تكرار
+    والتحويل إلى البوابة;
+    |بوابة الدفع|
+    :إتمام الدفع أو إلغاؤه;
+    if (فشل الدفع) then (نعم)
+      |النظام|
+      #FFEBEE:رسالة أعادت بوابة الدفع خطأً;
+    else (لا)
+      |بوابة الدفع|
+      :إرسال إشعار الدفع الموقّع;
+    endif
+  endif
+  |الطالب|
+repeat while (لم يتم الدفع) is (نعم) not (لا)
+|النظام|
+:التحقق من التوقيع والنافذة الزمنية;
+if (توقيع غير صالح) then (نعم)
+  #FFEBEE:رفض الإشعار وتسجيله للتدقيق;
+  end
+elseif (معالج سابقاً) then (نعم)
+  #FFF3E0:تجاهل التكرار دون أثر مضاعف;
+else (لا)
+  :تسجيل الدفعة وتطبيقها وقيدها;
+  if (سُدّد المستحق بالكامل) then (نعم)
+    :رفع العائق المالي تلقائياً;
+  endif
+  #E8F5E9:إصدار الإيصال وإشعار الطالب;
+endif
+stop
+@enduml

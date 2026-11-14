@@ -1,0 +1,86 @@
+@startuml UC-41
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-41 — ضبط إعدادات النظام ووضع الصيانة
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:اختيار مجموعة من أقسام الإعدادات;
+|النظام|
+:عرض المفاتيح بقيمها وحدودها
+ووسم ما خالف الافتراضي;
+|مدير النظام|
+repeat
+  :تعديل القيم المطلوبة;
+  |النظام|
+  :فحص كل قيمة بنوعها وحدودها;
+  if (قيمة خاطئة أو خارج الحدود) then (نعم)
+    #FFEBEE:رسالة تحت المفتاح
+    مثل لا يقل عن الحد الأدنى;
+  else (لا)
+    |مدير النظام|
+    :الضغط على حفظ;
+    |النظام|
+    if (مجموعة الأمان أو النسخ\nالاحتياطي دون تأكيد حديث) then (نعم)
+      :طلب تأكيد الهوية;
+      |مدير النظام|
+      :تأكيد الهوية;
+      |النظام|
+    endif
+    if (التأكيد غير صحيح) then (نعم)
+      #FFEBEE:رسالة التأكيد غير صحيح;
+    elseif (رفض الخادم قيمة) then (نعم)
+      #FFEBEE:رسالة بعض البيانات غير صالحة;
+    else (لا)
+      :حفظ القيم وتسجيل التغيير
+      في سجل التدقيق;
+      #E8F5E9:رسالة حُفظت إعدادات المجموعة;
+    endif
+  endif
+  |مدير النظام|
+repeat while (لم تُحفظ القيم) is (نعم) not (لا)
+if (ضبط وضع الصيانة) then (نعم)
+  repeat
+    :اختيار مغلق الآن أو موعد معلن
+    مع المواعيد والرسالة باللغتين;
+    |النظام|
+    :طلب تأكيد الهوية إن لم تكن حديثة;
+    :التحقق من التأكيد والمواعيد;
+    if (التأكيد غير صحيح) then (نعم)
+      #FFEBEE:رسالة التأكيد غير صحيح;
+    elseif (موعد ناقص أو عودة\nفي الماضي أو قبل البدء) then (نعم)
+      #FFEBEE:رسالة تبيّن خطأ الموعد;
+    else (لا)
+      :حفظ حالة الصيانة
+      وتسجيلها في سجل التدقيق;
+      :إغلاق النظام أمام غير المصرّح لهم
+      وعرض صفحة الصيانة لهم;
+      #E8F5E9:رسالة أُغلق النظام للصيانة
+      أو أُعلن موعد الصيانة;
+    endif
+    |مدير النظام|
+  repeat while (لم تُحفظ الحالة) is (نعم) not (لا)
+else (لا)
+endif
+stop
+@enduml

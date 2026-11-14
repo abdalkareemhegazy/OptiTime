@@ -1,0 +1,65 @@
+@startuml UC-111
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-111 — استخراج بيانات المقررات من ملف
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة الذكاء|
+|النظام|
+start
+if (الميزة متاحة والخدمة تعمل) then (لا)
+  #FFEBEE:بيان أن الاستخراج غير متاح
+  مع إبقاء الاستيراد العادي;
+  end
+else (نعم)
+endif
+|موظف الشؤون الأكاديمية|
+repeat
+  :الضغط على استخراج من ملف
+  واختيار ملف الخطة أو التوصيف;
+  |النظام|
+  if (الملف مرفوض أو بلا نص) then (نعم)
+    #FFEBEE:رسالة رُفض الملف مع السبب;
+  else (لا)
+    |خدمة الذكاء|
+    :استخراج المقررات بمخرجات مهيكلة
+    بالرمز والاسم والساعات والمتطلبات;
+    |النظام|
+    if (لم يُستخرج أي مقرر) then (نعم)
+      #FFEBEE:بيان أنه لم يجد مقررات;
+    else (لا)
+      :عرض جدول المعاينة بوسم كل صف;
+    endif
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لا صفوف للمعاينة) is (نعم) not (لا)
+:تصحيح الصفوف وحذف ما لا يريده
+ثم الضغط على استيراد;
+|النظام|
+:UC-43 استيراد البيانات من ملف|
+if (بقيت صفوف فيها أخطاء) then (نعم)
+  #FFF3E0:استيراد الصالحة وإظهار أخطاء الباقي;
+else (لا)
+  #E8F5E9:استيراد كل الصفوف وإظهار الملخص;
+endif
+stop
+@enduml

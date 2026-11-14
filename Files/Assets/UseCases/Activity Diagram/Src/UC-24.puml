@@ -1,0 +1,79 @@
+@startuml UC-24
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-24 — طلب موارد إضافية
+
+|#F1F8FE|عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|#FFFBF0|منسق الجداول والموارد|
+|عضو هيئة التدريس|
+start
+:الضغط على طلب جديد
+أو على طلب مورد من تفاصيل المحاضرة;
+|النظام|
+:عرض نموذج طلب مورد;
+|عضو هيئة التدريس|
+repeat
+  :اختيار المحاضرة وما يحتاجه
+  من قاعة أو تجهيزات أو شيء آخر;
+  :تحديد التفاصيل بحسب النوع;
+  |النظام|
+  :عرض مواعيد المحاضرة القادمة
+  التي يمكن الطلب لها دون العطل
+  وأسابيع الامتحانات والمواعيد الملغاة;
+  |عضو هيئة التدريس|
+  :تحديد موعد واحد أو عدة أسابيع
+  وكتابة سبب الحاجة;
+  :الضغط على أرسل الطلب;
+  |النظام|
+  :التحقق من الحقول والمحاضرة والمواعيد
+  ومن العدد المطلوب وعدم وجود طلب مماثل;
+  if (حقل ناقص أو عدد غير صحيح\nأو أكبر من القطع الموجودة\nأو لم يُذكر السبب) then (نعم)
+    #FFEBEE:رسالة الخطأ المناسبة
+    والعودة إلى النموذج;
+  elseif (المحاضرة ليست في جدول منشور\nأو لا مواعيد في التواريخ) then (نعم)
+    #FFEBEE:رسالة السبب والعودة
+    إلى اختيار الموعد;
+  elseif (طلب مماثل ما زال\nبانتظار الرد) then (نعم)
+    #FFEBEE:رسالة سبق أن طلبت هذا
+    مع رقمه المرجعي;
+    end
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ الطلب;
+  else (لا)
+    :تسجيل الطلب برقم مرجعي
+    بحالة بانتظار الرد;
+    :إشعار المنسقين بالطلب وبشكل أعجل
+    إن كان أول موعد خلال ثلاثة أيام;
+    #E8F5E9:رسالة أُرسل الطلب إلى المنسّق;
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم يُرسل الطلب) is (نعم) not (لا)
+|منسق الجداول والموارد|
+:استلام إشعار بطلب مورد جديد;
+:UC-25 معالجة طلبات الموارد|
+|عضو هيئة التدريس|
+if (تعديل الطلب أو سحبه) then (نعم)
+  #FFF3E0:تعديل الطلب أو سحبه
+  ما دام بانتظار الرد;
+endif
+stop
+@enduml

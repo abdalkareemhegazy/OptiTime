@@ -1,0 +1,92 @@
+@startuml UC-18
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-18 — إدارة القاعات
+
+|#F1F8FE|منسق الجداول والموارد|
+|#F3FAF3|النظام|
+|منسق الجداول والموارد|
+start
+:الضغط على قاعة جديدة
+أو فتح قاعة قائمة لتعديلها;
+|النظام|
+:عرض نموذج القاعة بأقسامه
+القاعة والموقع والمقاعد
+والاستخدام وما تقدّمه;
+note right
+  فهرس ميزات القاعات من زر ميزات القاعات
+  ويمكن استيراد القاعات من ملف إكسل
+  عبر مركز الاستيراد
+end note
+|منسق الجداول والموارد|
+repeat
+  :إدخال اسم القاعة بالعربية والإنجليزية
+  واختيار نوعها;
+  :اختيار المبنى والطابق
+  وإدخال الجناح أو الوصف;
+  |النظام|
+  :اقتراح رمز القاعة من رمز المبنى ورقمها
+  واستنتاج الطابق من رقمها;
+  |منسق الجداول والموارد|
+  :قبول الرمز المقترح أو تعديله;
+  :UC-19 تحديد سعة الامتحان|
+  :تحديد حالة القاعة وظهورها
+  في الجدول الأسبوعي وقابلية حجزها
+  وتهيئتها لذوي الإعاقة;
+  :اختيار ميزات القاعة مع عدد كل ميزة;
+  :الضغط على إضافة القاعة
+  أو حفظ التغييرات;
+  |النظام|
+  :التحقق من الحقول وتفرّد رمز القاعة;
+  if (اسم ناقص أو نوع\nأو حالة غير مختارة\nأو مقاعد خارج المجال) then (نعم)
+    #FFEBEE:رسالة الخطأ تحت الحقل;
+  elseif (رمز القاعة مستخدم\nأو بصيغة غير صحيحة) then (نعم)
+    #FFEBEE:رسالة هذا الرمز لقاعة أخرى;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ القاعة;
+  else (لا)
+    :إكمال بيانات القاعة
+    رمزها وكليتها ومقاعد الامتحان الافتراضية;
+    :حفظ القاعة وميزاتها
+    وتسجيل العملية في سجل التدقيق;
+    #E8F5E9:رسالة أُضيفت القاعة أو حُفظت القاعة
+    مع رمزها;
+  endif
+  |منسق الجداول والموارد|
+repeat while (لم تُحفظ القاعة) is (نعم) not (لا)
+if (حذف قاعة) then (نعم)
+  #FFF3E0:الضغط على حذف القاعة;
+  |النظام|
+  #FFF3E0:عرض نافذة التأكيد مع عدد وحدات المعدات
+  التي ستعود إلى المستودع;
+  |منسق الجداول والموارد|
+  #FFF3E0:تأكيد الحذف;
+  |النظام|
+  if (في القاعة محاضرات مجدولة) then (نعم)
+    #FFEBEE:رفض الحذف واقتراح جعل القاعة
+    قيد الصيانة أو خارج الخدمة بدلاً منه;
+  else (لا)
+    #FFF3E0:حذف القاعة وعودة معداتها
+    إلى المستودع;
+  endif
+endif
+stop
+@enduml

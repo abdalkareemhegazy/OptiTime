@@ -1,0 +1,65 @@
+@startuml UC-100
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-100 — تقديم طلب إجازة
+
+|#F1F8FE|الموظف أو المدرّس|
+|#F3FAF3|النظام|
+|الموظف أو المدرّس|
+start
+:فتح إجازاتي;
+|النظام|
+:عرض الأرصدة والطلبات السابقة بحالاتها;
+|الموظف أو المدرّس|
+repeat
+  :نوع الإجازة وتاريخا البدء والانتهاء
+  والسبب والمستند إن لزم;
+  |النظام|
+  if (الانتهاء قبل البدء) then (نعم)
+    #FFEBEE:بيان الخطأ;
+  else (لا)
+    :حساب الأيام بعد استبعاد العطل
+    وأيام العطلة الأسبوعية;
+    |الموظف أو المدرّس|
+    :الضغط على تقديم;
+    |النظام|
+    if (الرصيد غير كافٍ) then (نعم)
+      #FFEBEE:رسالة رصيد الإجازة غير كافٍ;
+    elseif (تتداخل مع إجازة أخرى) then (نعم)
+      #FFEBEE:رسالة تتداخل مع إجازة أخرى;
+    elseif (أقل من مدة الإشعار) then (نعم)
+      #FFEBEE:رسالة أقل من مدة الإشعار المطلوبة;
+    else (لا)
+      :تسجيل الطلب دون خصم الرصيد;
+    endif
+  endif
+  |الموظف أو المدرّس|
+repeat while (لم يُسجَّل الطلب) is (نعم) not (لا)
+|النظام|
+:توجيه الطلب إلى المدير المباشر وإشعاره;
+|الموظف أو المدرّس|
+if (إلغاء قبل الموافقة النهائية) then (نعم)
+  #FFF3E0:إلغاء الطلب;
+else (لا)
+  #E8F5E9:الطلب بانتظار المدير المباشر;
+endif
+stop
+@enduml

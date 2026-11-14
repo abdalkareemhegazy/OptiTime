@@ -1,0 +1,89 @@
+@startuml UC-27
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-27 — إدخال أوقات التفرّغ
+
+|#F1F8FE|عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|عضو هيئة التدريس|
+start
+:فتح صفحة أوقات تفرّغي
+من مجموعة مساحتي;
+|النظام|
+:عرض الفصول التي تُجمع أوقات تفرّغها
+مع حالة أسبوع المدرّس ونافذة التفرّغ;
+note right
+  إن كان أسبوع الفصل فارغاً
+  يعرض النظام البدء من فصل سابق
+  ويصبح الأسبوع المعدَّل بعد تسليمه
+  مسودة حتى يُسلَّم من جديد
+end note
+|عضو هيئة التدريس|
+:اختيار الفصل;
+|النظام|
+:عرض شبكة الأسبوع
+وساعات التدريس المسندة للمدرّس;
+|عضو هيئة التدريس|
+repeat
+  :تلوين الشبكة بالفرشاة
+  مفضّل أو متاح أو مغلق;
+  :اختيار سبب كل وقت مغلق
+  وكتابة كلمة للمنسق;
+  |النظام|
+  :حساب الساعات المتاحة والمفضّلة
+  والمغلقة ومقارنتها بساعات التدريس;
+  if (الساعات المتاحة لا تكفي\nأو ساعات مغلقة بلا سبب) then (نعم)
+    #FFF3E0:تحذير قبل الحفظ
+    ويترك القرار للمدرّس;
+  endif
+  |عضو هيئة التدريس|
+  :الضغط على تسليم
+  أو على حفظ مسودة;
+  |النظام|
+  :التحقق من نافذة التفرّغ
+  ومن صلاحية المواضع;
+  if (النافذة مغلقة أو الفصل مغلق\nأو يُجمع لفصل آخر) then (نعم)
+    #FFEBEE:رسالة السبب
+    ويبقى الأسبوع للقراءة فقط;
+    end
+  elseif (موضع في يوم لا تدريس فيه\nأو داخل استراحة أو متداخل) then (نعم)
+    #FFEBEE:رسالة رفض الخادم الحفظ
+    مع بيان سبب كل موضع;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ أوقات تفرّغك;
+  else (لا)
+    :حفظ مواضع الأسبوع للفصل;
+    if (تسليم الأسبوع) then (نعم)
+      :تحويل الأسبوع إلى مسلَّم
+      مع وقت التسليم;
+      :إشعار المنسقين بالتسليم
+      مرة واحدة خلال نصف ساعة;
+      #E8F5E9:رسالة سُلّم أسبوعك وأُخبر المنسق;
+    else (لا)
+      #FFF3E0:حفظ الأسبوع مسودة
+      خاصة بالمدرّس;
+      #E8F5E9:رسالة حُفظ أسبوعك مسودة;
+    endif
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم يُحفظ الأسبوع) is (نعم) not (لا)
+stop
+@enduml

@@ -1,0 +1,70 @@
+@startuml UC-09
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-09 — عرض المستخدمين
+
+|#F1F8FE|مدير النظام أو الإدارة العليا|
+|#F3FAF3|النظام|
+|مدير النظام أو الإدارة العليا|
+start
+:فتح صفحة إدارة المستخدمين
+من مجموعة الحسابات والأدوار;
+|النظام|
+:التحقق من صلاحية عرض الحسابات;
+if (لا يملك صلاحية العرض) then (نعم)
+  #FFEBEE:التحويل إلى صفحة لا صلاحية;
+  end
+else (لا)
+  repeat
+    :تحميل الحسابات مع أدوارها
+    وأقسامها وحالاتها;
+    if (فشل التحميل بسبب\nانقطاع الاتصال\nأو خطأ في الخادم) then (نعم)
+      #FFEBEE:رسالة تعذر تحميل الحسابات
+      مع زر إعادة المحاولة;
+    endif
+  repeat while (فشل التحميل) is (إعادة المحاولة) not (تم التحميل)
+  :عرض الأرقام الإجمالية وجدول الحسابات
+  الشخص والدور والقسم وآخر دخول والحالة;
+endif
+|مدير النظام أو الإدارة العليا|
+:اختيار الفئة المعروضة;
+:البحث أو التصفية أو الفرز;
+|النظام|
+:تحديث القائمة وعدد الحسابات المعروضة;
+if (لا توجد نتائج مطابقة) then (نعم)
+  #FFF3E0:رسالة لا توجد نتائج مطابقة
+  مع زر مسح التصفية;
+endif
+|مدير النظام أو الإدارة العليا|
+:فتح أحد الحسابات;
+|النظام|
+:عرض تفاصيل الحساب
+الهوية والأدوار والنطاقات والحالة والأمان
+للتعديل لمن يملك صلاحيته وللعرض فقط لغيره;
+|مدير النظام أو الإدارة العليا|
+if (تصدير القائمة) then (نعم)
+  #FFF3E0:فتح مركز التصدير
+  واختيار قائمة المستخدمين;
+  |النظام|
+  #FFF3E0:إنشاء ملف التصدير وتنزيله;
+endif
+stop
+@enduml

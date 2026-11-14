@@ -1,0 +1,75 @@
+@startuml UC-04
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-04 — تعديل الملف الشخصي
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:تعديل الاسم الكامل أو البريد الإلكتروني;
+if (تغيير الصورة الشخصية) then (نعم)
+  repeat
+    :اختيار صورة جديدة
+    أو سحبها إلى مكان الصورة;
+    |النظام|
+    :قراءة الصورة واقتطاع مربع
+    من وسطها وتصغيرها;
+    if (النوع غير مدعوم أو الحجم أكبر\nمن 10 ميغابايت\nأو تعذّرت القراءة) then (نعم)
+      #FFEBEE:رسالة سبب رفض الصورة;
+    endif
+    |المستخدم|
+  repeat while (رُفضت الصورة) is (نعم) not (لا)
+endif
+|النظام|
+:إظهار شريط تغييرات غير محفوظة
+مع زري تجاهل وحفظ التغييرات;
+|المستخدم|
+if (الإجراء المطلوب) then (تجاهل)
+  #FFF3E0:إعادة الحقول إلى قيمها المحفوظة
+  دون إرسال شيء إلى الخادم;
+  stop
+else (حفظ التغييرات)
+  repeat
+    :الضغط على حفظ التغييرات;
+    |النظام|
+    :التحقق من الاسم الكامل وصيغة البريد;
+    if (الاسم فارغ أو البريد\nبصيغة غير صحيحة) then (نعم)
+      #FFEBEE:رسالة يرجى إدخال اسم كامل
+      وبريد إلكتروني صالح;
+    else (لا)
+      :التحقق من أن البريد غير مستخدم
+      في حساب آخر;
+      if (البريد مستخدم أو تعذّر الحفظ) then (نعم)
+        #FFEBEE:رسالة تعذر حفظ الملف الشخصي
+        مع بقاء التعديلات في الحقول;
+      else (لا)
+        :حفظ التعديلات وتسجيلها في سجل التدقيق;
+        :تحديث الاسم والصورة في الشريط العلوي
+        وبقية الصفحات;
+        #E8F5E9:رسالة تم تحديث الملف الشخصي;
+      endif
+    endif
+    |المستخدم|
+  repeat while (لم تُحفظ التعديلات) is (نعم) not (لا)
+  stop
+endif
+@enduml

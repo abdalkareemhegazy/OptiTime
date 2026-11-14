@@ -1,0 +1,42 @@
+@startuml UC-105
+skinparam dpi 150
+' ===== النمط الموحّد =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-105 — محادثة المساعد الذكي\n<size:13><color:#455A64>الفاعل: أي مستخدم في النظام</color></size>
+
+start
+:يفتح نافذة المساعد
+من أي شاشة;
+if (هل المساعد متاح له الآن؟) then (لا)
+  :يكمل عمله
+  من الشاشات المعتادة;
+  stop
+else (نعم)
+  repeat :يكتب سؤاله\nأو يختار سؤالاً مقترحاً;
+    :يقرأ الإجابة ومصدرها
+    ويقيّمها إن رغب;
+  repeat while (هل لديه سؤال آخر؟) is (نعم) not (لا)
+  if (هل اقترحت الإجابة إجراءً؟) then (نعم)
+    :يضغط بطاقة الإجراء
+    ويُتمه في الشاشة المختصة;
+    stop
+  else (لا)
+    :يغلق نافذة المساعد;
+    stop
+  endif
+endif
+@enduml

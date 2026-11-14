@@ -1,0 +1,64 @@
+@startuml UC-47
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-47 — عرض لوحة التحكم
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:تسجيل الدخول أو فتح الرئيسية;
+|النظام|
+:تحديد الدور الحالي وصلاحياته;
+repeat
+  fork
+    :جلب بيانات الشاشة الأولى للدور;
+  fork again
+    :جلب بيانات الشاشة الثانية للدور;
+  fork again
+    :جلب بقية المصادر بالتوازي;
+  end fork
+  if (تعذّر تحميل اللوحة كلها) then (نعم)
+    #FFEBEE:رسالة تعذّر تحميل لوحتك
+    مع زر إعادة المحاولة;
+  elseif (تعذّر تحميل جزء منها) then (نعم)
+    #FFEBEE:تنبيه بأن ما يظهر ناقص;
+  else (لا)
+  endif
+repeat while (أعاد المستخدم المحاولة) is (نعم) not (لا)
+if (لا بيانات بعد) then (نعم)
+  #FFEBEE:رسالة لا بيانات لعرضها بعد;
+  end
+else (لا)
+endif
+:حساب المؤشرات وما ينتظر المستخدم;
+:عرض التحية والمؤشرات والفصل الحالي
+ومرحلته والاختصارات;
+note right
+  يبدّل صاحب أكثر من دور دوره
+  فتتبدّل اللوحة ومؤشراتها
+end note
+|المستخدم|
+:الضغط على بطاقة أو اختصار;
+|النظام|
+#E8F5E9:فتح الشاشة المختصة;
+stop
+@enduml

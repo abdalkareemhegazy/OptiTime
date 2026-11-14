@@ -1,0 +1,63 @@
+@startuml UC-108
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-108 — شرح نتيجة الجدولة
+
+|#F1F8FE|المنسق أو المدرّس|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة الذكاء|
+|المنسق أو المدرّس|
+start
+:فتح نتيجة توليد والضغط على اشرح;
+|النظام|
+if (التوليد جارٍ أو بلا تقرير) then (نعم)
+  #FFEBEE:بيان أن الشرح يتاح بعد التوليد;
+  end
+else (لا)
+endif
+:قراءة تقرير التوليد وفحص الكفاية
+والقيود المرنة الأكثر مخالفة;
+|خدمة الذكاء|
+:صياغة الشرح من التقرير وحده;
+|النظام|
+if (تعذّرت الخدمة) then (نعم)
+  #FFF3E0:عرض التقرير المهيكل دون نص مولّد;
+elseif (رقم غير وارد في التقرير) then (نعم)
+  |خدمة الذكاء|
+  :إعادة الصياغة مرة واحدة;
+  |النظام|
+  #FFF3E0:التقرير المهيكل إن تكرر الخطأ;
+else (لا)
+  #E8F5E9:عرض الشرح والإجراءات المقترحة
+  موسوماً بأنه مولّد;
+endif
+|المنسق أو المدرّس|
+:الضغط على محاضرة واختيار لماذا هنا;
+|النظام|
+if (المحاضرة خارج نطاقه) then (نعم)
+  #FFEBEE:رسالة هذا خارج نطاق دورك;
+  end
+else (لا)
+  #E8F5E9:عرض القيود والتفضيلات
+  التي حددت موضعها;
+endif
+stop
+@enduml

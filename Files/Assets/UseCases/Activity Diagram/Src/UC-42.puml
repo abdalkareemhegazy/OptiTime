@@ -1,0 +1,76 @@
+@startuml UC-42
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-42 — مراقبة صحة النظام
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|#FFFBF0|المجدول الدوري|
+|المجدول الدوري|
+start
+:تشغيل الفحوص كل خمس دقائق
+وحفظ نتيجة كل فحص بزمنه;
+|مدير النظام|
+:فتح صفحة صحة النظام;
+|النظام|
+if (يملك صلاحية صحة النظام) then (لا)
+  #FFEBEE:التحويل إلى صفحة لا صلاحية;
+  end
+else (نعم)
+endif
+:تحميل آخر النتائج والمهام الخلفية;
+if (تعذّر التحميل) then (نعم)
+  #FFEBEE:رسالة تعذّر الوصول إلى الخادم
+  مع زر إعادة المحاولة;
+  end
+else (لا)
+endif
+:عرض الحالة العامة وبطاقة لكل فحص
+بحالته وسطر يشرحها;
+|مدير النظام|
+:الضغط على افحص الآن;
+|النظام|
+:تشغيل الفحوص كلها فوراً
+وتسجيل العملية في سجل التدقيق;
+if (تعذّر إجراء فحص) then (نعم)
+  #FFEBEE:عرض الفحص بحالة عطل مع سببه;
+else (لا)
+endif
+:تحديث البطاقات ورسالة اكتمل الفحص;
+|مدير النظام|
+:مراجعة المهام الفاشلة;
+if (الإجراء المطلوب) then (إعادة)
+  :الضغط على إعادة أو إعادة الكل;
+  |النظام|
+  :إعادة المهام إلى الطابور;
+  if (تعذّرت الإعادة) then (نعم)
+    #FFEBEE:رسالة تعذّر إكمال الطلب;
+  else (لا)
+    #E8F5E9:رسالة أُعيد تشغيل المهام;
+  endif
+else (تجاهل)
+  |مدير النظام|
+  #FFF3E0:الضغط على تجاهل ثم التأكيد;
+  |النظام|
+  #FFF3E0:حذف المهام الفاشلة من القائمة;
+endif
+stop
+@enduml

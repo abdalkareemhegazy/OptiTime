@@ -1,0 +1,69 @@
+@startuml UC-101
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-101 — اعتماد طلبات الإجازة
+
+|#F1F8FE|المدير المباشر|
+|#F3FAF3|النظام|
+|#FFFBF0|موظف شؤون الموظفين|
+|المدير المباشر|
+start
+:فتح طلبات إجازة فريقي;
+|النظام|
+:عرض الطلبات مع أرصدة أصحابها
+وتقويم إجازات الفريق;
+|المدير المباشر|
+:الموافقة أو الرفض مع ملاحظة;
+|النظام|
+if (الطلب ليس لفريقه\nأو لم يعد بانتظاره) then (نعم)
+  #FFEBEE:رسالة تبيّن السبب;
+  end
+else (لا)
+endif
+if (قرار المدير) then (رفض)
+  #FFF3E0:تعليم الطلب مرفوضاً
+  دون خصم الرصيد وإشعار مقدّمه;
+  stop
+else (موافقة)
+endif
+:توجيه الطلب إلى شؤون الموظفين
+وإشعار مقدّمه بالمرحلة;
+|موظف شؤون الموظفين|
+:الاعتماد النهائي أو الرفض;
+|النظام|
+if (تغيّر الرصيد\nأو نشأ تداخل) then (نعم)
+  #FFEBEE:رسالة تبيّن السبب;
+  end
+elseif (القرار رفض) then (نعم)
+  #FFF3E0:تعليم الطلب مرفوضاً وإشعار مقدّمه;
+  stop
+else (لا)
+endif
+:خصم الرصيد وتعليم الطلب معتمداً
+وإشعار مقدّمه;
+if (مدرّس له محاضرات\nفي مدة الإجازة) then (نعم)
+  :UC-62 الإعادة الطارئة للجدولة
+  واقتراح البدلاء|
+else (لا)
+endif
+#E8F5E9:اكتمال اعتماد الإجازة;
+stop
+@enduml

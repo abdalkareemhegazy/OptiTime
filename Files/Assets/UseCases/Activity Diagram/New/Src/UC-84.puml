@@ -1,0 +1,42 @@
+@startuml UC-84
+skinparam dpi 150
+' ===== النمط الموحّد =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-84 — جدولة الامتحانات\n<size:13><color:#455A64>الفاعل: موظف شؤون الامتحانات</color></size>
+
+start
+:ينشئ فترة امتحانات
+بنوعها وتاريخيها;
+:يحدد الفترات اليومية
+وقواعد الامتحانات;
+:يولّد قائمة الامتحانات
+ويدمج شعب المقرر أو يفصلها;
+repeat :يولّد جدول الامتحانات;
+  :يطّلع على نتيجة التوزيع;
+  backward :يزيد الفترات
+  أو يعدّل القواعد;
+repeat while (هل بقيت امتحانات متعارضة\nلطلاب مشتركين؟) is (نعم) not (لا)
+:يراجع الجدول وينقل امتحاناً
+يدوياً عند الحاجة;
+while (هل بقيت شروط نشر\nغير متحققة؟) is (نعم)
+  :يكمل الشرط الناقص
+  كتوزيع المقاعد والمراقبين;
+endwhile (لا)
+:ينشر جدول الامتحانات
+للطلاب والمدرّسين;
+stop
+@enduml

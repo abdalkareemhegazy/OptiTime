@@ -1,0 +1,74 @@
+@startuml UC-46
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-46 — متابعة الإشعارات
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة الإشعارات الفورية|
+|النظام|
+start
+:وقوع حدث يعني المستخدم;
+:إنشاء إشعار داخل التطبيق بلغتي الواجهة;
+if (التفضيلات تسمح بالإشعار الفوري) then (نعم)
+  |خدمة الإشعارات الفورية|
+  :إرسال الإشعار إلى الأجهزة المسجّلة;
+  if (رمز جهاز مرفوض) then (نعم)
+    |النظام|
+    #FFEBEE:حذف رمز الجهاز
+    وإبقاء الإشعار داخل التطبيق;
+  else (لا)
+  endif
+else (لا)
+endif
+|النظام|
+:تحديث عدّاد الجرس كل ثماني ثوانٍ;
+|المستخدم|
+:الضغط على الجرس أو فتح مركز الإشعارات;
+|النظام|
+:تحميل الإشعارات مجمّعة بالأيام;
+if (تعذّر التحميل) then (نعم)
+  #FFEBEE:رسالة تعذر تحميل إشعاراتك;
+  end
+elseif (لا توجد إشعارات) then (نعم)
+  #FFEBEE:رسالة لا جديد لديك;
+  end
+else (لا)
+endif
+|المستخدم|
+:تصفية الإشعارات بحسب النوع عند الحاجة;
+:فتح إشعار;
+|النظام|
+:تعليمه مقروءاً وتحديث العدّاد
+وفتح صفحة الحدث;
+|المستخدم|
+if (الإجراء التالي) then (تعيين الكل)
+  :الضغط على تعيين الكل كمقروء;
+  |النظام|
+  #E8F5E9:رسالة تم تعيين كل الإشعارات كمقروءة;
+else (حذف إشعار)
+  |المستخدم|
+  #FFF3E0:الضغط على حذف;
+  |النظام|
+  #FFF3E0:حذف الإشعار مع زر تراجع;
+endif
+stop
+@enduml

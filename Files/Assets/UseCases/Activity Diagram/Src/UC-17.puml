@@ -1,0 +1,65 @@
+@startuml UC-17
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-17 — حذف دور
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:الضغط على حذف الدور
+في بطاقة الدور المطلوب;
+|النظام|
+:فحص أن الدور ليس دور نظام
+وأنه لا يحمله أي مستخدم;
+if (دور نظام أو ما زال له أعضاء) then (نعم)
+  #FFEBEE:منع الحذف مع بيان السبب
+  وطلب نقل الأعضاء إلى دور آخر أولاً;
+  |مدير النظام|
+  #FFF3E0:UC-13 تعيين الأدوار|
+  end
+else (لا)
+  :عرض نافذة التأكيد مع التنبيه
+  إلى أن الحذف نهائي;
+  repeat
+    |مدير النظام|
+    :الضغط على حذف الدور
+    في نافذة التأكيد;
+    |النظام|
+    :إعادة فحص الشروط نفسها في الخادم;
+    if (دور نظام أو ما زال له أعضاء) then (نعم)
+      #FFEBEE:رفض الحذف مع بيان السبب
+      وعدد الأعضاء;
+      end
+    elseif (تعذّر الوصول إلى الخادم) then (نعم)
+      #FFEBEE:رسالة تعذر حذف الدور
+      حاول مرة أخرى;
+    else (لا)
+      :فك ارتباط الدور بصلاحياته وحذفه;
+      :تسجيل العملية في سجل التدقيق;
+      :تحديث قائمة الأدوار;
+      #E8F5E9:رسالة تم حذف الدور;
+    endif
+    |مدير النظام|
+  repeat while (لم يُحذف الدور) is (نعم) not (لا)
+endif
+stop
+@enduml

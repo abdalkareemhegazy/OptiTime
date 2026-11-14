@@ -1,0 +1,71 @@
+@startuml UC-21
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-21 — إدارة المختبرات
+
+|#F1F8FE|منسق الجداول والموارد|
+|#F3FAF3|النظام|
+|منسق الجداول والموارد|
+start
+:تصفية القاعات بنوع مختبرات وورش;
+|النظام|
+:عرض المختبرات بمقاعدها وحالتها وميزاتها
+ونسبة المحجوز من أسبوع كل منها;
+|منسق الجداول والموارد|
+:فتح مختبر قائم
+أو إضافة قاعة جديدة بنوع مختبر;
+|النظام|
+:عرض نموذج القاعة
+مع التنبيهات الخاصة بالمختبرات;
+|منسق الجداول والموارد|
+repeat
+  :تعديل مقاعد المختبر وحالته;
+  :تسجيل ما يقدّمه المختبر من الفهرس مع العدد
+  حواسيب وطاولات مخبرية ونقاط شبكة وجهاز عرض;
+  :الضغط على حفظ التغييرات;
+  |النظام|
+  :التحقق من صحة الحقول;
+  if (اسم ناقص أو مقاعد\nأو عدد ميزة خارج المجال) then (نعم)
+    #FFEBEE:رسالة الاسم مطلوب باللغتين
+    أو كل عدد بين واحد والحد الأعلى;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ القاعة;
+  else (لا)
+    :حفظ المختبر وميزاته
+    وتسجيل العملية في سجل التدقيق;
+    #E8F5E9:رسالة حُفظت القاعة مع رمزها;
+  endif
+  |منسق الجداول والموارد|
+repeat while (لم يُحفظ المختبر) is (نعم) not (لا)
+if (الإبلاغ عن عطل في هذه القاعة) then (نعم)
+  #FFF3E0:UC-22 إدارة الصيانة|
+  note right
+    إن أوقف البلاغ الاستخدام
+    خرج المختبر من الجدول والحجوزات
+    حتى يُغلق
+  end note
+endif
+if (عرض معدات المختبر) then (نعم)
+  #FFF3E0:فتح صفحة الأجهزة والمعدات
+  مصفّاة على وحدات هذا المختبر;
+endif
+stop
+@enduml

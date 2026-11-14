@@ -1,0 +1,65 @@
+@startuml UC-50
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-50 — إدارة البرامج الأكاديمية
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:فتح البرامج الأكاديمية;
+|النظام|
+:عرض البرامج بأعداد طلابها وخططها;
+|المستخدم|
+repeat
+  :إدخال القسم والاسمين والرمز والدرجة
+  والساعات والمدة وبدايات السنوات;
+  :الضغط على حفظ;
+  |النظام|
+  if (حقل ناقص أو قيمة خارج الحدود) then (نعم)
+    #FFEBEE:رسالة تحت الحقل;
+  elseif (بدايات السنوات غير صحيحة) then (نعم)
+    #FFEBEE:رسالة السنة الأولى تبدأ من الصفر
+    أو كل سنة تبدأ بعد سابقتها;
+  elseif (الرمز مستخدم أو نقل برنامج\nفيه طلاب إلى قسم آخر) then (نعم)
+    #FFEBEE:رسالة تبيّن سبب الرفض;
+  else (لا)
+    :حفظ البرنامج وتسجيله في سجل التدقيق;
+    #E8F5E9:رسالة أُنشئ البرنامج;
+  endif
+  |المستخدم|
+repeat while (لم يُحفظ البرنامج) is (نعم) not (لا)
+if (حذف البرنامج) then (نعم)
+  :الضغط على حذف ثم التأكيد;
+  |النظام|
+  if (فيه طلاب أو خطط دراسية) then (نعم)
+    #FFEBEE:رسالة لا يُحذف أغلقه بدلاً من ذلك;
+    |المستخدم|
+    #FFF3E0:تغيير الحالة إلى مغلق;
+    |النظام|
+    #FFF3E0:إغلاق البرنامج أمام الطلاب الجدد;
+  else (لا)
+    :حذف البرنامج;
+  endif
+else (لا)
+endif
+stop
+@enduml

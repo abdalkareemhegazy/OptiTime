@@ -1,0 +1,89 @@
+@startuml UC-26
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-26 — حجز قاعة دراسية
+
+|#F1F8FE|المستخدم صاحب الحجز|
+|#F3FAF3|النظام|
+|#FFFBF0|منسق الجداول والموارد|
+|المستخدم صاحب الحجز|
+start
+:UC-23 عرض الموارد|
+:الضغط على احجز أو اطلب الحجز
+أمام القاعة المطلوبة;
+|النظام|
+:عرض نموذج حجز قاعة
+مع شريط اليوم الكامل والوقت المختار;
+note right
+  يُسجَّل الحضور بدءاً من ربع ساعة
+  قبل بداية الحجز وإن لم يُسجَّل
+  بعد ربع ساعة من البدء حُرّرت القاعة
+  ويلغي المستخدم حجزاً واحداً
+  أو كل الأسابيع المتبقية
+end note
+|المستخدم صاحب الحجز|
+repeat
+  :كتابة المناسبة واختيار الغرض وعدد الحضور;
+  :اختيار التكرار هذا اليوم فقط
+  أو أسبوعياً حتى تاريخ محدد;
+  :كتابة ملاحظات للمنسق اختيارياً
+  ثم الضغط على احجز أو أرسل الطلب;
+  |النظام|
+  :التحقق من المناسبة والغرض وعدد الحضور
+  ضمن سعة القاعة والوقت ومدته;
+  if (تاريخ مضى أو مدة\nأكثر من 12 ساعة\nأو مناسبة فارغة\nأو حضور فوق السعة) then (نعم)
+    #FFEBEE:رسالة الخطأ
+    والعودة إلى بيانات الحجز;
+  elseif (القاعة خارج الخدمة) then (نعم)
+    #FFEBEE:رسالة القاعة خارج الخدمة;
+  else (لا)
+    :قفل القاعة والتحقق من خلوها
+    من محاضرة أو حجز أو صيانة;
+    if (القاعة مشغولة في ذلك الوقت) then (نعم)
+      #FFEBEE:رسالة القاعة محجوزة حينها
+      مع بيان ما يشغلها وزر حجز الأسابيع
+      الشاغرة في الحجز الأسبوعي;
+    elseif (تعذّر الحفظ) then (نعم)
+      #FFEBEE:رسالة تعذّر حفظ الحجز;
+    else (لا)
+      if (القاعة قابلة للحجز) then (نعم)
+        :تسجيل الحجز مؤكَّداً فوراً
+        برقم مرجعي;
+      else (لا)
+        #FFF3E0:تسجيل الحجز بانتظار التأكيد
+        وإشعار المنسقين;
+      endif
+      :إضافة الحجز إلى حجوزات المستخدم وتقويمه;
+      #E8F5E9:رسالة حُجزت القاعة مع المرجع
+      أو أُرسل طلب الحجز وسيردّ المنسق;
+    endif
+  endif
+  |المستخدم صاحب الحجز|
+repeat while (لم يُسجَّل الحجز) is (نعم) not (لا)
+|منسق الجداول والموارد|
+if (الحجز بانتظار التأكيد) then (نعم)
+  #FFF3E0:تأكيد الحجز أو رفضه
+  مع سبب إلزامي;
+  |النظام|
+  #FFF3E0:إشعار صاحب الحجز بالرد;
+endif
+stop
+@enduml

@@ -1,0 +1,67 @@
+@startuml UC-83
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-83 — طلب تعديل درجة منشورة
+
+|#F1F8FE|عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|#FFFBF0|عميد الكلية|
+|عضو هيئة التدريس|
+start
+:طلب تعديل لدرجة طالب;
+|النظام|
+if (الدرجة منشورة) then (لا)
+  #FFEBEE:بيان أن التعديل قبل النشر
+  يكون من الكشف;
+  end
+else (نعم)
+endif
+|عضو هيئة التدريس|
+repeat
+  :العلامة الجديدة والسبب والمرفق;
+  |النظام|
+  if (علامة خارج النطاق\nأو سبب أو مرفق ناقص) then (نعم)
+    #FFEBEE:رسالة تبيّن الخطأ;
+  else (لا)
+    :تقدير حجم التغيير ومدى قلب النتيجة;
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم يُقبل الطلب) is (نعم) not (لا)
+|النظام|
+if (تجاوز الحد أو قلب النتيجة) then (نعم)
+  :توجيه الطلب إلى العميد وإشعاره;
+  |عميد الكلية|
+  :مراجعة السبب والقيمتين ثم القرار;
+else (لا)
+  #FFF3E0:توجيهه إلى موظف الشؤون الأكاديمية;
+endif
+|النظام|
+if (القرار) then (رفض)
+  #FFEBEE:إشعار المدرّس بالرفض وملاحظته;
+  stop
+else (موافقة)
+  :تطبيق التعديل وحفظ القيمة السابقة
+  في سجل الدرجات;
+  :UC-81 حساب المعدل والوضع الأكاديمي|
+  #E8F5E9:إشعار الطالب والمدرّس بالقرار;
+endif
+stop
+@enduml

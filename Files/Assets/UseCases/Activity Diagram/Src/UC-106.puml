@@ -1,0 +1,73 @@
+@startuml UC-106
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-106 — إدارة قاعدة معرفة اللوائح
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة الذكاء|
+|موظف الشؤون الأكاديمية|
+start
+:فتح قاعدة معرفة اللوائح;
+|النظام|
+:عرض الوثائق وإصداراتها ونفاذها;
+|موظف الشؤون الأكاديمية|
+repeat
+  :الملف ورقم الإصدار وتاريخ النفاذ;
+  |النظام|
+  if (الملف مرفوض) then (نعم)
+    #FFEBEE:رسالة رُفض الملف;
+  elseif (إصدار مكرر أو تاريخ غير صالح) then (نعم)
+    #FFEBEE:رسالة بعض البيانات المدخلة غير صالحة;
+  else (لا)
+    :حفظ الإصدار بحالة قيد الفهرسة;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم يُحفظ الإصدار) is (نعم) not (لا)
+|خدمة الذكاء|
+:استخراج النص وتقطيعه حسب المواد
+وتحويل المقاطع إلى تضمينات;
+if (تعذّر الاستخراج أو التضمينات) then (نعم)
+  |النظام|
+  #FFEBEE:تعليم الإصدار فشلت الفهرسة
+  وإشعار الموظف ليعيد المحاولة;
+  end
+else (لا)
+endif
+|النظام|
+:حفظ المقاطع وتعليم الإصدار مفهرساً
+وإشعار الموظف;
+|موظف الشؤون الأكاديمية|
+:تجربة سؤال على الإصدار;
+|النظام|
+:الإجابة من الإصدار النافذ
+مع المادة ورقم الإصدار;
+|موظف الشؤون الأكاديمية|
+if (إيقاف إصدار قديم) then (نعم)
+  |النظام|
+  #FFF3E0:إخراج الإصدار من نطاق الإجابة
+  دون حذفه;
+else (لا)
+  |موظف الشؤون الأكاديمية|
+  #E8F5E9:اكتمال إضافة الإصدار;
+endif
+stop
+@enduml

@@ -1,0 +1,44 @@
+@startuml UC-67
+skinparam dpi 150
+' ===== النمط الموحّد =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-67 — تسجيل المقررات\n<size:13><color:#455A64>الفاعل: الطالب</color></size>
+
+start
+:يفتح صفحة التسجيل
+ويطّلع على فحص الأهلية;
+if (هل يُسمح له بالتسجيل الآن؟) then (لا)
+  :يطّلع على سبب المنع
+  كإغلاق النافذة أو عائق مالي
+  أو نقص تصريح المرشد;
+  stop
+else (نعم)
+  repeat :يبحث في المقررات المطروحة\nويختار مقرراً وشعبه;
+    :يضيفه إلى السلة
+    ويعاين جدوله الأسبوعي;
+  repeat while (هل يريد إضافة مقرر آخر؟) is (نعم) not (لا)
+  :يضغط تأكيد التسجيل;
+  while (هل ظهرت مشكلات في السلة\nكتعارض أو شعبة ممتلئة؟) is (نعم)
+    :يستبدل الشعبة أو يحذف المقرر
+    أو ينضم إلى قائمة الانتظار;
+    :يضغط تأكيد التسجيل من جديد;
+  endwhile (لا)
+  :يطّلع على رقم التأكيد
+  وجدوله الأسبوعي وفاتورته;
+  stop
+endif
+@enduml

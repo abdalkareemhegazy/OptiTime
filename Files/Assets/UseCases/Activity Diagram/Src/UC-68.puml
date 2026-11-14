@@ -1,0 +1,59 @@
+@startuml UC-68
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-68 — التحقق من أهلية التسجيل
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|الطالب|
+start
+:تحقق أو تأكيد التسجيل أو إضافة شعبة;
+|النظام|
+:جمع سياق الطالب والفصل والسلة
+والاستثناءات الممنوحة;
+:فحص قواعد الطالب
+النافذة والدور والحالة والعوائق والتصريح;
+if (فشلت قاعدة طالب) then (نعم)
+  #FFEBEE:إضافة الفشل إلى التقرير;
+endif
+:فحص قواعد المقرر
+الطرح والإعادة والمتطلبات والمكوّنات;
+if (فشلت قاعدة مقرر) then (نعم)
+  #FFEBEE:إضافة الفشل إلى التقرير;
+endif
+:فحص قواعد الشعبة
+القيود والفتح والسعة;
+if (فشلت قاعدة شعبة) then (نعم)
+  #FFEBEE:إضافة الفشل إلى التقرير;
+endif
+:فحص قواعد السلة
+تعارض الأوقات والامتحانات وحدّا الساعات;
+if (فشلت قاعدة سلة) then (نعم)
+  #FFEBEE:إضافة الفشل إلى التقرير;
+endif
+:تجاوز ما يغطيه استثناء ممنوح وحده;
+if (في التقرير فشل) then (نعم)
+  #FFEBEE:عرض كل فشل بسببه وإجرائه المقترح;
+else (لا)
+  #E8F5E9:السلة صالحة للتأكيد مع التنبيهات;
+endif
+stop
+@enduml

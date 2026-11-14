@@ -1,0 +1,64 @@
+@startuml UC-12
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-12 — حذف مستخدم
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:الضغط على حذف الحساب
+أمام الحساب المطلوب;
+|النظام|
+:فحص الشروط في الواجهة
+ليس حسابه ولا المؤسِّس ولا آخر مدير
+ولا مدرّساً لشعب;
+if (الحساب لا يمكن حذفه) then (نعم)
+  #FFEBEE:نافذة لا يمكن حذف هذا الحساب
+  مع السبب والنصيحة بإيقافه بدل حذفه;
+  end
+else (لا)
+  :عرض نافذة التأكيد مع التنبيه
+  إلى أن الحذف نهائي;
+  repeat
+    |مدير النظام|
+    :الضغط على حذف الحساب
+    في نافذة التأكيد;
+    |النظام|
+    :إعادة فحص الشروط نفسها في الخادم;
+    if (الحساب مؤسِّس أو\nحساب المدير نفسه\nأو آخر مدير أو مرتبط بشعب) then (نعم)
+      #FFEBEE:رفض الحذف مع بيان السبب
+      وعدد الشعب والمحاضرات إن وُجدت;
+      end
+    elseif (تعذّر الوصول إلى الخادم) then (نعم)
+      #FFEBEE:رسالة تعذر حذف الحساب
+      حاول مرة أخرى;
+    else (لا)
+      :حذف الحساب مع إشعاراته وإعداداته;
+      :تسجيل العملية في سجل التدقيق;
+      :تحديث قائمة الحسابات;
+      #E8F5E9:رسالة تم حذف الحساب;
+    endif
+    |مدير النظام|
+  repeat while (لم يُحذف الحساب) is (نعم) not (لا)
+endif
+stop
+@enduml

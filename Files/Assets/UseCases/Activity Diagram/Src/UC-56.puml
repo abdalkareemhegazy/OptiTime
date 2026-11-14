@@ -1,0 +1,71 @@
+@startuml UC-56
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-56 — إعداد الخطة الدراسية واعتمادها
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|موظف الشؤون الأكاديمية|
+start
+repeat
+  :خطة جديدة أو نسخة جديدة بالبرنامج
+  والرمز والاسمين وسنة السريان;
+  |النظام|
+  if (بيانات ناقصة أو الرمز مستخدم) then (نعم)
+    #FFEBEE:رسالة تبيّن الخطأ;
+  else (لا)
+    :إنشاء الخطة مسودة;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم تُنشأ الخطة) is (نعم) not (لا)
+|النظام|
+:فتح المحرر بعرضيه مع تقرير الخطة;
+|موظف الشؤون الأكاديمية|
+repeat
+  :إضافة المجموعات بحدودها والمقررات
+  وتوزيعها على الفصول;
+  |النظام|
+  :حساب ساعات المجموعات وتحديث التقرير;
+  |موظف الشؤون الأكاديمية|
+  :الضغط على حفظ;
+  |النظام|
+  if (الخطة لم تعد مسودة) then (نعم)
+    #FFEBEE:رسالة أنشئ نسخة جديدة لتعديلها;
+    end
+  elseif (مقرر مكرر أو مفقود\nأو قيمة خارج الحدود) then (نعم)
+    #FFEBEE:رسالة أصلح ما عُلّم في الخطة;
+  else (لا)
+    :حفظ المحتوى كاملاً;
+  endif
+  |موظف الشؤون الأكاديمية|
+  :اعتماد الخطة ثم التأكيد;
+  |النظام|
+  if (في التقرير أخطاء مانعة) then (نعم)
+    #FFEBEE:رسالة في الخطة أخطاء تمنع اعتمادها;
+  else (لا)
+    :تفعيل الخطة وأرشفة السارية
+    للبرنامج وسنة السريان نفسيهما;
+    #E8F5E9:رسالة اعتُمدت الخطة;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم تُعتمد الخطة) is (نعم) not (لا)
+stop
+@enduml

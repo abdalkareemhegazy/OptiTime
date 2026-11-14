@@ -1,0 +1,67 @@
+@startuml UC-107
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-107 — إدخال التفرّغ والقيود بلغة طبيعية
+
+|#F1F8FE|المدرّس أو المنسق|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة الذكاء|
+|المدرّس أو المنسق|
+start
+:فتح التفرّغ أو قواعد الجدولة
+والضغط على اكتب بلغتك;
+:كتابة العبارة;
+|النظام|
+if (الميزة غير متاحة\nأو نفدت الحصة) then (نعم)
+  #FFEBEE:بيان أن الميزة غير متاحة
+  مع إبقاء الإدخال اليدوي;
+  end
+else (لا)
+endif
+repeat
+  |خدمة الذكاء|
+  :طلب مخرجات مهيكلة وفق المخطط;
+  |النظام|
+  :التحقق من المخرجات كأي إدخال;
+  if (لا تطابق المخطط\nأو العبارة غامضة) then (نعم)
+    #FFF3E0:طلب توضيح بسؤال محدد;
+    |المدرّس أو المنسق|
+    :توضيح العبارة;
+  else (لا)
+    |النظام|
+    :عرض الخانات على الشبكة
+    أو القيد مع أثره المتوقع;
+  endif
+  |النظام|
+repeat while (طُلب توضيح) is (نعم) not (لا)
+|المدرّس أو المنسق|
+repeat
+  :التعديل عند الحاجة ثم تأكيد;
+  |النظام|
+  if (فشلت الفحوص المعتادة) then (نعم)
+    #FFEBEE:رسالة الفحص نفسها كالإدخال اليدوي;
+  else (لا)
+    #E8F5E9:الحفظ بالمسار العادي للشاشة;
+  endif
+  |المدرّس أو المنسق|
+repeat while (لم يُحفظ) is (نعم) not (لا)
+stop
+@enduml

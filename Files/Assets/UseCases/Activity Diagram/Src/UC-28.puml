@@ -1,0 +1,90 @@
+@startuml UC-28
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-28 — متابعة أوقات تفرّغ المدرّسين وتذكيرهم
+
+|#F1F8FE|المنسق أو رئيس القسم أو العميد|
+|#F3FAF3|النظام|
+|المنسق أو رئيس القسم أو العميد|
+start
+:فتح صفحة توفّر المدرّسين
+من مجموعة الجدولة;
+|النظام|
+:التحقق من صلاحية متابعة التوفّر;
+if (لا يملك صلاحية المتابعة) then (نعم)
+  #FFEBEE:التحويل إلى صفحة لا صلاحية;
+  end
+else (لا)
+  repeat
+    :تحديد الفصل الذي تُجمع أوقاته
+    وتحميل مدرّسي كليته أو قسمه وأسابيعهم;
+    if (لا فصل لمتابعة التوفّر فيه) then (نعم)
+      #FFEBEE:رسالة لا فصل لمتابعة التوفّر فيه;
+      end
+    elseif (فشل التحميل بسبب\nانقطاع الاتصال أو خطأ) then (نعم)
+      #FFEBEE:رسالة تعذّر تحميل التوفّر
+      مع زر إعادة المحاولة;
+    endif
+  repeat while (فشل التحميل) is (إعادة المحاولة) not (تم التحميل)
+  :عرض عدد من سلّم ومن لديه مسودة
+  ومن لم يبدأ ومن لا تتسع ساعاته
+  والخريطة الحرارية وقائمة المدرّسين;
+  note right
+    يذكّر النظام من لم يسلّم تلقائياً
+    مرة بين ثلاثة أيام ويوم قبل الإغلاق
+  end note
+endif
+|المنسق أو رئيس القسم أو العميد|
+:تصفية القائمة بالحالة أو القسم
+أو البحث بالاسم أو الترتيب;
+:فتح أسبوع مدرّس بعينه;
+|النظام|
+:عرض أسبوعه للقراءة فقط
+الشبكة والأوقات المغلقة وأسبابها
+وكلمته للمنسق والتذكيرات السابقة;
+|المنسق أو رئيس القسم أو العميد|
+if (يملك صلاحية التذكير) then (نعم)
+  :الضغط على تذكير أمام مدرّس لم يسلّم
+  أو على تذكير من لم يسلّم;
+  |النظام|
+  :التحقق من أن المدرّس ضمن نطاق المستخدم
+  ولم يسلّم ومرور 12 ساعة على آخر تذكير;
+  if (المدرّس خارج النطاق أو سلّم\nأو ذُكّر قبل أقل من 12 ساعة) then (نعم)
+    #FFEBEE:رسالة ذُكّروا قبل قليل
+    ولم يُرسل تذكير جديد
+    أو لا أحد يحتاج تذكيراً الجميع سلّم;
+  elseif (تعذّر إرسال التذكير) then (نعم)
+    #FFEBEE:رسالة تعذّر إرسال التذكير
+    حاول مرة أخرى;
+  else (لا)
+    :إرسال إشعار إلى المدرّس داخل التطبيق
+    وفورياً يطلب تسليم الأسبوع
+    مع موعد إغلاق النافذة;
+    :تسجيل التذكير;
+    #E8F5E9:رسالة ذُكّر مدرّس واحد
+    أو ذُكّر عدد من المدرّسين;
+  endif
+else (لا)
+  #FFF3E0:الاطلاع على أسابيع المدرّسين فقط
+  دون صلاحية التذكير;
+endif
+stop
+@enduml

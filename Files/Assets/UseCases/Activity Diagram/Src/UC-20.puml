@@ -1,0 +1,84 @@
+@startuml UC-20
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-20 — إدارة الأجهزة
+
+|#F1F8FE|منسق الجداول والموارد|
+|#F3FAF3|النظام|
+|منسق الجداول والموارد|
+start
+:الضغط على معدّات جديدة;
+|النظام|
+:عرض نموذج الصنف
+الاسم بالعربية والإنجليزية والفئة
+والكلية وقابلية النقل;
+note right
+  تعديل الصنف يُحفظ على كل وحدات الصنف
+  وعند الحذف يُعرض خيار الإخراج من الخدمة
+  فتبقى الوحدات في السجل خارج القاعات
+end note
+|منسق الجداول والموارد|
+repeat
+  :إدخال بيانات الصنف واختيار فئته;
+  :تحديد عدد الوحدات في المرة الواحدة
+  من 1 إلى 500 وحدة وتفعيل قابلة للنقل
+  إن كانت محمولة;
+  |النظام|
+  :عرض أرقام الأصول
+  التي ستأخذها الوحدات الجديدة;
+  |منسق الجداول والموارد|
+  :الضغط على أضف الوحدات;
+  |النظام|
+  :التحقق من صحة الحقول;
+  if (اسم فارغ أو فئة غير مختارة\nأو عدد وحدات خارج المجال) then (نعم)
+    #FFEBEE:رسالة الخطأ تحت الحقل;
+  elseif (رقم الأصل مستخدم\nأو الكفالة تنتهي قبل الشراء) then (نعم)
+    #FFEBEE:رسالة هذا الرقم لوحدة أخرى;
+  else (لا)
+    :إنشاء الوحدات وإعطاء كل وحدة
+    رقم أصلها الفريد;
+    :تسجيل العملية في سجل التدقيق;
+    #E8F5E9:رسالة أُضيفت المعدّات
+    مع عدد الوحدات;
+  endif
+  |منسق الجداول والموارد|
+repeat while (لم تُضف الوحدات) is (نعم) not (لا)
+repeat
+  :فتح الصنف واختيار وحدات منه
+  ثم نقلها إلى قاعة أو المستودع
+  أو تغيير حالتها;
+  |النظام|
+  if (نقل وحدة مُخرجة من الخدمة\nإلى قاعة) then (نعم)
+    #FFEBEE:رسالة لا تدخل الوحدة المُخرجة
+    من الخدمة أي قاعة أعدها إلى الخدمة أولاً;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ التغيير;
+  else (لا)
+    :حفظ المكان أو الحالة الجديدة;
+    #E8F5E9:رسالة بنجاح العملية;
+  endif
+  |منسق الجداول والموارد|
+repeat while (لم يُحفظ التغيير) is (نعم) not (لا)
+if (الإبلاغ عن عطل في وحدة) then (نعم)
+  #FFF3E0:UC-22 إدارة الصيانة|
+endif
+stop
+@enduml
