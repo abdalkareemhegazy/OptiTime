@@ -1,0 +1,64 @@
+@startuml UCD-11-finance-requests
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "الموظف المالي" as FIN
+actor "الطالب" as STU
+actor "المرشد الأكاديمي" as ADV
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "موظف شؤون\nالامتحانات" as EXM
+actor "بوابة الدفع\nالإلكتروني" as PG
+
+rectangle "المالية والطلبات الإلكترونية\nFinance and E-Requests" {
+  usecase "إدارة الرسوم\nوالفواتير" as FEES
+  usecase "تسجيل دفعة نقدية\nفي الصندوق" as CASH
+  usecase "إدارة الأقساط والمنح\nوالغرامات والاسترداد" as AID
+  usecase "عرض رصيدي\nوفواتيري" as BAL
+  usecase "تقديم طلب إلكتروني\nومتابعته" as REQ
+  usecase "دراسة الطلبات الإلكترونية\nوالرد عليها" as PROC
+  usecase "دفع الفاتورة\nإلكترونياً" as PAY
+}
+
+FIN -- FEES
+FIN -- CASH
+FIN -- AID
+STU -- BAL
+STU -- REQ
+ADV -- PROC
+ACO -- PROC
+EXM -- PROC
+
+BAL <.. PAY : <<extend>>
+PAY -- PG
+@enduml

@@ -1,0 +1,68 @@
+@startuml UCD-05-resources
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "مدير النظام" as ADM
+actor "منسق الجداول\nوالموارد" as CRD
+actor "أمين المكتبة" as LIB
+actor "الموظف" as EMP
+actor "عضو هيئة\nالتدريس" as INS
+
+rectangle "القاعات والموارد\nRooms and Resources" {
+  usecase "إدارة القاعات\nوالمختبرات" as ROOMS
+  usecase "إدارة الأجهزة\nوالتجهيزات" as EQUIP
+  usecase "الرد على طلبات\nالموارد والحجوزات" as REQS
+  usecase "البحث عن\nقاعة شاغرة" as FIND
+  usecase "طلب قاعة أو تجهيزات\nإضافية لمحاضرة" as REQ
+  usecase "تحديد مقاعد الامتحان\nفي القاعة" as CAP
+  usecase "الإبلاغ عن عطل\nومتابعة إصلاحه" as MAINT
+  usecase "حجز قاعة" as BOOK
+}
+
+LIB -|> EMP
+EMP <|- INS
+
+ADM -- ROOMS
+ADM -- EQUIP
+CRD -- ROOMS
+CRD -- EQUIP
+CRD -- REQS
+EMP -- FIND
+INS -- REQ
+
+ROOMS ..> CAP : <<include>>
+ROOMS <.. MAINT : <<extend>>
+EQUIP <.. MAINT : <<extend>>
+FIND <.. BOOK : <<extend>>
+@enduml

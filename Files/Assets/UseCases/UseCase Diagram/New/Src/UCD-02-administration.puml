@@ -1,0 +1,62 @@
+@startuml UCD-02-administration
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "مدير النظام" as ADM
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "منسق الجداول\nوالموارد" as CRD
+actor "نظام خارجي" as EXT
+
+rectangle "إدارة النظام\nSystem Administration" {
+  usecase "إدارة المستخدمين\nوالأدوار" as USERS
+  usecase "ضبط إعدادات النظام\nووضع الصيانة" as SETTINGS
+  usecase "متابعة حالة النظام\nوسجل العمليات" as HEALTH
+  usecase "النسخ الاحتياطي\nواستعادة البيانات" as BACKUP
+  usecase "ربط النظام بالخدمات\nوالأنظمة الخارجية" as INTEG
+  usecase "استيراد البيانات\nمن ملفات Excel" as IMPORT
+  usecase "الدخول باسم مستخدم\nآخر لفحص مشكلته" as IMP
+}
+
+ADM -- USERS
+ADM -- SETTINGS
+ADM -- HEALTH
+ADM -- BACKUP
+ADM -- INTEG
+ADM -- IMPORT
+ACO -- IMPORT
+CRD -- IMPORT
+
+USERS <.. IMP : <<extend>>
+INTEG --- EXT
+@enduml

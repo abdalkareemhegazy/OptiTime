@@ -1,0 +1,79 @@
+@startuml UCD-01-account
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "المستخدم\n(أي دور)" as USER
+actor "خدمة البريد\nالإلكتروني" as MAIL
+actor "خدمة إشعارات\nالجوال" as FCM
+actor "مزوّد الذكاء\nالاصطناعي" as LLM
+
+rectangle "حسابي والخدمات المشتركة\nMy Account and Shared Services" {
+  usecase "تسجيل الدخول" as LOGIN
+  usecase "استعادة كلمة المرور\nالمنسية" as RECOVER
+  usecase "إدارة الملف الشخصي" as PROFILE
+  usecase "تسجيل الخروج" as LOGOUT
+  usecase "عرض لوحة التحكم" as DASH
+  usecase "البحث في النظام" as SEARCH
+  usecase "متابعة الإشعارات" as NOTIF
+  usecase "سؤال المساعد الذكي" as AI
+  usecase "إدخال رمز التحقق\nمن تطبيق الجوال" as CODE
+  usecase "التحقق من الرمز\nالمرسل إلى البريد" as MAILCODE
+  usecase "تغيير كلمة المرور" as CHPW
+  usecase "تفعيل التحقق\nبخطوتين" as TWOSTEP
+}
+
+note left of USER
+  كل أدوار النظام
+  ترث حالات المستخدم
+end note
+
+USER -- LOGIN
+USER -- RECOVER
+USER -- PROFILE
+USER -- LOGOUT
+USER -- DASH
+USER -- SEARCH
+USER -- NOTIF
+USER -- AI
+
+LOGIN <.. CODE : <<extend>>
+RECOVER ..> MAILCODE : <<include>>
+RECOVER ..> CHPW : <<include>>
+PROFILE <.. CHPW : <<extend>>
+PROFILE <.. TWOSTEP : <<extend>>
+
+MAILCODE -- MAIL
+NOTIF --- FCM
+AI --- LLM
+@enduml

@@ -1,0 +1,73 @@
+@startuml UCD-10-records-advising
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "مدير النظام" as ADM
+actor "موظف القبول" as ADO
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "الطالب" as STU
+actor "المرشد الأكاديمي" as ADV
+
+rectangle "سجلات الطلاب والإرشاد\nStudent Records and Advising" {
+  usecase "إدارة ملفات الطلاب" as RECORDS
+  usecase "ترشيح الخريجين\nواعتماد دفعة التخرج" as GRAD
+  usecase "إصدار كشف العلامات" as TRANSCRIPT
+  usecase "عرض ما أنجزه الطالب\nوما بقي من خطته" as AUDIT
+  usecase "تقديم خطتي للفصل\nإلى المرشد" as SUBMITPLAN
+  usecase "حجز موعد\nمع المرشد" as BOOK
+  usecase "مراجعة خطة الطالب\nومنح إذن التسجيل" as REVIEWPLAN
+  usecase "تحديد مواعيد الإرشاد\nومتابعتها" as SLOTS
+  usecase "متابعة الإنذارات\nالأكاديمية" as WARN
+  usecase "متابعة الطلاب المعرّضين\nلخطر التعثّر" as RISK
+  usecase "تسجيل ملاحظات\nالإرشاد" as NOTES
+}
+
+ADM -- RECORDS
+ADO -- RECORDS
+ACO -- GRAD
+ACO -- TRANSCRIPT
+ACO -- AUDIT
+STU -- TRANSCRIPT
+STU -- AUDIT
+STU -- SUBMITPLAN
+STU -- BOOK
+ADV -- AUDIT
+ADV -- REVIEWPLAN
+ADV -- SLOTS
+ADV -- WARN
+ADV -- RISK
+
+REVIEWPLAN <.. NOTES : <<extend>>
+SLOTS <.. NOTES : <<extend>>
+@enduml

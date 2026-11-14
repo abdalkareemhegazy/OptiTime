@@ -1,0 +1,63 @@
+@startuml UCD-04-curriculum
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "منسق الجداول\nوالموارد" as CRD
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "مدير النظام" as ADM
+actor "رئيس القسم" as HOD
+actor "عميد الكلية" as DEN
+actor "عضو هيئة\nالتدريس" as INS
+
+rectangle "المقررات والخطط الدراسية\nCourses and Study Plans" {
+  usecase "إدارة المقررات\nووصف محتواها" as COURSES
+  usecase "إعداد الخطط الدراسية\nواعتمادها" as PLANS
+  usecase "إدارة سلالم التقدير\n(الحروف والنقاط)" as SCALES
+  usecase "إعداد ملف المدرّس\nوالمقررات التي يدرّسها" as TPROF
+  usecase "تحديد ساعاتي المكتبية\nورغباتي في التدريس" as MYPROF
+  usecase "تحديد المتطلبات السابقة\nوالمقررات المعادلة" as PREREQ
+}
+
+CRD -- COURSES
+ACO -- COURSES
+ACO -- PLANS
+ACO -- SCALES
+ADM -- SCALES
+ACO -- TPROF
+HOD -- TPROF
+DEN -- TPROF
+INS -- MYPROF
+
+COURSES <.. PREREQ : <<extend>>
+@enduml
