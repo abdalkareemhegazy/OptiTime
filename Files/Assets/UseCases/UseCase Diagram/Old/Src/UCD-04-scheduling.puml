@@ -1,0 +1,60 @@
+@startuml UCD-04-scheduling
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "منسق الجداول\nوالموارد\nCRD" as CRD
+actor "رئيس القسم\nHOD" as HOD
+actor "عميد الكلية\nDEN" as DEN
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "عضو هيئة التدريس\nINS" as INS
+actor "الطالب\nSTU" as STU
+
+package "الجدولة\nScheduling" {
+  usecase "إدخال أوقات التفرّغ\nUC-27" as UC27
+  usecase "متابعة أوقات تفرّغ\nالمدرّسين وتذكيرهم\nUC-28" as UC28
+  usecase "توليد الجدول الدراسي\nUC-29" as UC29
+  usecase "إرسال الجدول للاعتماد\nUC-30" as UC30
+  usecase "اعتماد الجدول ونشره\nUC-31" as UC31
+  usecase "تقديم طلب اعتذار\nأو تعويض عن محاضرة\nUC-33" as UC33
+  usecase "عرض الجدول الأسبوعي\nUC-32" as UC32
+}
+
+HOD -- UC28
+DEN -- UC28
+CRD -- UC28
+CRD -- UC29
+CRD -- UC30
+ACO -- UC31
+
+UC27 -- INS
+UC33 -- INS
+UC32 -- INS
+UC32 -- STU
+UC33 .> UC32 : <<extend>>
+@enduml

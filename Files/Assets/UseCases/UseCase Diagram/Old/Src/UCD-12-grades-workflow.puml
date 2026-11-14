@@ -1,0 +1,58 @@
+@startuml UCD-12-grades-workflow
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "عضو هيئة التدريس\nINS" as INS
+actor "رئيس القسم\nHOD" as HOD
+
+actor "موظف شؤون\nالامتحانات\nEXM" as EXM
+actor "عميد الكلية\nDEN" as DEN
+actor "الطالب\nSTU" as STU
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+
+package "سير اعتماد الدرجات\nGrade Approval Workflow" {
+  usecase "رصد كشف الدرجات\nوإرساله للمراجعة\nUC-78" as UC78
+  usecase "مراجعة كشف الدرجات\nفي القسم\nUC-79" as UC79
+  usecase "الإدخال المزدوج واعتماد\nالكشوف ونشرها\nUC-80" as UC80
+  usecase "طلب تعديل درجة منشورة\nUC-83" as UC83
+  usecase "حساب المعدل\nوالوضع الأكاديمي\nUC-81" as UC81
+  usecase "إصدار كشف الدرجات\nUC-82" as UC82
+}
+
+INS -- UC78
+HOD -- UC79
+INS -- UC83
+UC80 ..> UC81 : <<include>>
+UC83 ..> UC81 : <<include>>
+
+UC80 --- EXM
+UC83 --- DEN
+UC82 -- STU
+UC82 -- ACO
+@enduml

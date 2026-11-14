@@ -1,0 +1,41 @@
+@startuml UCD-05-grades
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف شؤون\nالامتحانات\nEXM" as EXM
+actor "الطالب\nSTU" as STU
+
+package "الامتحانات والدرجات\nExams and Grades" {
+  usecase "رصد علامات الامتحان\nUC-34" as UC34
+  usecase "عرض الدرجات\nUC-35" as UC35
+}
+
+EXM -- UC34
+UC35 -- STU
+@enduml

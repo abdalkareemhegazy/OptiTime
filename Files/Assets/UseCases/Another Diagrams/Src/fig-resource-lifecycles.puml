@@ -1,0 +1,62 @@
+@startuml fig-resource-lifecycles
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 14
+skinparam dpi 150
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam state {
+  BackgroundColor #E3F2FD
+  BorderColor #546E7A
+  FontSize 14
+  StartColor #37474F
+  EndColor #37474F
+}
+hide empty description
+top to bottom direction
+
+state "بلاغ الصيانة" as MNT #FAFAFA {
+  state "مبلَّغ عنه\nopen" as M1
+  state "يُعمل عليه\nin_progress" as M2 #FFF59D
+  state "أُصلح\nresolved" as M3 #C8E6C9
+  state "ملغى\ncancelled" as M4 #CFD8DC
+  [*] --> M1
+  M1 --> M2 : تولَّ العمل عليه
+  M2 --> M1 : إعادة إلى الانتظار
+  M2 --> M3 : أُصلح
+  M1 --> M4 : إلغاء بسبب
+  M2 --> M4 : إلغاء بسبب
+}
+
+state "طلب المورد" as RQ #FAFAFA {
+  state "بانتظار الرد\npending" as R1
+  state "مقبول\napproved" as R2 #C8E6C9
+  state "مرفوض\nrejected" as R3 #FFCDD2
+  state "منجز\nfulfilled" as R4 #A5D6A7
+  state "ملغى\ncancelled" as R5 #CFD8DC
+  [*] --> R1
+  R1 --> R2 : قبول مع تخصيص
+  R1 --> R3 : رفض بسبب
+  R1 --> R5 : سحب من المدرّس
+  R2 --> R4 : انتهت مواعيده
+  R2 --> R5 : إلغاء
+}
+
+state "حجز القاعة" as BK #FAFAFA {
+  state "بانتظار التأكيد\npending" as B1 #FFF59D
+  state "مؤكَّد\nconfirmed" as B2 #C8E6C9
+  state "مرفوض\ndeclined" as B3 #FFCDD2
+  state "مكتمل\ncompleted" as B4 #A5D6A7
+  state "ملغى\ncancelled" as B5 #CFD8DC
+  state "لم يحضر\nno_show" as B6 #FFCDD2
+  [*] --> B2 : قاعة قابلة للحجز
+  [*] --> B1 : قاعة تحتاج موافقة
+  B1 --> B2 : تأكيد المنسق
+  B1 --> B3 : رفض بسبب
+  B2 --> B4 : مضى الموعد
+  B2 --> B5 : إلغاء
+  B2 --> B6 : لم يُسجَّل الحضور
+}
+
+@enduml

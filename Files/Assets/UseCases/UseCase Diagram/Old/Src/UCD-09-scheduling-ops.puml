@@ -1,0 +1,63 @@
+@startuml UCD-09-scheduling-ops
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "منسق الجداول\nوالموارد\nCRD" as CRD
+actor "مدير النظام\nADM" as ADM
+
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "عميد الكلية\nDEN" as DEN
+actor "رئيس القسم\nHOD" as HOD
+actor "عضو هيئة التدريس\nINS" as INS
+
+package "إعداد الجدولة وتشغيلها\nScheduling Preparation and Operations" {
+  usecase "معالجة تعارضات الجدول\nومؤشر الجودة\nUC-61" as UC61
+  usecase "الإعادة الطارئة للجدولة\nواقتراح البدلاء\nUC-62" as UC62
+  usecase "إنشاء الشعب\nوإسناد مدرّسيها\nUC-59" as UC59
+  usecase "طرح المقررات\nوتقدير الطلب\nUC-58" as UC58
+  usecase "ضبط قواعد الجدولة\nوقيودها\nUC-60" as UC60
+  usecase "إدارة الملف التدريسي\nلعضو هيئة التدريس\nUC-57" as UC57
+}
+
+usecase "توليد الجدول الدراسي\nمن حزمة الجدولة\nUC-29" as UC29 #F5F5F5;line.dashed
+
+ADM -- UC60
+CRD -- UC60
+CRD -- UC58
+CRD -- UC59
+CRD -- UC61
+CRD -- UC62
+UC61 ..> UC29 : <<extend>>
+
+UC58 -- ACO
+UC57 -- ACO
+UC57 -- DEN
+UC57 -- HOD
+UC57 -- INS
+@enduml

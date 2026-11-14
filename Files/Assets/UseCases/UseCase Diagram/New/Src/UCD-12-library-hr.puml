@@ -1,0 +1,70 @@
+@startuml UCD-12-library-hr
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "عضو هيئة\nالتدريس" as INS
+actor "الموظف" as EMP
+actor "الطالب" as STU
+actor "أمين المكتبة" as LIB
+actor "المدير المباشر" as MGR
+actor "موظف شؤون\nالموظفين" as HRO
+actor "جهاز البصمة" as BIO
+
+rectangle "المكتبة وشؤون الموظفين\nLibrary and Staff Affairs" {
+  usecase "عرض ملفي الوظيفي\nودوامي" as SELF
+  usecase "تقديم طلب إجازة" as LEAVE
+  usecase "البحث عن كتاب\nفي المكتبة" as SEARCH
+  usecase "إعارة الكتب\nواستلامها" as LOAN
+  usecase "الموافقة على\nطلبات الإجازة" as APPROVE
+  usecase "إدارة ملفات الموظفين\nوعقودهم" as FILES
+  usecase "تسجيل الحضور والانصراف\nمن جهاز البصمة" as ATTEND
+  usecase "حجز نسخة معارة" as HOLD
+  usecase "احتساب غرامة\nالتأخير" as FINE
+}
+
+INS -|> EMP
+
+EMP -- SELF
+EMP -- LEAVE
+EMP -- SEARCH
+STU -- SEARCH
+LIB -- LOAN
+MGR -- APPROVE
+HRO -- APPROVE
+HRO -- FILES
+
+SEARCH <.. HOLD : <<extend>>
+LOAN <.. FINE : <<extend>>
+ATTEND --- BIO
+@enduml

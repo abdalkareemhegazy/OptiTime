@@ -1,0 +1,78 @@
+@startuml UCD-13-reports-ai
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "مدير النظام" as ADM
+actor "الإدارة العليا" as EXE
+actor "منسق الجداول\nوالموارد" as CRD
+actor "عضو هيئة\nالتدريس" as INS
+actor "مزوّد الذكاء\nالاصطناعي" as LLM
+
+rectangle "التقارير والذكاء الاصطناعي\nReports and AI" {
+  usecase "رفع لوائح الجامعة ليجيب\nمنها المساعد الذكي" as KB
+  usecase "استخراج المقررات\nمن ملف PDF" as EXTRACT
+  usecase "مقارنة دقة التوقّعات\nواعتماد الأفضل" as MODEL
+  usecase "ضبط خدمة الذكاء\nالاصطناعي وحدودها" as AISET
+  usecase "طلب ملخص للتقرير\nبالذكاء الاصطناعي" as SUMMARY
+  usecase "عرض التقارير\nولوحات المؤشرات" as REPORTS
+  usecase "تجربة احتمالات\nمستقبلية (ماذا لو؟)" as SIM
+  usecase "توقّع أعداد الطلاب\nفي كل مقرر" as FORECAST
+  usecase "شرح سبب وضع\nالمحاضرات في أوقاتها" as EXPLAIN
+  usecase "كتابة التفرّغ والشروط\nبجملة عادية" as NL
+}
+
+ACO -- KB
+ACO -- EXTRACT
+ACO -- MODEL
+ADM -- MODEL
+ADM -- AISET
+ADM -- SUMMARY
+ADM -- REPORTS
+EXE -- SUMMARY
+EXE -- REPORTS
+EXE -- SIM
+CRD -- SIM
+CRD -- FORECAST
+CRD -- EXPLAIN
+CRD -- NL
+INS -- EXPLAIN
+INS -- NL
+
+KB --- LLM
+EXTRACT --- LLM
+SUMMARY --- LLM
+EXPLAIN --- LLM
+NL --- LLM
+@enduml

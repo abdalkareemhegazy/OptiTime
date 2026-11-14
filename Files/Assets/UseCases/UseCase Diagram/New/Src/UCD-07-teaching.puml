@@ -1,0 +1,66 @@
+@startuml UCD-07-teaching
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "رئيس القسم" as HOD
+actor "عميد الكلية" as DEN
+actor "عضو هيئة\nالتدريس" as INS
+actor "الطالب" as STU
+actor "موظف الشؤون\nالأكاديمية" as ACO
+
+rectangle "التدريس والحضور\nTeaching and Attendance" {
+  usecase "الاطلاع على نتائج\nتقييم المقررات" as EVALRES
+  usecase "نشر محتوى المادة\nوإعلاناتها" as CONTENT
+  usecase "إعداد الاختبارات\nالقصيرة ونشرها" as QUIZ
+  usecase "تسجيل الحضور\n(يدوياً أو بمسح رمز QR)" as ATT
+  usecase "تصفّح محتوى المادة\nوإعلاناتها" as PAGE
+  usecase "أداء الاختبار القصير" as TAKE
+  usecase "تقييم المقرر\nوالمدرّس" as EVAL
+  usecase "عرض غيابي\nوإنذاراته" as MYABS
+  usecase "اعتماد حرمان الطلاب\nبسبب الغياب" as DEPRIV
+}
+
+HOD -- EVALRES
+DEN -- EVALRES
+INS -- EVALRES
+INS -- CONTENT
+INS -- QUIZ
+INS -- ATT
+STU -- ATT
+STU -- PAGE
+STU -- TAKE
+STU -- EVAL
+STU -- MYABS
+ACO -- DEPRIV
+@enduml

@@ -1,0 +1,72 @@
+@startuml UCD-08-exams-marks
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف شؤون\nالامتحانات" as EXM
+actor "عضو هيئة\nالتدريس" as INS
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "عميد الكلية" as DEN
+actor "رئيس القسم" as HOD
+actor "الطالب" as STU
+
+rectangle "الامتحانات والعلامات\nExams and Marks" {
+  usecase "إعداد جدول الامتحانات" as EXSCHED
+  usecase "مطابقة العلامات\nواعتمادها ونشرها" as PUBLISH
+  usecase "متابعة يوم الامتحان\n(الحضور والحوادث)" as EXDAY
+  usecase "إدخال علامات الطلاب\nوإرسالها للمراجعة" as MARKS
+  usecase "طلب تعديل علامة\nبعد نشرها" as REQCHANGE
+  usecase "اعتماد تعديل\nعلامة منشورة" as APPCHANGE
+  usecase "مراجعة علامات\nشُعب القسم" as REVIEW
+  usecase "عرض جدول امتحاناتي\nوبطاقة الامتحان" as EXCARD
+  usecase "عرض علاماتي\nومعدّلي" as GRADES
+  usecase "توزيع القاعات والمقاعد\nوالمراقبين" as DIST
+  usecase "حساب المعدّل\nوالوضع الأكاديمي" as GPA
+}
+
+EXM -- EXSCHED
+EXM -- PUBLISH
+EXM -- EXDAY
+INS -- EXDAY
+INS -- MARKS
+INS -- REQCHANGE
+ACO -- APPCHANGE
+DEN -- APPCHANGE
+HOD -- REVIEW
+STU -- EXCARD
+STU -- GRADES
+
+EXSCHED ..> DIST : <<include>>
+PUBLISH ..> GPA : <<include>>
+APPCHANGE ..> GPA : <<include>>
+@enduml

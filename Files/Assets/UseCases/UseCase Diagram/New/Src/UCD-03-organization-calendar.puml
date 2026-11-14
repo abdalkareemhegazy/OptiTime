@@ -1,0 +1,65 @@
+@startuml UCD-03-organization-calendar
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "عميد الكلية" as DEN
+actor "مدير النظام" as ADM
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "المستخدم\n(أي دور)" as USER
+
+rectangle "الهيكل التنظيمي والتقويم الأكاديمي\nOrganization and Academic Calendar" {
+  usecase "إدارة الكليات والأقسام\nوتعيين قياداتها" as COLLEGE
+  usecase "إدارة الفروع والمباني" as BRANCH
+  usecase "إدارة الوحدات الإدارية\n(كالمالية والمكتبة)" as UNITS
+  usecase "إدارة البرامج الأكاديمية\nولوائحها" as PROG
+  usecase "إدارة الفصول الدراسية\nومواعيدها وعطلها" as TERMS
+  usecase "نقل الفصل الدراسي\nإلى مرحلته التالية" as PHASE
+  usecase "عرض التقويم الأكاديمي\nوالاشتراك به" as CALVIEW
+  usecase "التحقق من اكتمال\nشروط الانتقال" as COND
+}
+
+DEN -- COLLEGE
+ADM -- COLLEGE
+ADM -- BRANCH
+ADM -- UNITS
+ADM -- PROG
+ADM -- TERMS
+ADM -- PHASE
+ACO -- PROG
+ACO -- TERMS
+ACO -- PHASE
+USER -- CALVIEW
+
+PHASE ..> COND : <<include>>
+@enduml

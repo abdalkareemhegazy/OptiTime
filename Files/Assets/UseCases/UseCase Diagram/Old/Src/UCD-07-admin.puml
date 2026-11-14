@@ -1,0 +1,70 @@
+@startuml UCD-07-admin
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "مدير النظام\nADM" as ADM
+actor "المستخدم\nAny User" as USER
+
+actor "منسق الجداول\nوالموارد\nCRD" as CRD
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+actor "نظام خارجي\nExternal System" as EXT
+actor "خدمة الإشعارات\nالفورية\nFCM" as FCM
+
+package "الإدارة والمتابعة\nAdministration and Monitoring" {
+  usecase "الدخول باسم مستخدم آخر\nUC-39" as UC39
+  usecase "استعراض سجل التدقيق\nUC-40" as UC40
+  usecase "ضبط إعدادات النظام\nووضع الصيانة\nUC-41" as UC41
+  usecase "مراقبة صحة النظام\nUC-42" as UC42
+  usecase "استيراد البيانات من ملف\nUC-43" as UC43
+  usecase "إدارة التكاملات ومفاتيح\nالواجهة البرمجية\nUC-44" as UC44
+  usecase "البحث الشامل\nUC-45" as UC45
+  usecase "متابعة الإشعارات\nUC-46" as UC46
+  usecase "عرض لوحة التحكم\nUC-47" as UC47
+}
+
+note left of USER
+  كل دور يرث
+  هذه الحالات
+end note
+
+ADM -- UC39
+ADM -- UC40
+ADM -- UC41
+ADM -- UC42
+ADM -- UC43
+ADM -- UC44
+USER -- UC45
+USER -- UC46
+USER -- UC47
+
+UC43 -- CRD
+UC43 -- ACO
+UC44 -- EXT
+UC46 -- FCM
+@enduml

@@ -1,0 +1,81 @@
+@startuml UCD-06-scheduling
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam rectangle {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #FFB300
+  FontSize 12
+}
+left to right direction
+' ===== المخطط =====
+
+actor "موظف الشؤون\nالأكاديمية" as ACO
+actor "مدير النظام" as ADM
+actor "منسق الجداول\nوالموارد" as CRD
+actor "رئيس القسم" as HOD
+actor "عميد الكلية" as DEN
+actor "عضو هيئة\nالتدريس" as INS
+actor "الطالب" as STU
+
+rectangle "الجدول الدراسي\nCourse Timetabling" {
+  usecase "اعتماد طرح المقررات\nوالجدول ونشره" as APPROVE
+  usecase "ضبط قواعد الجدولة\nوشروطها" as RULES
+  usecase "إنشاء الشعب\nوإسناد مدرّسيها" as SECTIONS
+  usecase "طرح مقررات الفصل\nوتقدير أعداد طلابها" as OFFER
+  usecase "بناء الجدول الدراسي\nآلياً وتعديله" as BUILD
+  usecase "إرسال الجدول\nللاعتماد" as SUBMIT
+  usecase "تعديل الجدول\nفي الحالات الطارئة" as EMERG
+  usecase "الرد على طلبات\nالاعتذار والتعويض" as DECIDE
+  usecase "متابعة تسليم أوقات التفرّغ\nوتذكير المتأخرين" as FOLLOW
+  usecase "طلب اعتذار عن محاضرة\nأو تعويضها" as ABS
+  usecase "إدخال أوقات التفرّغ" as AVAIL
+  usecase "عرض الجدول الأسبوعي\nوتنزيله" as VIEW
+  usecase "حل التعارضات\nبحلول مقترحة" as CONFL
+  usecase "اقتراح مدرّس بديل" as SUBST
+}
+
+ACO -- APPROVE
+ADM -- RULES
+ADM -- SECTIONS
+CRD -- RULES
+CRD -- SECTIONS
+CRD -- OFFER
+CRD -- BUILD
+CRD -- SUBMIT
+CRD -- EMERG
+CRD -- DECIDE
+CRD -- FOLLOW
+HOD -- FOLLOW
+DEN -- FOLLOW
+INS -- ABS
+INS -- AVAIL
+INS -- VIEW
+STU -- VIEW
+
+BUILD <.. CONFL : <<extend>>
+EMERG <.. SUBST : <<extend>>
+@enduml

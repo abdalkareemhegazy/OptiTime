@@ -1,0 +1,82 @@
+@startuml UCD-17-ai
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam dpi 150
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultTextAlignment center
+skinparam ArrowColor #455A64
+skinparam ArrowFontSize 12
+skinparam ArrowFontColor #37474F
+skinparam actor {
+  BorderColor #37474F
+  BackgroundColor #ECEFF1
+  FontSize 14
+  FontStyle bold
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1E88E5
+  FontSize 14
+}
+skinparam package {
+  BackgroundColor #FCFCFC
+  BorderColor #78909C
+  FontSize 16
+  FontStyle bold
+}
+left to right direction
+' ===== المخطط =====
+
+actor "مدير النظام\nADM" as ADM
+actor "الإدارة العليا\nEXE" as EXE
+actor "منسق الجداول\nوالموارد\nCRD" as CRD
+actor "عضو هيئة التدريس\nINS" as INS
+actor "المستخدم\nAny User" as USER
+actor "موظف الشؤون\nالأكاديمية\nACO" as ACO
+
+actor "مزوّد النماذج\nاللغوية\nLLM Provider" as LLM
+actor "المرشد الأكاديمي\nADV" as ADV
+actor "رئيس القسم\nHOD" as HOD
+
+package "الذكاء الاصطناعي والتحليلات\nAI and Analytics" {
+  usecase "ضبط بوابة الذكاء الاصطناعي\nومتابعة استخدامها\nUC-104" as UC104
+  usecase "توليد ملخص\nلتقرير أو لوحة\nUC-112" as UC112
+  usecase "محاكاة السيناريوهات\nUC-113" as UC113
+  usecase "التنبؤ بالطلب\nعلى المقررات\nUC-109" as UC109
+  usecase "شرح نتيجة الجدولة\nUC-108" as UC108
+  usecase "إدخال التفرّغ والقيود\nبلغة طبيعية\nUC-107" as UC107
+  usecase "محادثة المساعد الذكي\nUC-105" as UC105
+  usecase "إدارة قاعدة\nمعرفة اللوائح\nUC-106" as UC106
+  usecase "استخراج بيانات المقررات\nمن ملف\nUC-111" as UC111
+  usecase "متابعة مؤشر\nخطر التعثّر\nUC-110" as UC110
+}
+
+ADM -- UC104
+ADM -- UC112
+EXE -- UC104
+EXE -- UC112
+EXE -- UC113
+EXE -- UC109
+CRD -- UC113
+CRD -- UC109
+CRD -- UC108
+CRD -- UC107
+INS -- UC108
+INS -- UC107
+USER -- UC105
+ACO -- UC109
+ACO -- UC106
+ACO -- UC111
+ACO -- UC110
+
+UC104 -- LLM
+UC112 -- LLM
+UC108 -- LLM
+UC107 -- LLM
+UC105 -- LLM
+UC106 -- LLM
+UC111 -- LLM
+UC110 -- ADV
+UC110 -- HOD
+@enduml
