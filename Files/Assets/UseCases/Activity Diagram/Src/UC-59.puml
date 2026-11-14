@@ -1,0 +1,72 @@
+@startuml UC-59
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-59 — إنشاء الشعب وإسناد مدرّسيها
+
+|#F1F8FE|منسق الجداول|
+|#F3FAF3|النظام|
+|منسق الجداول|
+start
+:اختيار الفصل في صفحة الشعب;
+|النظام|
+if (لا فصل للتخطيط أو لا طروح) then (نعم)
+  #FFEBEE:رسالة لا مقررات مطروحة بعد;
+  end
+else (لا)
+endif
+:عرض المقررات بشعبها وعلامات النقص;
+|منسق الجداول|
+:الضغط على إنشاء الشعب المخطّطة;
+|النظام|
+if (الفصل مغلق أو الطرح ملغى\nأو الشعب بلغت الحد) then (نعم)
+  #FFEBEE:رسالة تبيّن السبب;
+  end
+elseif (لا شعب ناقصة) then (نعم)
+  #FFEBEE:رسالة لا شعب مخطّطة ناقصة;
+else (لا)
+  :إنشاء الشعب وربط كل عملية بنظرية;
+endif
+|منسق الجداول|
+repeat
+  :تعديل السعة والقيود والحالة ثم حفظ;
+  |النظام|
+  if (للشعبة محاضرات منشورة\nأو عليها علامات) then (نعم)
+    #FFEBEE:رسالة لا يتغيّر مكوّنها;
+  else (لا)
+    :حفظ الشعبة;
+  endif
+  |منسق الجداول|
+repeat while (لم تُحفظ الشعبة) is (نعم) not (لا)
+repeat
+  :اختيار المدرّسين وأدوارهم وحصص أحمالهم
+  ثم حفظ;
+  |النظام|
+  if (لا أساسي أو حصة خارج الحدود\nأو محاضرات منشورة تمنع) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ المدرّسين;
+  else (لا)
+    :حفظ الفريق وأحماله;
+    :إشعار كل مدرّس بتكليفه;
+    #E8F5E9:رسالة حُفظ المدرّسون;
+  endif
+  |منسق الجداول|
+repeat while (لم يُحفظ الفريق) is (نعم) not (لا)
+stop
+@enduml

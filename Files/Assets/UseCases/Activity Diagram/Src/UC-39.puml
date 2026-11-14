@@ -1,0 +1,86 @@
+@startuml UC-39
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-39 — الدخول باسم مستخدم آخر
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:فتح الحساب من إدارة المستخدمين
+ثم قسم الأمان;
+|النظام|
+:عرض إجراء الدخول باسمه
+مع تنبيه تسجيل كل خطوة;
+|مدير النظام|
+repeat
+  :الضغط على الدخول باسمه;
+  |النظام|
+  :طلب تأكيد الهوية إن لم تكن حديثة;
+  |مدير النظام|
+  :إدخال كلمة المرور أو رمز التحقق;
+  |النظام|
+  :التحقق من التأكيد;
+  if (التأكيد صحيح) then (نعم)
+  else (لا)
+    #FFEBEE:رسالة التأكيد غير صحيح;
+  endif
+  |مدير النظام|
+repeat while (التأكيد غير صحيح) is (نعم) not (لا)
+|النظام|
+:التحقق من حالة المدير والحساب المستهدف;
+if (منتحل أصلاً أو الهدف\nحسابه أو المؤسس أو معطّل\nأو مدير نظام آخر) then (نعم)
+  #FFEBEE:رسالة لا يمكنك الدخول
+  باسم هذا الحساب;
+  end
+else (لا)
+endif
+:إصدار جلسة باسم المستخدم
+موسومة باسم المدير;
+:تسجيل بدء الانتحال في سجل التدقيق;
+:عرض لوحة المستخدم مع لافتة دائمة
+أنت تتصفح النظام باسمه;
+note right
+  تُمنع أثناء الجلسة العمليات الحساسة
+  كتغيير كلمة المرور وإدارة الأدوار
+  وحذف الحسابات واعتماد الدرجات
+end note
+|مدير النظام|
+:تصفح الشاشات كما يراها المستخدم;
+:الضغط على العودة إلى حسابي;
+|النظام|
+if (الجلسة جلسة انتحال) then (لا)
+  #FFEBEE:رسالة أنت لست داخلاً
+  باسم حساب آخر;
+  end
+else (نعم)
+endif
+:إغلاق الجلسة المستعارة
+وتسجيل إنهاء الانتحال;
+if (حساب المدير ما زال مفعّلاً) then (نعم)
+  :إصدار جلسة جديدة للمدير;
+  #E8F5E9:العودة إلى حساب المدير
+  مع رسالة عدت إلى حسابك;
+else (لا)
+  #FFEBEE:التحويل إلى صفحة تسجيل الدخول;
+endif
+stop
+@enduml

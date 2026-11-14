@@ -1,0 +1,69 @@
+@startuml UC-104
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-104 — ضبط بوابة الذكاء الاصطناعي ومتابعة استخدامها
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|#FFFBF0|مزوّد النماذج|
+|مدير النظام|
+start
+:فتح إعدادات الذكاء الاصطناعي;
+|النظام|
+:عرض المزوّد والميزات والحصص
+مع إخفاء المفاتيح;
+|مدير النظام|
+repeat
+  :اختيار المزوّد وإدخال مفتاحه
+  ثم اختبار الاتصال;
+  |مزوّد النماذج|
+  :الرد على طلب تجريبي;
+  |النظام|
+  if (فشل الاتصال أو رُفض المفتاح) then (نعم)
+    #FFEBEE:بيان سبب الفشل دون حفظ المفتاح;
+  else (لا)
+    :إظهار نجاح الاختبار;
+  endif
+  |مدير النظام|
+repeat while (فشل الاختبار) is (نعم) not (لا)
+repeat
+  :الميزات لكل دور والحصة اليومية
+  والميزانية الشهرية ثم حفظ;
+  |النظام|
+  if (قيمة غير صالحة) then (نعم)
+    #FFEBEE:رسالة بعض البيانات المدخلة غير صالحة;
+  else (لا)
+    :حفظ الإعدادات مع تشفير المفتاح
+    وتطبيقها فوراً وتسجيلها في التدقيق;
+  endif
+  |مدير النظام|
+repeat while (لم تُحفظ الإعدادات) is (نعم) not (لا)
+|النظام|
+:تطبيق الحصص وتسجيل الاستخدام والكلفة
+في كل طلب ذكاء;
+if (بلغ الاستخدام الميزانية) then (نعم)
+  #FFF3E0:تنبيه مدير النظام;
+else (لا)
+endif
+#E8F5E9:تقرير الاستخدام لمدير النظام
+والإدارة العليا;
+stop
+@enduml

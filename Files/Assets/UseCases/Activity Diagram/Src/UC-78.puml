@@ -1,0 +1,68 @@
+@startuml UC-78
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-78 — رصد كشف الدرجات وإرساله للمراجعة
+
+|#F1F8FE|عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|عضو هيئة التدريس|
+start
+:فتح كشف الدرجات للشعبة;
+|النظام|
+:عرض الطلاب والمكوّنات والمجاميع والحالة;
+|عضو هيئة التدريس|
+repeat
+  if (طريقة الرصد) then (يدوياً)
+    :إدخال العلامات على المكوّنات;
+  else (من ملف)
+    #FFF3E0:رفع الملف واعتماد المطابقة
+    بالأرقام الجامعية;
+  endif
+  :الضغط على حفظ;
+  |النظام|
+  if (الكشف ليس مسودة ولا معاداً) then (نعم)
+    #FFEBEE:رسالة لا يمكن تعديل الكشف;
+    end
+  elseif (علامة خارج حدود مكوّنها) then (نعم)
+    #FFEBEE:وسم الخانة ورسالة خارج النطاق;
+  elseif (تغيّر الكشف منذ فتحه) then (نعم)
+    #FFEBEE:رسالة أعد التحميل وحاول مجدداً;
+  else (لا)
+    :حفظ العلامات في سجل تاريخ الكشف;
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم تُحفظ العلامات) is (نعم) not (لا)
+:حساب المجاميع لمعاينتها;
+|النظام|
+:المجموع والتقدير على سلّم كل طالب;
+|عضو هيئة التدريس|
+:إرسال للمراجعة;
+|النظام|
+if (علامات ناقصة غير معلّمة) then (نعم)
+  #FFEBEE:رسالة توجد علامات ناقصة
+  مع الطلاب المعنيين;
+else (لا)
+  :نقل الكشف إلى مرسل للمراجعة وقفله
+  وتسجيل الانتقال;
+  #E8F5E9:إشعار رئيس القسم;
+endif
+stop
+@enduml

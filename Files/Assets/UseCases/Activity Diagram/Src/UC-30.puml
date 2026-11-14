@@ -1,0 +1,83 @@
+@startuml UC-30
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-30 — إرسال الجدول للاعتماد
+
+|#F1F8FE|منسق الجداول والموارد|
+|#F3FAF3|النظام|
+|#FFFBF0|موظف الشؤون الأكاديمية|
+|منسق الجداول والموارد|
+start
+:فتح النسخة المطلوبة على لوح الجدول
+الأسبوعي أو من نسخ الجدول;
+repeat
+  :الضغط على تشغيل قائمة التحقق;
+  |النظام|
+  :فحص النسخة محاضراتها وقواعدها الصارمة
+  وشعبها ونسخ الكليات الأخرى
+  ونصاب المدرّسين وتوزيع الطلاب;
+  :إظهار نتيجة كل بند
+  وحفظها على النسخة;
+  |منسق الجداول والموارد|
+  :الضغط على إرسال للاعتماد
+  وكتابة ملاحظة اختيارية;
+  |النظام|
+  :إعادة تشغيل قائمة التحقق
+  والتأكد من اجتيازها;
+  if (النسخة ليست في حالة تسمح\nبالإرسال أو الفصل مغلق) then (نعم)
+    #FFEBEE:رسالة لا يُجرى هذا الإجراء
+    والنسخة في حالتها الحالية;
+    end
+  elseif (تغيّرت النسخة منذ فتحها) then (نعم)
+    #FFEBEE:رسالة تغيّرت هذه النسخة
+    منذ فتحتها أعد تحميلها;
+  elseif (لم تجتز النسخة\nقائمة التحقق) then (نعم)
+    #FFEBEE:رسالة لم تجتز النسخة قائمة التحقق
+    مع البنود المانعة;
+  elseif (تعذّر الإرسال) then (نعم)
+    #FFEBEE:رسالة تعذّر إرسال النسخة
+    للاعتماد;
+  else (لا)
+    :تحويل حالة النسخة إلى بانتظار الاعتماد
+    وتسجيل المرسل ووقت الإرسال;
+    #E8F5E9:رسالة أُرسلت النسخة للاعتماد;
+  endif
+  |منسق الجداول والموارد|
+repeat while (لم تُرسل النسخة) is (نعم) not (لا)
+|النظام|
+:إشعار موظفي الشؤون الأكاديمية
+بوصول نسخة للمراجعة;
+|موظف الشؤون الأكاديمية|
+:استلام إشعار وصول نسخة للمراجعة;
+:UC-31 اعتماد الجدول ونشره|
+|منسق الجداول والموارد|
+if (سحب النسخة قبل مراجعتها) then (نعم)
+  #FFF3E0:الضغط على سحبها من الاعتماد;
+  |النظام|
+  #FFF3E0:إعادة النسخة مسودة قابلة للتعديل;
+  |منسق الجداول والموارد|
+endif
+if (النسخة مُرجَعة بملاحظات) then (نعم)
+  #FFF3E0:معالجة الملاحظات المفتوحة
+  وتعليمها معالَجة ثم إعادة الإرسال;
+endif
+stop
+@enduml

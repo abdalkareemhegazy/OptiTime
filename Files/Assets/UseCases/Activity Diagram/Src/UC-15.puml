@@ -1,0 +1,70 @@
+@startuml UC-15
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-15 — إضافة دور
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:الضغط على دور جديد;
+|النظام|
+:عرض نموذج دور جديد بقسميه
+الهوية والصلاحيات;
+|مدير النظام|
+repeat
+  :إدخال اسم الدور بالعربية والإنجليزية;
+  |النظام|
+  :اقتراح رمز الدور من الاسم الإنجليزي;
+  |مدير النظام|
+  :تعديل الرمز واللون والوصف ومدى الدور
+  وإلزام التحقق الثنائي عند الحاجة;
+  if (البدء بنسخ صلاحيات دور موجود) then (نعم)
+    #FFF3E0:اختيار نسخ من دور
+    لتبدأ الصلاحيات من صلاحيات ذلك الدور;
+  endif
+  :تحديد الصلاحيات من القائمة
+  المجمّعة بحسب المجالات;
+  |النظام|
+  :تطبيق قاعدة التبعية
+  منح الإنشاء أو التعديل أو الحذف يمنح العرض
+  وإظهار ملخص التغييرات;
+  |مدير النظام|
+  :الضغط على إنشاء الدور;
+  |النظام|
+  :التحقق من الحقول وتفرّد رمز الدور;
+  if (اسم أو رمز فارغ\nأو رمز بصيغة غير صحيحة) then (نعم)
+    #FFEBEE:رسالة الحقل المعني;
+  elseif (رمز الدور مستخدم لدور آخر) then (نعم)
+    #FFEBEE:رسالة هذا الرمز مستخدم لدور آخر;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذر حفظ الدور
+    حاول مرة أخرى;
+  else (لا)
+    :إنشاء دور مخصص
+    وربطه بالصلاحيات المحددة;
+    :تسجيل العملية في سجل التدقيق;
+    #E8F5E9:رسالة تم إنشاء الدور;
+  endif
+  |مدير النظام|
+repeat while (لم يُنشأ الدور) is (نعم) not (لا)
+stop
+@enduml

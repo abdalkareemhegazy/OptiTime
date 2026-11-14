@@ -1,0 +1,73 @@
+@startuml UC-05
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-05 — نسيت كلمة المرور
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:الضغط على نسيت كلمة المرور
+في صفحة تسجيل الدخول;
+|النظام|
+:عرض مسار الاستعادة بثلاث خطوات
+وفتح الخطوة الأولى;
+|المستخدم|
+repeat
+  :إدخال البريد الإلكتروني
+  ثم الضغط على إرسال الرمز;
+  |النظام|
+  :التحقق من صيغة البريد الإلكتروني;
+  if (البريد فارغ أو بصيغة غير صحيحة) then (نعم)
+    #FFEBEE:رسالة الخطأ تحت الحقل;
+  elseif (تجاوز الحد المسموح من الطلبات) then (نعم)
+    #FFEBEE:رسالة طلبات كثيرة
+    انتظر قليلاً ثم حاول مجدداً;
+  elseif (تعذّر الوصول إلى الخادم) then (نعم)
+    #FFEBEE:رسالة تعذر إتمام هذه الخطوة
+    يرجى المحاولة مرة أخرى;
+  else (لا)
+    if (يوجد حساب مفعّل بهذا البريد) then (نعم)
+      :توليد رمز من 6 أرقام صالح لعشر دقائق
+      وحفظه مجزّأً وإرساله إلى البريد;
+    else (لا)
+      #FFF3E0:عدم إرسال أي رمز
+      مع إظهار الرسالة نفسها;
+    endif
+    #E8F5E9:رسالة تم إرسال رمز التحقق
+    إلى بريدك الإلكتروني;
+    :فتح خطوة التحقق;
+  endif
+  |المستخدم|
+repeat while (لم يُقبل طلب الرمز) is (نعم) not (لا)
+:UC-06 التحقق الثنائي|
+:UC-07 تغيير كلمة المرور|
+|النظام|
+:تحويل المستخدم إلى صفحة تسجيل الدخول;
+#E8F5E9:رسالة تمت إعادة تعيين كلمة المرور بنجاح;
+note right
+  يمكن طلب رمز جديد بعد 30 ثانية
+  ويبطل الرمز الجديد ما قبله
+  ويستطيع المستخدم ترك المسار
+  في أي خطوة
+end note
+stop
+@enduml

@@ -1,0 +1,83 @@
+@startuml UC-44
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-44 — إدارة التكاملات ومفاتيح الواجهة البرمجية
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|#FFFBF0|النظام الخارجي|
+|مدير النظام|
+start
+:فتح صفحة التكاملات;
+|النظام|
+if (يملك صلاحية إدارة التكاملات) then (لا)
+  #FFEBEE:رسالة ليس لديك صلاحية
+  إدارة التكاملات;
+  end
+else (نعم)
+endif
+:عرض التكاملات دون أسرارها والمفاتيح;
+|مدير النظام|
+repeat
+  :إدخال إعدادات التكامل وتفعيله
+  ثم الضغط على حفظ;
+  |النظام|
+  if (حقل مطلوب ناقص\nأو قيمة غير صالحة) then (نعم)
+    #FFEBEE:رسالة أكمل الحقول المطلوبة;
+  else (لا)
+    :حفظ الإعدادات والأسرار مشفّرة;
+    #E8F5E9:رسالة حُفظ التكامل;
+  endif
+  |مدير النظام|
+repeat while (لم يُحفظ التكامل) is (نعم) not (لا)
+:الضغط على اختبار الاتصال;
+|النظام|
+:الاتصال بالخدمة بالإعدادات المحفوظة;
+if (تعذّر إجراء الاختبار) then (نعم)
+  #FFEBEE:رسالة تعذّر إجراء الاختبار;
+else (لا)
+  :عرض الاتصال ناجح أو فشل الاتصال;
+endif
+|مدير النظام|
+:إدخال اسم المفتاح وصلاحياته
+وانتهائه والعناوين المسموحة;
+|النظام|
+:توليد المفتاح وحفظ بصمته المجزّأة;
+:عرض المفتاح مرة واحدة للنسخ;
+|مدير النظام|
+:تسليم المفتاح إلى النظام الخارجي;
+|النظام الخارجي|
+:الاتصال بالنظام بالمفتاح;
+|النظام|
+if (المفتاح ملغى أو منتهٍ\nأو العنوان أو النطاق ممنوع) then (نعم)
+  #FFEBEE:رفض الطلب الخارجي;
+else (لا)
+  :تنفيذ الطلب وتسجيل آخر استخدام;
+endif
+|مدير النظام|
+if (إلغاء المفتاح) then (نعم)
+  #FFF3E0:الضغط على إلغاء أمام المفتاح;
+  |النظام|
+  #FFF3E0:إبطال المفتاح فوراً دون حذفه;
+else (لا)
+endif
+stop
+@enduml

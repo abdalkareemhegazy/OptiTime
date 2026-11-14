@@ -1,0 +1,101 @@
+@startuml UC-37
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-37 — عرض تقارير الإدارة
+
+|#F1F8FE|الإدارة العليا|
+|#F3FAF3|النظام|
+|الإدارة العليا|
+start
+:فتح صفحة تقارير الإدارة
+من مجموعة الرئيسية;
+|النظام|
+:التحقق من صلاحيات التقارير
+الممنوحة للمسؤول;
+if (لا يملك أي صلاحية تقارير) then (نعم)
+  #FFEBEE:رسالة لا تقارير متاحة لحسابك
+  راجع مدير النظام لمنحك ما يلزم;
+  end
+else (لا)
+  repeat
+    :تحديد الفصل الحالي افتراضياً
+    والتحقق من وجود جدول منشور له;
+    if (لا يوجد فصل دراسي بعد) then (نعم)
+      #FFEBEE:رسالة لا يوجد فصل دراسي بعد;
+      end
+    elseif (لم يُنشر جدول الفصل المحدد) then (نعم)
+      #FFEBEE:رسالة لم يُنشر جدول هذا الفصل
+      اختر فصلاً له جدول منشور;
+      |الإدارة العليا|
+      #FFF3E0:اختيار فصل آخر;
+      |النظام|
+    else (لا)
+      :حساب القراءات من الجدول المنشور
+      ساعات فعلية مقابل ساعات متاحة;
+      :إظهار تبويبات التقارير المسموحة
+      القاعات والمختبرات وشكل الأسبوع
+      وأوقات الذروة والميزات
+      والمعدّات والمخالفات;
+    endif
+  repeat while (لم يُنشر جدول الفصل) is (نعم) not (لا)
+endif
+|الإدارة العليا|
+repeat
+  :اختيار تبويب التقرير;
+  |النظام|
+  if (صلاحيته لا تشمل\nهذا التقرير) then (نعم)
+    #FFEBEE:رسالة صلاحيتك لا تشمل هذا التقرير;
+  elseif (خطأ في الخادم\nأو انقطاع الاتصال) then (نعم)
+    #FFEBEE:رسالة حدث خطأ في الخادم
+    أثناء حساب القراءة
+    مع زر إعادة المحاولة;
+  else (لا)
+    :عرض التقرير أرقاماً إجمالية
+    وجداول ومخططات
+    نسبة إشغال القاعات بالساعات
+    وقاعات بلا أي حجز
+    وشعب أكبر من قاعاتها;
+  endif
+  |الإدارة العليا|
+repeat while (لم يظهر التقرير) is (نعم) not (لا)
+if (اختيار فصل آخر\nأو تحديث القراءة) then (نعم)
+  #FFF3E0:اختيار فصل آخر
+  أو الضغط على تحديث القراءة;
+  |النظام|
+  #FFF3E0:إعادة حساب التقارير
+  من الجدول المنشور للفصل المختار;
+  |الإدارة العليا|
+endif
+:الضغط على تصدير التقرير;
+|النظام|
+if (فشل إنشاء ملف التقرير) then (نعم)
+  #FFEBEE:رسالة تعذّر تصدير التقرير;
+else (لا)
+  :إنشاء ملف التقرير من الصفحة المعروضة
+  وتنزيله;
+  #E8F5E9:رسالة صُدِّر التقرير;
+  note right
+    صفحة إشغال القاعات تعرض
+    الخريطة الحرارية للقراءة فقط
+  end note
+endif
+stop
+@enduml

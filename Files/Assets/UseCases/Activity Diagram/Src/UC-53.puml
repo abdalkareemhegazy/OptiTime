@@ -1,0 +1,74 @@
+@startuml UC-53
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-53 — إدارة المقررات وتوصيفها
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:فتح صفحة المقررات;
+|النظام|
+:عرض مقررات النطاق وشعبها وخططها;
+|المستخدم|
+repeat
+  :مقرر جديد أو فتح مقرر وإدخال الرمز
+  والقسم والاسمين والساعات والفئة;
+  :الضغط على حفظ;
+  |النظام|
+  if (حقل ناقص أو خارج الحدود) then (نعم)
+    #FFEBEE:رسالة تحت الحقل;
+  elseif (الرمز مستخدم في القسم\nأو الفئة لا تناسب الشعب) then (نعم)
+    #FFEBEE:رسالة تبيّن السبب;
+  elseif (التغيير يزيل محاضرات منشورة\nأو عليها علامات) then (نعم)
+    #FFEBEE:رسالة لم يُحفظ شيء;
+  else (لا)
+    :حفظ المقرر وتسجيله في سجل التدقيق;
+    #E8F5E9:رسالة تم حفظ المقرر;
+  endif
+  |المستخدم|
+repeat while (لم يُحفظ المقرر) is (نعم) not (لا)
+if (تحديد المتطلبات) then (نعم)
+  :UC-54 تحديد المتطلبات السابقة والمعادلات|
+else (لا)
+endif
+repeat
+  :إضافة مواضيع المفردات أو نسخها
+  من مقرر آخر ثم حفظ;
+  |النظام|
+  if (موضوع بلا عنوان\nأو أسبوع خارج الحدود\nأو مواضيع فوق الحد) then (نعم)
+    #FFEBEE:رسالة صحّح المواضيع المعلّمة;
+  else (لا)
+    :حفظ المواضيع بترتيبها;
+  endif
+  |المستخدم|
+repeat while (لم تُحفظ المفردات) is (نعم) not (لا)
+if (أرشفة المقرر) then (نعم)
+  |النظام|
+  if (مطروح في فصل لم يُغلق) then (نعم)
+    #FFEBEE:رسالة أوقف طرحه أولاً ثم أرشفه;
+  else (لا)
+    #FFF3E0:أرشفة المقرر مع حفظ سجله;
+  endif
+else (لا)
+endif
+stop
+@enduml

@@ -1,0 +1,72 @@
+@startuml UC-07
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-07 — تغيير كلمة المرور
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:فتح قسم الأمان في إعدادات المستخدم;
+|النظام|
+:عرض حقول كلمة المرور الحالية والجديدة
+والتأكيد مع مؤشر القوة والقواعد;
+|المستخدم|
+repeat
+  :إدخال كلمة المرور الحالية
+  والجديدة وتأكيدها;
+  :الضغط على تحديث كلمة المرور;
+  |النظام|
+  :التحقق من تعبئة الحقول
+  وتطابق الجديدة مع التأكيد;
+  if (حقل فارغ أو عدم تطابق) then (نعم)
+    #FFEBEE:رسالة كلمتا المرور غير متطابقتين;
+  else (لا)
+    :التحقق من كلمة المرور الحالية
+    وسياسة كلمة المرور والسجل;
+    note right
+      عند استدعاء الحالة من التحقق بالرمز
+      لا تُطلب كلمة المرور الحالية
+      وتُنهى جلسات الحساب كلها
+    end note
+    if (كلمة المرور الحالية\nغير صحيحة) then (نعم)
+      #FFEBEE:رسالة كلمة المرور الحالية
+      غير صحيحة;
+    elseif (الجديدة لا تحقق السياسة\nأو سبق استخدامها) then (نعم)
+      #FFEBEE:عرض القواعد غير المحققة
+      أو رسالة استُخدمت كلمة المرور
+      هذه مؤخراً اختر كلمة مختلفة;
+    elseif (تعذّر الحفظ) then (نعم)
+      #FFEBEE:رسالة تعذر تحديث كلمة المرور;
+    else (لا)
+      :حفظ كلمة المرور الجديدة مجزّأة
+      وإضافتها إلى سجل كلمات المرور;
+      :إنهاء جلسات الحساب
+      على الأجهزة الأخرى;
+      :تسجيل العملية في سجل التدقيق
+      وإشعار صاحب الحساب بالتغيير;
+      #E8F5E9:رسالة تم تحديث كلمة المرور;
+    endif
+  endif
+  |المستخدم|
+repeat while (لم تُحدَّث كلمة المرور) is (نعم) not (لا)
+stop
+@enduml

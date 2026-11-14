@@ -1,0 +1,71 @@
+@startuml UC-62
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-62 — الإعادة الطارئة للجدولة واقتراح البدلاء
+
+|#F1F8FE|منسق الجداول|
+|#F3FAF3|النظام|
+|منسق الجداول|
+start
+:فتح الجلسة المتأثرة
+من الجدول أو بلاغ أو طلب;
+if (سبب التغيير) then (إجازة مدرّس معتمدة)
+  |النظام|
+  #FFF3E0:اقتراح بدلاء مؤهلين مرتبين
+  بالملاءمة والتوافر;
+  |منسق الجداول|
+  #FFF3E0:إسناد بديل أو إلغاء الجلسة
+  مع جدولة تعويضية;
+else (طارئ على الجلسة)
+  :اختيار الإلغاء أو النقل
+  أو تغيير القاعة أو التعويض;
+  |النظام|
+  if (الجدول غير منشور\nأو الفصل مغلق) then (نعم)
+    #FFEBEE:رسالة لا تتغير نسخ جدوله;
+    end
+  else (لا)
+  endif
+  repeat
+    :تثبيت الجدول عدا العنصر المتأثر
+    والبحث عن البدائل;
+    if (لا بديل صالحاً) then (نعم)
+      #FFEBEE:بيان أنه لا بديل
+      مع اقتراح الإلغاء والتعويض;
+    else (لا)
+      :عرض أفضل خمسة بدائل وأثرها;
+      |منسق الجداول|
+      :اختيار بديل وكتابة السبب ثم التأكيد;
+      |النظام|
+      if (حُجز البديل لغيره في الأثناء) then (نعم)
+        #FFEBEE:رسالة تبيّن التداخل;
+      else (لا)
+        :حجز القاعة وتسجيل التغيير
+        بنوعه وسببه ومنفّذه;
+      endif
+    endif
+    |منسق الجداول|
+  repeat while (لم يُطبَّق تغيير) is (نعم) not (لا)
+endif
+|النظام|
+#E8F5E9:إشعار المدرّس والطلاب المتأثرين
+وتحديث جداولهم;
+stop
+@enduml

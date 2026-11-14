@@ -1,0 +1,61 @@
+@startuml UC-03
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-03 — عرض الملف الشخصي
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:الضغط على الصورة الشخصية
+في الشريط العلوي;
+|النظام|
+:عرض قائمة المستخدم;
+|المستخدم|
+:اختيار إعدادات المستخدم;
+|النظام|
+:التحقق من صلاحية عرض الملف الشخصي;
+if (لا يملك صلاحية العرض) then (نعم)
+  #FFEBEE:التحويل إلى صفحة لا صلاحية;
+  end
+else (لا)
+  :تحميل بيانات الحساب والدور
+  وإعدادات الإشعارات;
+  if (انتهت الجلسة قبل\nاكتمال التحميل) then (نعم)
+    #FFEBEE:التحويل إلى صفحة تسجيل الدخول
+    مع رسالة انتهاء الجلسة;
+    end
+  else (لا)
+    :عرض قسم الملف الشخصي
+    الصورة والاسم والبريد والدور
+    والرقم وتاريخ الانضمام;
+  endif
+endif
+|المستخدم|
+if (للحساب أكثر من دور) then (نعم)
+  #FFF3E0:تبديل الدور من قائمة المستخدم;
+  |النظام|
+  #FFF3E0:تغيير الصفحات المتاحة بحسب الدور;
+endif
+|المستخدم|
+:التنقل بين أقسام الإعدادات عند الحاجة;
+stop
+@enduml

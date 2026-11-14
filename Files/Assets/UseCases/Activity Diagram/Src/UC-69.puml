@@ -1,0 +1,60 @@
+@startuml UC-69
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-69 — الانضمام إلى قائمة الانتظار وقبول المقعد
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|الطالب|
+start
+:انضم إلى قائمة الانتظار عند شعبة ممتلئة;
+|النظام|
+if (القائمة ممتلئة\nأو بلغ الطالب الحد) then (نعم)
+  #FFEBEE:رسالة تبيّن السبب;
+  end
+else (لا)
+endif
+:إضافة الطالب وعرض ترتيبه المتوقع;
+:عند تحرر مقعد ترقية أول المنتظرين
+بعرض ومهلة وإشعاره;
+|الطالب|
+if (الرد على العرض) then (قبول)
+  :فتح العرض والضغط على قبول;
+  |النظام|
+  if (انتهت مهلة العرض) then (نعم)
+    #FFEBEE:رسالة انتهت مهلة عرض المقعد;
+    end
+  else (لا)
+  endif
+  :UC-68 التحقق من أهلية التسجيل|
+  if (فشلت قاعدة) then (نعم)
+    #FFEBEE:سبب الرفض مع بقاء العرض
+    حتى نهاية مهلته;
+  else (لا)
+    :تسجيل الطالب ذرّياً وتحديث فاتورته;
+    #E8F5E9:إشعار بتأكيد التسجيل;
+  endif
+else (رفض أو انتهاء المهلة)
+  |النظام|
+  #FFF3E0:عرض المقعد على من يليه;
+endif
+stop
+@enduml

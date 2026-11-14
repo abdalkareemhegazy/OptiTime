@@ -1,0 +1,78 @@
+@startuml UC-36
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-36 — نقل الفصل الدراسي بين مراحله
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|موظف الشؤون الأكاديمية|
+start
+:فتح صفحة السنوات والفصول الدراسية
+من مجموعة الشؤون الأكاديمية;
+:الضغط على المراحل في بطاقة الفصل المطلوب;
+|النظام|
+:عرض نافذة مراحل الفصل
+المراحل السبع على مسار والانتقالات المتاحة
+وسجل ما مرّ به الفصل;
+note right
+  الرجوع إلى مرحلة سابقة لا شروط له
+  لكنه يحتاج إلى سبب
+  ولا يجوز تخطي مرحلة
+  ولا يُعدَّل الفصل المغلق
+  قبل إعادة فتحه من مراحله
+end note
+|موظف الشؤون الأكاديمية|
+repeat
+  :اختيار المرحلة التالية;
+  |النظام|
+  :فحص شروط الانتقال كما هي الآن
+  وإظهار الشروط الملزمة والتنبيهات;
+  |موظف الشؤون الأكاديمية|
+  if (الانتقال إلى مرحلة سابقة) then (نعم)
+    #FFF3E0:كتابة سبب الرجوع;
+  endif
+  :الضغط على زر الانتقال
+  بعد قراءة الشروط والتنبيهات;
+  |النظام|
+  :قفل صف الفصل وإعادة فحص الشروط الملزمة;
+  if (الانتقال غير مسموح\nمن المرحلة الحالية) then (نعم)
+    #FFEBEE:رسالة لا يمكن الانتقال
+    إلى هذه المرحلة من مرحلته الحالية;
+  elseif (رجوع بلا سبب) then (نعم)
+    #FFEBEE:رسالة اكتب سبب الرجوع;
+  elseif (شرط ملزم لم يتحقق) then (نعم)
+    #FFEBEE:رسالة لم يتحقق أحد شروط
+    هذه المرحلة بعد مع بيان الشرط;
+    end
+  elseif (تعذّر النقل) then (نعم)
+    #FFEBEE:رسالة تعذّر نقل الفصل;
+  else (لا)
+    :نقل الفصل إلى المرحلة الجديدة
+    وتسجيل الانتقال من نقله ومتى
+    والتنبيهات التي مرّ بها;
+    :تسجيل العملية في سجل التدقيق;
+    :تحديث بطاقة الفصل;
+    #E8F5E9:رسالة نجاح الانتقال;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم يتم الانتقال) is (نعم) not (لا)
+stop
+@enduml

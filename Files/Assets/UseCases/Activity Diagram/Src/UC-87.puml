@@ -1,0 +1,70 @@
+@startuml UC-87
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-87 — إدارة يوم الامتحان
+
+|#F1F8FE|المراقب|
+|#F3FAF3|النظام|
+|#FFFBF0|غرفة العمليات|
+|غرفة العمليات|
+start
+:فتح غرفة العمليات لتاريخ اليوم;
+|النظام|
+if (توجد امتحانات اليوم) then (لا)
+  #FFEBEE:بيان أنه لا امتحانات اليوم;
+  end
+else (نعم)
+endif
+:عرض القاعات والمراقبين والحضور
+مع تحديث لحظي;
+|المراقب|
+repeat
+  :تعليم الحاضرين أو مسح بطاقاتهم;
+  |النظام|
+  if (الطالب غير مدرج في القاعة) then (نعم)
+    #FFEBEE:بيان القاعة الصحيحة;
+  elseif (الطالب محروم) then (نعم)
+    #FFEBEE:رسالة الطالب محروم من الامتحان;
+  else (لا)
+    :حفظ الحضور;
+  endif
+  |المراقب|
+repeat while (طلاب آخرون) is (نعم) not (لا)
+|النظام|
+:تعليم غير الحاضرين غائبين
+عند انتهاء المهلة وربط ذلك بعلاماتهم;
+|المراقب|
+if (وقعت حادثة) then (نعم)
+  :إبلاغ بنوعها والطالب والوقت والوصف;
+  |النظام|
+  if (انقطع الاتصال) then (نعم)
+    #FFEBEE:حفظ البلاغ على الجهاز
+    وإعادة إرساله عند العودة;
+  endif
+  :تسجيل الحادثة وتنبيه الغرفة;
+  |غرفة العمليات|
+  :متابعة الحادثة وتسجيل نتيجتها;
+else (لا)
+endif
+|النظام|
+#E8F5E9:تحديث حضور القاعات في الغرفة;
+stop
+@enduml

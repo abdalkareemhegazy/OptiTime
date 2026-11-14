@@ -1,0 +1,92 @@
+@startuml UC-22
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-22 — إدارة الصيانة
+
+|#F1F8FE|منسق الجداول والموارد|
+|#F3FAF3|النظام|
+|منسق الجداول والموارد|
+start
+:الضغط على الإبلاغ عن عطل;
+|النظام|
+:عرض نموذج بلاغ جديد;
+|منسق الجداول والموارد|
+repeat
+  :اختيار القاعة أو الجهاز بالبحث
+  بالرمز أو رقم الأصل أو الاسم;
+  :كتابة المشكلة وتحديد النوع والأولوية
+  والتفاصيل ومن يصلحه;
+  :تحديد هل يوقف البلاغ الاستخدام
+  ومتى يبدأ ومتى يُتوقع أن ينتهي;
+  :الضغط على سجّل البلاغ;
+  |النظام|
+  :التحقق من صحة الحقول;
+  if (لم تُختر القاعة أو الجهاز\nأو لم تُكتب المشكلة) then (نعم)
+    #FFEBEE:رسالة اختر القاعة أو الجهاز
+    أو اكتب المشكلة;
+  elseif (العودة المتوقعة قبل\nبدء الاستخدام الموقوف) then (نعم)
+    #FFEBEE:رسالة لا يعود قبل أن يبدأ;
+  elseif (الجهاز المختار\nمُخرج من الخدمة) then (نعم)
+    #FFEBEE:رسالة هذا الجهاز مُخرج من الخدمة;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر حفظ البلاغ;
+  else (لا)
+    :تسجيل البلاغ برقم مرجعي
+    بحالة مبلَّغ عنه;
+    if (البلاغ مانع\nللاستخدام وحان وقته) then (نعم)
+      :إخراج القاعة أو الجهاز من الاستخدام
+      وإبلاغ المنسقين;
+    else (لا)
+      #FFF3E0:تسجيل البلاغ مخطّطاً
+      ليأخذ المورد عند حلول وقته تلقائياً;
+    endif
+    :إظهار المحاضرات التي يضعها الجدول المنشور
+    في القاعة مع قاعات شاغرة تناسب كلاً منها;
+  endif
+  |منسق الجداول والموارد|
+repeat while (لم يُسجَّل البلاغ) is (نعم) not (لا)
+:الضغط على تولَّ العمل عليه;
+|النظام|
+:تحويل حالة البلاغ إلى يُعمل عليه;
+|منسق الجداول والموارد|
+:الضغط على أُصلح وكتابة ما أُنجز;
+|النظام|
+if (البلاغ مغلق أو نقله مستخدم آخر\nإلى مرحلة أخرى) then (نعم)
+  #FFEBEE:رسالة هذا البلاغ مغلق
+  أو أعد تحميله لترى أين وصل;
+  end
+else (لا)
+  :إغلاق البلاغ وتسجيل الانتقال;
+  :إعادة القاعة أو الجهاز إلى الاستخدام
+  ما لم يُبقِه بلاغ آخر خارجه;
+  #E8F5E9:رسالة أُغلق البلاغ بالإصلاح;
+endif
+if (بلاغ مدرّس عن قاعة محاضرته) then (نعم)
+  #FFF3E0:إشعار عاجل للمنسقين
+  وظهور المحاضرة بانتظار قرار;
+  |منسق الجداول والموارد|
+  #FFF3E0:اختيار نقل موعد المحاضرة إلى قاعة شاغرة
+  أو إلغائه أو إبقائها في قاعتها;
+  |النظام|
+  #FFF3E0:تنفيذ القرار وإبلاغ المدرّس والطلاب;
+endif
+stop
+@enduml

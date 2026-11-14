@@ -1,0 +1,83 @@
+@startuml UC-43
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-43 — استيراد البيانات من ملف
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:فتح مركز الاستيراد;
+|النظام|
+if (يسمح الدور باستيراد نوع) then (لا)
+  #FFEBEE:رسالة لا يسمح دورك باستيراد أي نوع;
+  end
+else (نعم)
+endif
+|المستخدم|
+:اختيار النوع وتنزيل قالبه عند الحاجة;
+repeat
+  :رفع الملف;
+  |النظام|
+  :فحص الصيغة والمحتوى والحجم وعدد الصفوف;
+  if (ملف غير مقروء أو فارغ\nأو أكبر من الحد) then (نعم)
+    #FFEBEE:رسالة تبيّن سبب رفض الملف;
+  endif
+  |المستخدم|
+repeat while (رُفض الملف) is (نعم) not (لا)
+|النظام|
+:اقتراح مطابقة الأعمدة
+وعرض أول عشرة صفوف;
+|المستخدم|
+repeat
+  :مراجعة المطابقة واختيار معالجة الموجود
+  والصفوف الخاطئة ثم افحص الملف;
+  |النظام|
+  if (حقل مطلوب غير مربوط\nأو عمود مكرر) then (نعم)
+    #FFEBEE:رسالة اربط كل الأعمدة المطلوبة;
+  else (لا)
+    :فحص كل صف دون كتابة;
+    if (لا صفوف صالحة) then (نعم)
+      #FFEBEE:رسالة لا توجد صفوف صالحة;
+    else (لا)
+      :عرض نتيجة الفحص والمشكلات;
+      |المستخدم|
+      :الضغط على استورد الصفوف;
+      |النظام|
+      :إعادة الفحص والكتابة داخل معاملة;
+      if (الكل أو لا شيء وفيه خطأ\nأو تعذّر حفظ صف) then (نعم)
+        #FFEBEE:التراجع عن الاستيراد كله
+        ورسالة لم يكتمل الاستيراد;
+      else (لا)
+        :تسجيل الاستيراد في سجل التدقيق;
+        #E8F5E9:اكتمل الاستيراد مع أعداد
+        ما أُضيف وما حُدّث وما رُفض;
+      endif
+    endif
+  endif
+  |المستخدم|
+repeat while (لم يكتمل الاستيراد) is (نعم) not (لا)
+if (تنزيل تقرير الأخطاء) then (نعم)
+  #FFF3E0:تنزيل الصفوف المرفوضة وأسبابها;
+else (لا)
+endif
+stop
+@enduml

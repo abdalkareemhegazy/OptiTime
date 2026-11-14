@@ -1,0 +1,73 @@
+@startuml UC-67
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-67 — تسجيل المقررات
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|الطالب|
+start
+:فتح التسجيل;
+|النظام|
+:عرض قائمة فحص الأهلية وحدود الساعات;
+if (مانع في قائمة الفحص) then (نعم)
+  #FFEBEE:بيان سبب المنع مثل نافذة مغلقة
+  أو عائق أو نقص تصريح المرشد;
+  end
+else (لا)
+endif
+|الطالب|
+repeat
+  repeat
+    :اختيار مقرر وشعبة من كل مكوّن
+    ثم أضف إلى السلة;
+    |النظام|
+    :UC-68 التحقق من أهلية التسجيل|
+    if (فشلت قاعدة على الإضافة) then (نعم)
+      #FFEBEE:القاعدة الفاشلة والإجراء المقترح
+      والشعب البديلة;
+    else (لا)
+      :إضافة الشعب بحجز مؤقت
+      وتحديث معاينة الجدول;
+    endif
+    |الطالب|
+  repeat while (السلة غير مكتملة) is (نعم) not (لا)
+  :الضغط على تأكيد التسجيل;
+  |النظام|
+  :UC-68 التحقق الشامل على السلة|
+  if (فشلت قواعد أو انتهت السلة) then (نعم)
+    #FFEBEE:نتائج القواعد كلها وإجراءاتها;
+  else (لا)
+    :حجز المقاعد كلها في معاملة واحدة
+    بتحديث شرطي ومفتاح تكرار;
+    if (امتلأت شعبة قبل التأكيد) then (نعم)
+      #FFEBEE:التراجع عن المعاملة كلها
+      ورسالة لا مقاعد مع البدائل;
+    else (لا)
+      :إنشاء التسجيلات ودفعة برقم تأكيد
+      وإصدار الفاتورة;
+      #E8F5E9:صفحة التأكيد برقم التأكيد والجدول;
+    endif
+  endif
+  |الطالب|
+repeat while (لم يكتمل التسجيل) is (نعم) not (لا)
+stop
+@enduml

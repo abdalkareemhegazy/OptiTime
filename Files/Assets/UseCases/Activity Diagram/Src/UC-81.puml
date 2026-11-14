@@ -1,0 +1,55 @@
+@startuml UC-81
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-81 — حساب المعدل والوضع الأكاديمي
+
+|#F3FAF3|النظام|
+|#FFFBF0|الطالب ومرشده|
+|النظام|
+start
+:استقبال حدث النشر أو التعديل;
+:تحديد الطلاب المتأثرين;
+repeat
+  :قراءة درجات الطالب المنشورة وسلّم برنامجه;
+  if (لا سلّم لبرنامجه) then (نعم)
+    #FFF3E0:استعمال السلّم الافتراضي;
+  endif
+  :حساب نقاط كل مقرر مع الرموز الخاصة
+  وسياسة الإعادة;
+  :المعدل الفصلي والتراكمي والساعات المنجزة;
+  :تحديد الوضع من العتبات
+  جيد أو إنذار أو فصل;
+  if (تعذّر حفظ السجل) then (نعم)
+    #FFEBEE:تسجيل الخطأ وإعادة المحاولة
+    في الخلفية;
+  else (لا)
+    :حفظ السجل الفصلي;
+    if (تغيّر الوضع) then (نعم)
+      :إصدار الإنذار الأكاديمي;
+      |الطالب ومرشده|
+      :استلام إشعار الوضع الجديد;
+      |النظام|
+    endif
+  endif
+repeat while (بقي طلاب) is (نعم) not (لا)
+#E8F5E9:اكتمال تحديث السجلات الفصلية;
+stop
+@enduml

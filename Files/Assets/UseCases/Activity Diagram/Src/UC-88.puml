@@ -1,0 +1,58 @@
+@startuml UC-88
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-88 — إدارة دورات القبول
+
+|#F1F8FE|موظف القبول|
+|#F3FAF3|النظام|
+|موظف القبول|
+start
+repeat
+  :دورة جديدة بالاسم والسنة
+  والتاريخين والرسوم;
+  :البرامج بسعاتها وشروطها
+  ومعادلة المفاضلة والمستندات;
+  :الضغط على حفظ;
+  |النظام|
+  if (تواريخ أو سعات أو أوزان\nغير صالحة) then (نعم)
+    #FFEBEE:رسالة مع وسم الحقول;
+  else (لا)
+    :حفظ الدورة مسودة;
+  endif
+  |موظف القبول|
+repeat while (لم تُحفظ الدورة) is (نعم) not (لا)
+repeat
+  :الضغط على فتح التقديم;
+  |النظام|
+  if (إعدادات ناقصة) then (نعم)
+    #FFEBEE:بيان النقص كبرنامج بلا سعة;
+    |موظف القبول|
+    :استكمال الإعدادات;
+  else (لا)
+    |النظام|
+    :نقل الدورة إلى مفتوحة في موعدها
+    وتسجيل الانتقال;
+    #E8F5E9:إظهار الدورة في البوابة العامة;
+  endif
+  |موظف القبول|
+repeat while (لم تُفتح الدورة) is (نعم) not (لا)
+stop
+@enduml

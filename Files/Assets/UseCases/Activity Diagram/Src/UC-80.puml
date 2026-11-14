@@ -1,0 +1,71 @@
+@startuml UC-80
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-80 — الإدخال المزدوج واعتماد الكشوف ونشرها
+
+|#F1F8FE|موظف شؤون الامتحانات|
+|#F3FAF3|النظام|
+|موظف شؤون الامتحانات|
+start
+:فتح الكشوف المراجَعة وإدخال علامة النهائي
+أو استيراد ملف التحقق;
+|النظام|
+if (الحالة تسمح بالتحقق) then (لا)
+  #FFEBEE:رسالة لا يمكن تعديل الكشف;
+  end
+else (نعم)
+endif
+:حفظ الإدخال المستقل
+ومقارنته بإدخال المدرّس;
+:عرض جدول الفروقات;
+|موظف شؤون الامتحانات|
+repeat
+  :حلّ الفروقات بملاحظة ثم اعتماد;
+  |النظام|
+  if (بقيت فروقات) then (نعم)
+    #FFEBEE:رسالة فروقات غير محلولة;
+  else (لا)
+    :نقل الكشف إلى معتمد;
+  endif
+  |موظف شؤون الامتحانات|
+repeat while (لم يُعتمد الكشف) is (نعم) not (لا)
+repeat
+  :اختيار الكشوف المعتمدة ونشرها
+  ثم تأكيد الهوية;
+  |النظام|
+  if (التأكيد غير صحيح) then (نعم)
+    #FFEBEE:رسالة التأكيد غير صحيح;
+  elseif (المفتاح نفسه بمحتوى مختلف) then (نعم)
+    #FFEBEE:رسالة أُرسل الطلب سابقاً
+    بمحتوى مختلف;
+  else (لا)
+    :قبول الطلب وتنفيذه في الخلفية;
+  endif
+  |موظف شؤون الامتحانات|
+repeat while (لم يُقبل النشر) is (نعم) not (لا)
+|النظام|
+:نقل الكشوف إلى منشور
+وتخطي المنشور مسبقاً;
+:UC-81 حساب المعدل والوضع الأكاديمي|
+:الإنذارات ثم مراجعة أهلية المنح;
+#E8F5E9:إشعار الطلاب بدرجة جديدة;
+stop
+@enduml

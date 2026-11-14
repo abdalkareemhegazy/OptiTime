@@ -1,0 +1,72 @@
+@startuml UC-51
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-51 — إدارة الوحدات الإدارية
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:فتح الوحدات الإدارية;
+|النظام|
+:عرض شجرة الوحدات ومديريها
+وتنبيه الوحدات التي لا يديرها أحد;
+|مدير النظام|
+repeat
+  :وحدة جديدة تحت وحدة أم
+  بالاسمين والرمز والمبنى والبريد والهاتف;
+  :اختيار المدير من الموظفين ثم حفظ;
+  |النظام|
+  if (حقل ناقص أو صيغة غير صحيحة\nأو رمز مستخدم) then (نعم)
+    #FFEBEE:رسالة تحت الحقل;
+  elseif (الوحدة تحت نفسها أو تابعتها\nأو العمق فوق ستة) then (نعم)
+    #FFEBEE:رسالة تبيّن خطأ موقع الوحدة;
+  elseif (المدير ليس موظفاً قادراً\nعلى الدخول) then (نعم)
+    #FFEBEE:رسالة لا يدير الوحدة إلا موظف;
+  else (لا)
+    :حفظ الوحدة وتسجيلها في سجل التدقيق;
+    #E8F5E9:رسالة أُنشئت الوحدة;
+  endif
+  |مدير النظام|
+repeat while (لم تُحفظ الوحدة) is (نعم) not (لا)
+repeat
+  :إضافة العاملين بالبحث ثم حفظ;
+  |النظام|
+  if (أحدهم ليس حساب موظف\nأو لم يعد موجوداً) then (نعم)
+    #FFEBEE:رسالة لا يعمل في الوحدة
+    إلا حسابات الموظفين;
+  else (لا)
+    :ربط الحسابات بالوحدة
+    دون تغيير أقسامها الأكاديمية;
+  endif
+  |مدير النظام|
+repeat while (لم يُحفظ العاملون) is (نعم) not (لا)
+if (حذف الوحدة) then (نعم)
+  |النظام|
+  if (تحتها وحدات أو فيها عاملون) then (نعم)
+    #FFEBEE:رسالة انقلهم أولاً أو أغلقها;
+  else (لا)
+    #FFF3E0:حذف الوحدة;
+  endif
+else (لا)
+endif
+stop
+@enduml

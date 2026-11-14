@@ -1,0 +1,63 @@
+@startuml UC-02
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-02 — تسجيل الخروج
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:الضغط على الصورة الشخصية
+في الشريط العلوي;
+|النظام|
+:عرض قائمة المستخدم;
+note right
+  عند انتهاء الجلسة تلقائياً
+  أو إنهائها من مدير النظام
+  يحوَّل المستخدم إلى تسجيل الدخول
+  عند طلبه التالي
+end note
+|المستخدم|
+if (الإجراء المطلوب) then (الخروج من هذا الجهاز)
+  :اختيار تسجيل الخروج;
+  |النظام|
+  :إرسال طلب إنهاء الجلسة إلى الخادم;
+  if (الخادم متاح) then (نعم)
+    :إلغاء رمز الدخول الخاص بهذا الجهاز
+    وتسجيل العملية في سجل التدقيق;
+  else (لا)
+    #FFEBEE:إنهاء الجلسة محلياً
+    دون انتظار رد الخادم;
+  endif
+  :حذف بيانات الجلسة والصلاحيات
+  والبيانات المخزنة مؤقتاً من المتصفح;
+  #E8F5E9:تحويل المستخدم إلى صفحة تسجيل الدخول;
+else (الخروج من الأجهزة الأخرى)
+  |المستخدم|
+  #FFF3E0:فتح قسم الأجهزة المتصلة
+  واختيار تسجيل الخروج من الأجهزة الأخرى;
+  |النظام|
+  #FFF3E0:إنهاء جلسات بقية الأجهزة
+  مع بقاء جلسة هذا الجهاز;
+  #FFF3E0:تحديث قائمة الأجهزة المتصلة;
+endif
+stop
+@enduml

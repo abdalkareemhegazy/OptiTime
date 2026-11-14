@@ -1,0 +1,75 @@
+@startuml UC-103
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-103 — معالجة الطلبات الإلكترونية
+
+|#F1F8FE|الجهة المعالِجة|
+|#F3FAF3|النظام|
+|#FFFBF0|الطالب|
+|الجهة المعالِجة|
+start
+:فتح صندوق الطلبات;
+|النظام|
+if (لا طلبات في الصندوق) then (نعم)
+  #FFF3E0:بيان خلو الصندوق;
+  stop
+else (لا)
+endif
+:عرض الطلبات المسندة لدوره ونطاقه
+مع مدة الإنجاز المتبقية;
+note right
+  يُصعَّد الطلب تلقائياً إلى المشرف
+  عند تجاوز مدة الإنجاز المعلنة
+end note
+|الجهة المعالِجة|
+:فتح طلب ومراجعة النموذج والمرفقات;
+:اختيار القرار مع تعليق;
+|النظام|
+if (الطلب غير مسند إليه\nأو تجاوز خطوته) then (نعم)
+  #FFEBEE:رسالة هذا الطلب غير مسند إليك;
+  end
+else (لا)
+endif
+:تسجيل القرار والتعليق;
+if (رفض) then (نعم)
+  #FFF3E0:إنهاء الطلب مرفوضاً;
+elseif (اعتماد في خطوة وسيطة) then (نعم)
+  :توجيه الطلب إلى الخطوة التالية
+  وإشعار جهتها;
+elseif (اعتماد في الخطوة الأخيرة) then (نعم)
+  :تنفيذ الأثر الآلي لنوع الطلب;
+  if (تعذّر التنفيذ) then (نعم)
+    #FFEBEE:إبقاء الطلب بانتظار التنفيذ
+    وتنبيه المسؤول;
+  else (لا)
+    #E8F5E9:مثل رصد الانسحاب وتحرير المقعد
+    أو تحويل الغياب بعذر;
+  endif
+else (طلب معلومات)
+  |الطالب|
+  :الرد بالمعلومات المطلوبة;
+  |النظام|
+  :إعادة الطلب إلى الخطوة نفسها;
+endif
+|الطالب|
+:استلام إشعار القرار;
+stop
+@enduml

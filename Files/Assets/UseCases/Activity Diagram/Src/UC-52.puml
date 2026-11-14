@@ -1,0 +1,83 @@
+@startuml UC-52
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-52 — إدارة النوافذ الزمنية والعطل وأدوار التسجيل
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|موظف الشؤون الأكاديمية|
+start
+:فتح النوافذ الزمنية من بطاقة الفصل;
+|النظام|
+:عرض الأعمال التسعة وحالة كل منها;
+|موظف الشؤون الأكاديمية|
+repeat
+  :نافذة جديدة بالعمل وموعدي الفتح والإغلاق;
+  |النظام|
+  if (الإغلاق قبل الفتح\nأو النافذة أطول من سنة) then (نعم)
+    #FFEBEE:رسالة تبيّن خطأ الموعد;
+  elseif (تتداخل مع نافذة للعمل نفسه) then (نعم)
+    #FFEBEE:رسالة تتداخل مع نافذة أخرى;
+  else (لا)
+    :حفظ النافذة وجدولة إشعاريها;
+    #E8F5E9:رسالة أُضيفت نافذة العمل;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (نافذة أخرى) is (نعم) not (لا)
+repeat
+  :عطلة باسمها وأيامها وما توقفه;
+  |النظام|
+  if (يوم أخير قبل الأول\nأو أطول من الحد\nأو لا توقف شيئاً) then (نعم)
+    #FFEBEE:رسالة تبيّن خطأ العطلة;
+  else (لا)
+    :حفظ العطلة;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم تُحفظ العطلة) is (نعم) not (لا)
+:الضغط على أدوار التسجيل;
+|النظام|
+if (توجد نافذة تسجيل) then (لا)
+  #FFEBEE:رسالة أضف نافذة تسجيل أولاً;
+  end
+else (نعم)
+endif
+|موظف الشؤون الأكاديمية|
+repeat
+  :بناء الأدوار حسب السنة أو تحديد شروطها
+  ولحظات بدئها;
+  |النظام|
+  :معاينة توزّع الطلبة على الأدوار;
+  |موظف الشؤون الأكاديمية|
+  :الضغط على حفظ الأدوار;
+  |النظام|
+  if (دور خارج النافذة أو قبل سابقه) then (نعم)
+    #FFEBEE:رسالة يجب أن يبدأ داخل نافذة تسجيل;
+  else (لا)
+    :حفظ الأدوار وتسجيلها;
+    #E8F5E9:رسالة حُفظت أدوار التسجيل;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم تُحفظ الأدوار) is (نعم) not (لا)
+|النظام|
+:إشعار المعنيين عند فتح كل نافذة
+وقرب إغلاقها وعند بدء كل دور;
+stop
+@enduml

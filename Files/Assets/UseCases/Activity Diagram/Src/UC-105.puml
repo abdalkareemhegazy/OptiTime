@@ -1,0 +1,78 @@
+@startuml UC-105
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-105 — محادثة المساعد الذكي
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة الذكاء|
+|المستخدم|
+start
+:فتح نافذة المساعد من أي شاشة;
+|النظام|
+:عرض أسئلة مقترحة بحسب الدور والمرحلة;
+|المستخدم|
+:كتابة السؤال أو اختيار سؤال مقترح;
+|النظام|
+if (الميزة غير مفعّلة لدوره) then (نعم)
+  #FFEBEE:بيان أن المساعد غير متاح;
+  end
+elseif (نفدت الحصة اليومية) then (نعم)
+  #FFEBEE:بيان نفاد الحصة وموعد تجددها;
+  end
+else (لا)
+endif
+:تمرير السؤال وسياقه بطلب موقّع;
+|خدمة الذكاء|
+:اختيار الأدوات اللازمة للسؤال;
+|النظام|
+:تنفيذ الأدوات بصلاحيات المستخدم;
+if (بيانات خارج صلاحياته) then (نعم)
+  #FFEBEE:رفض الأداة في الخادم;
+else (لا)
+  :إرجاع نتيجة الأداة;
+endif
+|خدمة الذكاء|
+:الاسترجاع من الإصدار النافذ للوائح;
+if (تعذّرت الخدمة أو المزوّد) then (نعم)
+  |النظام|
+  #FFEBEE:بيان أن المساعد غير متاح حالياً
+  مع بقاء الشاشات اليدوية;
+  end
+else (لا)
+endif
+|خدمة الذكاء|
+:صياغة الإجابة مع مصدرها;
+|النظام|
+:بث الإجابة موسومة بأنها مولّدة
+وحفظ الرسائل والاستخدام;
+|المستخدم|
+if (بطاقة إجراء مقترح) then (نعم)
+  :الضغط على البطاقة;
+  |النظام|
+  #E8F5E9:فتح الشاشة المختصة
+  ليؤكد المستخدم الإجراء بمسارها;
+else (لا)
+  |المستخدم|
+  #E8F5E9:قراءة الإجابة وتقييمها;
+endif
+stop
+@enduml

@@ -1,0 +1,63 @@
+@startuml UC-93
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-93 — إدارة الرسوم والفواتير
+
+|#F1F8FE|الموظف المالي|
+|#F3FAF3|النظام|
+|الموظف المالي|
+start
+repeat
+  :هيكل لبرنامج وسنة بسعر الساعة
+  والرسوم الثابتة والمختبرات والمواعيد;
+  |النظام|
+  if (قيمة سالبة أو موعد غير صالح) then (نعم)
+    #FFEBEE:رسالة المبلغ غير صالح;
+  else (لا)
+    :حفظ الهيكل;
+  endif
+  |الموظف المالي|
+repeat while (لم يُحفظ الهيكل) is (نعم) not (لا)
+|النظام|
+:استقبال تأكيد تسجيل طالب أو تعديله;
+if (يوجد هيكل لبرنامجه وسنته) then (لا)
+  #FFEBEE:تعليق الإصدار وتنبيه الموظف المالي;
+  end
+else (نعم)
+endif
+:حساب الرسوم من الساعات والهيكل
+مطروحاً منها المنح والخصومات;
+if (الفاتورة الأصلية ملغاة) then (نعم)
+  #FFF3E0:إصدار فاتورة جديدة بالرسوم المعدّلة;
+else (لا)
+  :إصدار الفاتورة أو فاتورة التعديل
+  أو الإشعار الدائن;
+endif
+:إضافة القيد إلى دفتر الحساب
+دون تعديل ما سبقه;
+if (تجاوز موعد الاستحقاق دون سداد) then (نعم)
+  :تعليم الفاتورة متأخرة;
+  #E8F5E9:وضع عائق مالي على الطالب;
+else (لا)
+  #E8F5E9:الفاتورة بانتظار السداد;
+endif
+stop
+@enduml

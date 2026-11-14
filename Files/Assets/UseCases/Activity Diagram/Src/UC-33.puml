@@ -1,0 +1,91 @@
+@startuml UC-33
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-33 — تقديم طلب اعتذار أو تعويض عن محاضرة
+
+|#F1F8FE|عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|#FFFBF0|منسق الجداول والموارد|
+|عضو هيئة التدريس|
+start
+:اختيار المحاضرة من جدوله الأسبوعي;
+|النظام|
+:عرض تفاصيل المحاضرة وإجراءاتها
+اعتذار عن موعد واقتراح محاضرة تعويضية;
+|عضو هيئة التدريس|
+:اختيار نوع الطلب;
+|النظام|
+:عرض نموذج الطلب
+للاعتذار موعد قادم على يوم المحاضرة
+وللتعويض تاريخ ووقتا بدء وانتهاء
+وقاعة اختيارية;
+|عضو هيئة التدريس|
+repeat
+  :تحديد التاريخ والوقت والقاعة للتعويض
+  واختيار السبب وكتابة كلمة للمنسق;
+  :الضغط على إرسال الطلب;
+  |النظام|
+  :التحقق من التاريخ ومن عدم وجود طلب مماثل
+  ومن وقت التعويض وقاعته;
+  if (التاريخ أو وقت التعويض\nأو قاعته غير صالح) then (نعم)
+    #FFEBEE:رسالة تبيّن السبب والعودة
+    إلى تحديد التاريخ والوقت;
+  elseif (طلب مماثل قيد الانتظار) then (نعم)
+    #FFEBEE:رسالة هناك طلب مماثل
+    قيد الانتظار;
+    end
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر الوصول إلى الخادم
+    تحقّق من اتصالك ثم أعد المحاولة;
+  else (لا)
+    :تسجيل الطلب بحالة قيد الانتظار
+    وإشعار المنسقين;
+    #E8F5E9:عرض الطلب في طلباتي للمحاضرات
+    بحالة بانتظار مراجعة المنسق;
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم يُرسل الطلب) is (نعم) not (لا)
+if (تعديل الطلب أو سحبه) then (نعم)
+  #FFF3E0:تعديل التاريخ والسبب أو سحب الطلب
+  ما دام قيد الانتظار;
+endif
+|منسق الجداول والموارد|
+:فتح طلبات المحاضرات وفحص الطلب;
+if (سبق البتّ في الطلب) then (نعم)
+  #FFEBEE:رسالة لا يُبتّ مرة ثانية
+  في طلب سبق البتّ فيه;
+  end
+else (لا)
+  if (قرار المنسق) then (قبول)
+    :قبول الطلب مع ملاحظة;
+    |النظام|
+    :تحديث الحالة إلى مقبول
+    وإشعار المدرّس وطلاب الشعبة;
+  else (رفض)
+    |منسق الجداول والموارد|
+    :رفض الطلب مع ملاحظة;
+    |النظام|
+    :تحديث الحالة إلى مرفوض
+    وإشعار المدرّس;
+  endif
+endif
+stop
+@enduml

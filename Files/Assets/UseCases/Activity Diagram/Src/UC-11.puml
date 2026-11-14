@@ -1,0 +1,79 @@
+@startuml UC-11
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-11 — تعديل مستخدم
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:فتح الحساب المطلوب من قائمة الحسابات;
+|النظام|
+:عرض نموذج تعديل الحساب ببياناته الحالية;
+|مدير النظام|
+repeat
+  :تعديل الاسم أو البريد أو الهاتف أو القسم
+  أو الوحدة أو الحالة أو كلمة المرور;
+  |النظام|
+  :إظهار شريط تغييرات غير محفوظة
+  وتنبيه إلى أن تعطيل الحساب ينهي جلساته;
+  |مدير النظام|
+  :الضغط على حفظ التغييرات;
+  |النظام|
+  :التحقق من الحقول ومن عدم تكرار
+  البريد واسم الدخول والرقم الوظيفي;
+  if (حقل غير صالح أو قيمة مكررة) then (نعم)
+    #FFEBEE:رسالة الخطأ تحت الحقل المعني;
+  elseif (التعديل يمس حساباً محمياً\nالمؤسِّس أو المدير\nنفسه أو آخر مدير) then (نعم)
+    #FFEBEE:رسالة سبب المنع
+    الحساب المؤسِّس محمي أو حسابك أنت
+    أو المسؤول النشط الوحيد;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذر حفظ الحساب
+    حاول مرة أخرى;
+  else (لا)
+    :حفظ التعديلات;
+    if (عُيّنت كلمة مرور جديدة) then (نعم)
+      :حفظ كلمة المرور مجزّأة وجعلها مؤقتة
+      إن كان الحساب لغير المدير;
+    endif
+    if (أصبحت الحالة معطّلة أو موقوفة) then (نعم)
+      :إنهاء جلسات الحساب فوراً;
+    endif
+    :تسجيل العملية في سجل التدقيق;
+    #E8F5E9:رسالة تم حفظ التغييرات;
+  endif
+  |مدير النظام|
+repeat while (لم تُحفظ التغييرات) is (نعم) not (لا)
+if (إجراء من قسم الأمان) then (نعم)
+  #FFF3E0:رفع قفل الحساب أو إرسال رمز
+  إعادة تعيين كلمة المرور أو إنهاء الجلسات
+  أو إعادة ضبط التحقق الثنائي;
+  |النظام|
+  #FFF3E0:تنفيذ الإجراء المختار
+  وتسجيله في سجل التدقيق;
+endif
+|مدير النظام|
+if (تغيير أدوار الحساب ونطاقاتها) then (نعم)
+  #FFF3E0:UC-13 تعيين الأدوار|
+endif
+stop
+@enduml

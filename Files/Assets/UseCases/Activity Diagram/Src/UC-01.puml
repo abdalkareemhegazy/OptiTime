@@ -1,0 +1,67 @@
+@startuml UC-01
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-01 — تسجيل الدخول
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:فتح صفحة تسجيل الدخول;
+|النظام|
+:عرض نموذج تسجيل الدخول;
+|المستخدم|
+repeat
+  :إدخال البريد الإلكتروني أو الرقم الجامعي
+  أو الوظيفي مع كلمة المرور;
+  :الضغط على زر الدخول;
+  |النظام|
+  :التحقق من تعبئة الحقلين وصيغتهما;
+  if (حقل فارغ أو البريد\nبصيغة غير صحيحة) then (نعم)
+    #FFEBEE:رسالة الخطأ تحت الحقل;
+  else (لا)
+    :التحقق من بيانات الاعتماد;
+    if (تعذّر الوصول إلى الخادم) then (نعم)
+      #FFEBEE:رسالة تطلب المحاولة لاحقاً;
+      end
+    elseif (بيانات الاعتماد غير صحيحة) then (نعم)
+      #FFEBEE:رسالة بيانات الدخول غير صحيحة
+      مع عدد المحاولات المتبقية;
+    elseif (الحساب مقفل أو معطّل\nأو النظام في الصيانة) then (نعم)
+      #FFEBEE:رسالة تبيّن سبب المنع
+      ومدة الانتظار عند القفل;
+    else (لا)
+      if (التحقق الثنائي مفعّل) then (نعم)
+        #FFF3E0:التحقق الثنائي برمز التطبيق
+        أو رمز الاسترداد|
+      endif
+      :تحميل بيانات المستخدم وصلاحياته;
+      :إصدار رمز الدخول وتخزين الجلسة;
+      #E8F5E9:رسالة نجاح العملية;
+    endif
+  endif
+  |المستخدم|
+repeat while (لم يكتمل الدخول) is (نعم) not (لا)
+|النظام|
+:تحويل المستخدم إلى لوحة التحكم
+أو إلى الصفحة المطلوبة;
+stop
+@enduml

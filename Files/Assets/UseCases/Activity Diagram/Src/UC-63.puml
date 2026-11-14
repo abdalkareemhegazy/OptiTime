@@ -1,0 +1,61 @@
+@startuml UC-63
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-63 — إدارة سجلات الطلاب
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+:اختيار كلية لعرض طلابها;
+|النظام|
+:عرض الطلاب مع مرشح السجل
+وتنبيه من لا يمكن جدولته;
+|المستخدم|
+repeat
+  :طالب جديد وإدخال الاسم والبريد والقسم
+  والبرنامج والسنة والساعات والحالة;
+  :إدخال البيانات الشخصية والشهادة
+  ووثيقة الهوية ثم حفظ;
+  |النظام|
+  if (حقل ناقص أو صيغة خاطئة\nأو قيمة خارج الحدود) then (نعم)
+    #FFEBEE:رسالة تحت الحقل;
+  elseif (البريد أو الوثيقة\nمسجّلة لغيره) then (نعم)
+    #FFEBEE:رسالة تبيّن التكرار;
+  elseif (نظامي بلا قسم\nأو برنامج مغلق أو غير محدد) then (نعم)
+    #FFEBEE:رسالة تبيّن مشكلة القسم أو البرنامج;
+  else (لا)
+    :توليد الرقم الجامعي من سنة القبول
+    ورمز القسم والتسلسل التالي;
+    if (نفد التسلسل) then (نعم)
+      #FFEBEE:رسالة نفد تسلسل الرقم الجامعي;
+      end
+    else (لا)
+      :إنشاء الحساب والملف
+      وحفظ بصمة الوثيقة دون رقمها;
+      :تسجيل الإنشاء في سجل التدقيق;
+      #E8F5E9:رسالة أُضيف الطالب;
+    endif
+  endif
+  |المستخدم|
+repeat while (لم يُنشأ الملف) is (نعم) not (لا)
+stop
+@enduml

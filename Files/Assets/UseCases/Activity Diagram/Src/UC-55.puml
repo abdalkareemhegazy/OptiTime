@@ -1,0 +1,65 @@
+@startuml UC-55
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-55 — إدارة سلالم الدرجات
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|موظف الشؤون الأكاديمية|
+start
+:الضغط على سلّم جديد;
+|النظام|
+:عرض محرر السلّم بأقسامه;
+|موظف الشؤون الأكاديمية|
+repeat
+  :الاسمان وأعلى النقاط وبداية كل حرف
+  ونقاطه وعلامة النجاح والرموز الخاصة;
+  |النظام|
+  :حساب نهاية كل حرف ووسمه ناجحاً أو راسباً;
+  |موظف الشؤون الأكاديمية|
+  :تجربة علامة ثم الضغط على إنشاء السلّم;
+  |النظام|
+  if (حرف مكرر أو نقاط لا تتدرج\nأو علامة نجاح في غير موضعها) then (نعم)
+    #FFEBEE:رسالة بعض الحقول تحتاج إلى تصحيح;
+  elseif (تعذّر الوصول إلى الخادم) then (نعم)
+    #FFEBEE:رسالة تعذّر الوصول إلى الخادم;
+  else (لا)
+    :حفظ السلّم وتسجيله في سجل التدقيق;
+    #E8F5E9:رسالة أُنشئ السلّم;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم يُحفظ السلّم) is (نعم) not (لا)
+if (الإجراء التالي) then (جعله افتراضياً)
+  #FFF3E0:اجعله الافتراضي;
+  |النظام|
+  #FFF3E0:جعل السلّم الافتراضي الوحيد;
+else (حذف السلّم)
+  |موظف الشؤون الأكاديمية|
+  #FFF3E0:حذف ثم تأكيد الحذف;
+  |النظام|
+  if (السلّم افتراضي أو مستخدم) then (نعم)
+    #FFEBEE:رسالة تمنع الحذف مع السبب;
+  else (لا)
+    #FFF3E0:حذف السلّم;
+  endif
+endif
+stop
+@enduml

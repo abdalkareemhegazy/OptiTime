@@ -1,0 +1,71 @@
+@startuml UC-10
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-10 — إنشاء مستخدم
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:الضغط على حساب جديد;
+|النظام|
+:عرض نموذج حساب جديد بأقسامه
+الهوية والصلاحيات وكلمة المرور والحالة;
+note right
+  حسابات المدرّسين والطلاب
+  تُنشأ من صفحتي إدارة المدرسين
+  وإدارة الطلاب أو من مركز الاستيراد
+end note
+|مدير النظام|
+repeat
+  :إدخال الاسم والبريد الإلكتروني
+  واختيار الدور والقسم والوحدة;
+  if (توليد كلمة مرور قوية) then (نعم)
+    #FFF3E0:ملء الحقل بكلمة تحقق السياسة
+    ونسخها لتسليمها لصاحب الحساب;
+  else (لا)
+    :إدخال كلمة المرور الأولى;
+  endif
+  :تحديد حالة الحساب وطلب تغيير
+  كلمة المرور عند أول دخول;
+  :الضغط على إنشاء الحساب;
+  |النظام|
+  :التحقق من الاسم والبريد
+  والدور وكلمة المرور;
+  if (حقل ناقص أو بريد غير صالح\nأو كلمة مرور لا تحقق السياسة) then (نعم)
+    #FFEBEE:رسالة الخطأ تحت كل حقل;
+  elseif (البريد أو اسم الدخول\nأو الرقم الوظيفي مستخدم) then (نعم)
+    #FFEBEE:رسالة هذا البريد مستخدم لحساب آخر;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذر حفظ الحساب
+    حاول مرة أخرى;
+  else (لا)
+    :إنشاء الحساب وإعداداته;
+    :UC-13 تعيين الأدوار|
+    :إصدار الرقم الوظيفي التالي إن لم يُحدَّد
+    وإشعار صاحب الحساب بإنشاء حسابه;
+    :تسجيل العملية في سجل التدقيق;
+    #E8F5E9:رسالة تم إنشاء الحساب;
+  endif
+  |مدير النظام|
+repeat while (لم يُنشأ الحساب) is (نعم) not (لا)
+stop
+@enduml

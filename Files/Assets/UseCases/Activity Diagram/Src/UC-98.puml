@@ -1,0 +1,72 @@
+@startuml UC-98
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-98 — إعارة النسخ وإرجاعها
+
+|#F1F8FE|أمين المكتبة|
+|#F3FAF3|النظام|
+|أمين المكتبة|
+start
+if (نوع العملية) then (إعارة)
+  repeat
+    :مسح بطاقة المستعير وباركود النسخة;
+    |النظام|
+    if (النسخة غير متاحة) then (نعم)
+      #FFEBEE:رسالة هذه النسخة غير متاحة;
+    elseif (بلغ حد فئته\nأو لديه متأخرات) then (نعم)
+      #FFEBEE:رسالة تبيّن السبب;
+    else (لا)
+      :تسجيل الإعارة بموعد إرجاع
+      بحسب سياسة الفئة;
+      #E8F5E9:إظهار الإيصال;
+    endif
+    |أمين المكتبة|
+  repeat while (لم تُسجَّل الإعارة) is (نعم) not (لا)
+else (إرجاع)
+  repeat
+    :مسح باركود النسخة وتحديد حالتها;
+    |النظام|
+    if (لا إعارة قائمة للنسخة) then (نعم)
+      #FFEBEE:بيان أن النسخة غير معارة;
+    else (لا)
+      :إنهاء الإعارة وتسجيل حالة النسخة;
+    endif
+    |أمين المكتبة|
+  repeat while (النسخة غير معارة) is (نعم) not (لا)
+  |النظام|
+  if (تأخر بعد فترة السماح) then (نعم)
+    :حساب غرامة يومية بسقف ثمن الكتاب
+    وتحويلها إلى فاتورة;
+  else (لا)
+  endif
+  if (للعنوان حجز) then (نعم)
+    :تعليم النسخة جاهزة للحاجز الأول
+    وإشعاره;
+  else (لا)
+  endif
+  if (أرجع كل متأخراته\nوسدد غراماته) then (نعم)
+    #E8F5E9:رفع عائق المكتبة;
+  else (لا)
+    #FFF3E0:إبقاء عائق المكتبة;
+  endif
+endif
+stop
+@enduml

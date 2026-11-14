@@ -1,0 +1,67 @@
+@startuml UC-102
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-102 — تقديم طلب إلكتروني ومتابعته
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|الطالب|
+start
+:فتح طلباتي والضغط على طلب جديد;
+|النظام|
+:عرض الأنواع المتاحة برسومها ومددها;
+|الطالب|
+:اختيار نوع الطلب;
+|النظام|
+:عرض النموذج الديناميكي وخطوات اعتماده;
+|الطالب|
+:تعبئة النموذج وإرفاق المستندات
+ثم الضغط على تقديم;
+|النظام|
+if (نوع الطلب غير متاح\nأو طلب معلّق مماثل) then (نعم)
+  #FFEBEE:رسالة تبيّن السبب;
+  end
+else (لا)
+endif
+while (حقل ناقص أو مستند مرفوض) is (نعم)
+  #FFEBEE:رسالة بعض البيانات المدخلة غير صالحة;
+  |الطالب|
+  :تصحيح الحقول وإعادة التقديم;
+  |النظام|
+endwhile (لا)
+:تسجيل الطلب برقمه وتوجيهه
+إلى الخطوة الأولى وإشعار المعالِج;
+if (للنوع رسوم) then (نعم)
+  :UC-94 عرض الرصيد والدفع الإلكتروني|
+else (لا)
+endif
+:عرض الخط الزمني ومدة الإنجاز المعلنة;
+|الطالب|
+if (طلب المعالِج معلومات) then (نعم)
+  :الرد على طلب المعلومات;
+  |النظام|
+  :إعادة الطلب إلى خطوته نفسها;
+else (لا)
+endif
+|النظام|
+#E8F5E9:إشعار الطالب بالقرار والأثر المنفَّذ;
+stop
+@enduml

@@ -1,0 +1,76 @@
+@startuml UC-57
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-57 — إدارة الملف التدريسي لعضو هيئة التدريس
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|#FFFBF0|عضو هيئة التدريس|
+|موظف الشؤون الأكاديمية|
+start
+:فتح الكادر التدريسي ثم ملف مدرّس;
+|النظام|
+if (المدرّس ضمن النطاق) then (لا)
+  #FFEBEE:رسالة هذا المدرّس خارج نطاقك;
+  end
+else (نعم)
+endif
+:عرض الملف والمقررات والحِمل الفعلي;
+|موظف الشؤون الأكاديمية|
+repeat
+  :اختيار الرتبة وتحديد الحدّين والمكتب
+  والدوام والقدرة على المراقبة ثم حفظ;
+  |النظام|
+  if (حد خارج النطاق\nأو الأقصى أقل من الأدنى) then (نعم)
+    #FFEBEE:رسالة تحت الحقل;
+  else (لا)
+    :حفظ الملف وتسجيله في سجل التدقيق;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم يُحفظ الملف) is (نعم) not (لا)
+repeat
+  :إضافة المقررات المؤهَّل لها
+  وما يدرّسه من كل منها ثم حفظ;
+  |النظام|
+  if (مقرر بلا جزء أو جزء غير موجود\nأو مقرر محذوف) then (نعم)
+    #FFEBEE:رسالة تبيّن المقرر المخالف;
+  else (لا)
+    :حفظ القائمة كاملة
+    وإشعار المدرّس بما تغيّر;
+    #E8F5E9:رسالة تم الحفظ مع الأعداد;
+  endif
+  |موظف الشؤون الأكاديمية|
+repeat while (لم تُحفظ القائمة) is (نعم) not (لا)
+|عضو هيئة التدريس|
+repeat
+  :فتح ملفي التدريسي وإضافة الساعات المكتبية
+  وتحديد الرغبة في كل مقرر ثم حفظ;
+  |النظام|
+  if (موعد معكوس أو متداخل\nأو مواعيد فوق الحد) then (نعم)
+    #FFEBEE:رسالة تبيّن خطأ الموعد;
+  else (لا)
+    #E8F5E9:حفظ المواعيد والرغبات
+    ورسالة تم حفظ ملفك;
+  endif
+  |عضو هيئة التدريس|
+repeat while (لم يُحفظ) is (نعم) not (لا)
+stop
+@enduml

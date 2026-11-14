@@ -1,0 +1,68 @@
+@startuml UC-97
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-97 — البحث في كتالوج المكتبة وحجز نسخة
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|المستخدم|
+start
+repeat
+  :فتح المكتبة وكتابة كلمة البحث;
+  |النظام|
+  :توحيد الهمزات والتاء المربوطة
+  والألف المقصورة ثم البحث النصي;
+  if (لا نتائج مطابقة) then (نعم)
+    #FFEBEE:بيان أنه لا نتائج
+    مع اقتراح تبسيط البحث;
+  else (لا)
+    :عرض العناوين ومؤلفيها وتوافرها;
+  endif
+  |المستخدم|
+repeat while (لا نتائج) is (نعم) not (لا)
+:فتح عنوان;
+|النظام|
+:عرض النسخ المتاحة ومواقعها
+والمعارة ومواعيد إرجاعها;
+if (توجد نسخة متاحة على الرف) then (نعم)
+  #E8F5E9:استعارة النسخة من أمين المكتبة;
+  stop
+else (لا)
+endif
+|المستخدم|
+:الضغط على احجز;
+|النظام|
+if (لديه مواد متأخرة\nأو بلغ حد فئته) then (نعم)
+  #FFEBEE:رسالة تبيّن السبب;
+  end
+else (لا)
+endif
+:تسجيل الحجز بترتيبه في القائمة;
+:تعليم أول نسخة مرتجعة جاهزة
+للحاجز الأول وإشعاره بمهلة الاستلام;
+if (انتهت المهلة دون استلام) then (نعم)
+  #FFF3E0:إلغاء الحجز وتعليم النسخة
+  للحاجز التالي وإشعاره;
+else (لا)
+  #E8F5E9:استلام النسخة من أمين المكتبة;
+endif
+stop
+@enduml

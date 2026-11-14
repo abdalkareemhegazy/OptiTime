@@ -1,0 +1,61 @@
+@startuml UC-96
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-96 — إدارة الأقساط والمنح والاسترداد
+
+|#F1F8FE|الموظف المالي|
+|#F3FAF3|النظام|
+|#FFFBF0|الطالب|
+|الطالب|
+start
+:تقديم طلب تقسيط إلكتروني;
+|النظام|
+:توجيه الطلب إلى الموظف المالي;
+|الموظف المالي|
+repeat
+  :إنشاء خطة بعدد الأقساط ومواعيدها;
+  |النظام|
+  if (المجموع لا يساوي المستحق\nأو موعد قبل اليوم) then (نعم)
+    #FFEBEE:رسالة المبلغ غير صالح;
+  else (لا)
+    :فواتير الأقساط وقيدها وإشعار الطالب;
+  endif
+  |الموظف المالي|
+repeat while (لم تُنشأ الخطة) is (نعم) not (لا)
+|النظام|
+:مراجعة أهلية المنح بعد نشر الدرجات;
+if (نزل المعدل عن الشرط) then (نعم)
+  :تعليق المنحة وإشعار الطالب;
+else (لا)
+  :إبقاء المنحة;
+endif
+:حساب الاسترداد بحسب أسبوع الانسحاب;
+|الموظف المالي|
+:مراجعة الاسترداد والموافقة;
+|النظام|
+if (الاسترداد غير مسموح للدفعة) then (نعم)
+  #FFEBEE:رسالة الاسترداد غير مسموح;
+else (لا)
+  :صرف الاسترداد وقيده في الدفتر;
+  #E8F5E9:إشعار الطالب بالاسترداد;
+endif
+stop
+@enduml

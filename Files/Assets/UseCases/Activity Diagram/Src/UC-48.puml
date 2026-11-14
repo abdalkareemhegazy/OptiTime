@@ -1,0 +1,76 @@
+@startuml UC-48
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-48 — إدارة الفروع والمباني
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:فتح صفحة الفروع والمباني;
+|النظام|
+:عرض الفروع ببطاقات مبانيها
+وتنبيه القاعات التي بلا مبنى;
+|مدير النظام|
+repeat
+  :الضغط على فرع جديد أو مبنى جديد
+  وإدخال البيانات ثم حفظ;
+  |النظام|
+  if (حقل ناقص أو صيغة غير صحيحة\nأو قيمة خارج الحدود) then (نعم)
+    #FFEBEE:رسالة تحت الحقل;
+  elseif (الرمز مستخدم) then (نعم)
+    #FFEBEE:رسالة هذا الرمز مستخدم;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذّر الوصول إلى الخادم;
+  else (لا)
+    :حفظ الفرع أو المبنى
+    وتسجيله في سجل التدقيق;
+    #E8F5E9:رسالة تم الإنشاء;
+  endif
+  |مدير النظام|
+repeat while (لم يُحفظ) is (نعم) not (لا)
+:الضغط على وضع قاعات واختيارها;
+|النظام|
+if (إحدى القاعات لم تعد موجودة) then (نعم)
+  #FFEBEE:رسالة إحدى القاعات لم تعد موجودة;
+else (لا)
+  :نقل القاعات إلى المبنى وتحديث البطاقة;
+endif
+|مدير النظام|
+if (الإجراء التالي) then (إغلاق المبنى)
+  #FFF3E0:تغيير الحالة إلى مغلق;
+  |النظام|
+  #FFF3E0:تحذير بأن قاعاته تخرج من الجدول;
+  #FFF3E0:إخراج القاعات من التوليد والحجز
+  حتى يُعاد فتح المبنى;
+else (حذف المبنى)
+  |مدير النظام|
+  #FFF3E0:حذف المبنى ثم التأكيد;
+  |النظام|
+  if (في المبنى قاعات) then (نعم)
+    #FFEBEE:رسالة لا يمكن حذفه الآن
+    مع ما يجب نقله أولاً;
+  else (لا)
+    #FFF3E0:حذف المبنى;
+  endif
+endif
+stop
+@enduml

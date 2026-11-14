@@ -1,0 +1,70 @@
+@startuml UC-16
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-16 — تعديل دور
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:فتح الدور المطلوب من بطاقته
+أو من المصفوفة;
+|النظام|
+:عرض نموذج تعديل الدور
+بصلاحياته الحالية;
+|مدير النظام|
+repeat
+  :تعديل الاسم أو اللون أو الوصف أو الحالة
+  أو منح الصلاحيات وسحبها;
+  |النظام|
+  :إظهار ملخص الصلاحيات المضافة والمزالة
+  وشريط تغييرات غير محفوظة;
+  |مدير النظام|
+  :الضغط على حفظ التغييرات;
+  |النظام|
+  :التحقق من الحقول
+  ومن أن رمز دور النظام ومداه لم يتغيرا;
+  if (حقل غير صالح أو رمز مكرر) then (نعم)
+    #FFEBEE:رسالة الحقل المعني;
+  elseif (تغيير رمز دور نظام\nأو نطاقه) then (نعم)
+    #FFEBEE:رسالة لا يمكن تغيير رموز
+    أدوار النظام أو نطاقها;
+  elseif (التعديل يمنع المسؤولين\nمن إدارة الأدوار) then (نعم)
+    #FFEBEE:رسالة هذا التغيير سيمنع
+    المسؤولين من إدارة الأدوار;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذر حفظ الدور
+    حاول مرة أخرى;
+  else (لا)
+    :حفظ بيانات الدور وتحديث صلاحياته;
+    note right
+      تسري التغييرات على كل من يحمل الدور
+      وتبقى صلاحيتا عرض الأدوار وتعديلها
+      مثبتتين على دور مدير النظام
+    end note
+    :تسجيل التعديل مع الصلاحيات المضافة
+    والمزالة في سجل التدقيق;
+    #E8F5E9:رسالة تم حفظ التغييرات;
+  endif
+  |مدير النظام|
+repeat while (لم تُحفظ التغييرات) is (نعم) not (لا)
+stop
+@enduml

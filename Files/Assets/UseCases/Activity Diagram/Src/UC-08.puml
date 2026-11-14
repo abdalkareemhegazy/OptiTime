@@ -1,0 +1,87 @@
+@startuml UC-08
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-08 — تفعيل التحقق الثنائي عبر تطبيق المصادقة
+
+|#F1F8FE|المستخدم|
+|#F3FAF3|النظام|
+|#FFFBF0|تطبيق المصادقة|
+|المستخدم|
+start
+:فتح قسم التحقق الثنائي
+ثم الضغط على تفعيل;
+|النظام|
+if (التحقق الثنائي مفعّل مسبقاً) then (نعم)
+  #FFEBEE:رسالة التحقق الثنائي مفعّل مسبقاً;
+  end
+else (لا)
+  :توليد مفتاح سري جديد وحفظه مؤقتاً
+  مشفّراً لمدة 15 دقيقة;
+  :عرض رمز الاستجابة السريعة
+  والمفتاح النصي لإدخاله يدوياً;
+endif
+|المستخدم|
+:مسح الرمز بتطبيق المصادقة;
+|تطبيق المصادقة|
+:عرض رمز من 6 أرقام يتغير كل 30 ثانية;
+|المستخدم|
+repeat
+  :إدخال الرمز ثم الضغط على تحقق وفعّل;
+  |النظام|
+  :مطابقة الرمز مع المفتاح السري المؤقت;
+  if (انتهت مهلة الإعداد أو لم يبدأ) then (نعم)
+    #FFEBEE:رسالة انتهت مهلة الإعداد
+    ابدأ من جديد;
+    end
+  elseif (الرمز غير صحيح) then (نعم)
+    #FFEBEE:رسالة رمز التحقق غير صحيح;
+  else (لا)
+    :تفعيل التحقق الثنائي على الحساب
+    وتوليد رموز الاسترداد;
+    :عرض رموز الاسترداد مرة واحدة
+    مع إمكانية تنزيلها أو نسخها;
+    note right
+      عند الدخول بعد التفعيل
+      يطلب النظام رمز التطبيق
+      أو أحد رموز الاسترداد
+    end note
+    |المستخدم|
+    :حفظ الرموز في مكان آمن
+    وتحديد خانة التأكيد;
+    |النظام|
+    :تسجيل العملية في سجل التدقيق;
+    #E8F5E9:رسالة فُعّل التحقق الثنائي;
+  endif
+  |المستخدم|
+repeat while (لم يُفعَّل التحقق الثنائي) is (نعم) not (لا)
+if (إيقاف التحقق الثنائي) then (نعم)
+  |المستخدم|
+  #FFF3E0:تأكيد الهوية بكلمة المرور
+  أو رمز التطبيق ثم اختيار الإيقاف;
+  |النظام|
+  if (دور الحساب يشترط\nالتحقق الثنائي) then (نعم)
+    #FFEBEE:رفض الإيقاف;
+  else (لا)
+    #FFF3E0:مسح المفتاح السري ورموز الاسترداد;
+  endif
+endif
+stop
+@enduml

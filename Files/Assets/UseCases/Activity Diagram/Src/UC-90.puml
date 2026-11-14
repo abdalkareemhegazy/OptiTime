@@ -1,0 +1,60 @@
+@startuml UC-90
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-90 — المفاضلة وإصدار قرارات القبول
+
+|#F1F8FE|موظف القبول|
+|#F3FAF3|النظام|
+|موظف القبول|
+start
+:فتح طلبات الدورة وحساب العلامات;
+|النظام|
+:حساب العلامة المركّبة لكل طلب مكتمل
+واستبعاد الناقص مع بيانه;
+|موظف القبول|
+:فتح ترتيب المفاضلة لبرنامج;
+|النظام|
+:ترتيب المتقدمين تنازلياً;
+|موظف القبول|
+:توزيع المقاعد;
+|النظام|
+:التوزيع بالترتيب والرغبات والسعات
+ووضع الباقين على الانتظار;
+|موظف القبول|
+repeat
+  :مراجعة النتيجة وتعديل قرارات فردية;
+  :نشر القرارات مع مهلة العرض;
+  |النظام|
+  if (تجاوز سعة برنامج) then (نعم)
+    #FFEBEE:رسالة اكتملت سعة البرنامج;
+  else (لا)
+    :نشر القرارات وتسجيلها;
+    #E8F5E9:إشعار كل متقدّم بقراره ومهلته;
+  endif
+  |موظف القبول|
+repeat while (لم تُنشر القرارات) is (نعم) not (لا)
+if (تحويل من قبلوا العروض) then (نعم)
+  |النظام|
+  #FFF3E0:التحويل الجماعي إلى طلاب في الخلفية;
+else (لا)
+endif
+stop
+@enduml

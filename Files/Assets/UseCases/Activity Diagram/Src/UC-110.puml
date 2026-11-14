@@ -1,0 +1,71 @@
+@startuml UC-110
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-110 — متابعة مؤشر خطر التعثّر
+
+|#F1F8FE|المرشد الأكاديمي|
+|#F3FAF3|النظام|
+|#FFFBF0|خدمة التحليلات|
+|#FBF4FC|الشؤون الأكاديمية أو رئيس القسم|
+|النظام|
+start
+:جمع بيانات كل طالب في الدفعة الليلية;
+if (خدمة التحليلات متاحة) then (لا)
+  #FFF3E0:إبقاء آخر مؤشرات بتاريخها
+  وتنبيه المسؤول;
+else (نعم)
+  |خدمة التحليلات|
+  :حساب المؤشر وأبرز العوامل
+  دون الخصائص الحساسة;
+  |النظام|
+  :حفظ المؤشرات وعواملها
+  وإشعار المرشد بمن تجاوز العتبة;
+endif
+|المرشد الأكاديمي|
+:فتح طلابي;
+|النظام|
+if (لا طلاب أو لا مؤشرات) then (نعم)
+  #FFEBEE:بيان ذلك;
+  end
+else (لا)
+endif
+:عرض الطلاب مرتبين بالمؤشر وعوامله
+موسوماً بأنه مؤشر لا حكم;
+|المرشد الأكاديمي|
+repeat
+  :فتح ملف طالب;
+  |النظام|
+  if (الطالب ليس من طلابه) then (نعم)
+    #FFEBEE:رسالة هذا خارج نطاق دورك;
+  else (لا)
+    :عرض تطور المؤشر وعوامله
+    مع الملف الأكاديمي;
+  endif
+  |المرشد الأكاديمي|
+repeat while (خارج نطاقه) is (نعم) not (لا)
+:UC-92 متابعة الإنذارات ومواعيد الإرشاد|
+|الشؤون الأكاديمية أو رئيس القسم|
+:فتح مؤشرات الخطر;
+|النظام|
+#E8F5E9:عرض توزيع المؤشرات في النطاق
+بحسب البرنامج والسنة;
+stop
+@enduml

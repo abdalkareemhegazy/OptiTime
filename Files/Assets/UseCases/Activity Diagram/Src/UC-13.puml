@@ -1,0 +1,70 @@
+@startuml UC-13
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-13 — تعيين الأدوار
+
+|#F1F8FE|مدير النظام|
+|#F3FAF3|النظام|
+|مدير النظام|
+start
+:فتح قسم الأدوار والنطاقات
+في صفحة تعديل الحساب;
+|النظام|
+:عرض الأدوار الحالية مع نطاق كل دور
+ومدته والدور الأساسي معلَّماً بنجمة;
+|مدير النظام|
+repeat
+  :إضافة دور أو تعديل نطاقه أو إزالته
+  مع اختيار النطاق والمدة والدور الأساسي;
+  :الضغط على حفظ التغييرات;
+  |النظام|
+  if (لم يؤكد المدير هويته مؤخراً) then (نعم)
+    :طلب تأكيد الهوية
+    بكلمة المرور أو رمز التحقق الثنائي;
+    |مدير النظام|
+    :تأكيد الهوية;
+    |النظام|
+  endif
+  if (التأكيد غير صحيح أو أُلغي) then (نعم)
+    #FFEBEE:رسالة التأكيد غير صحيح
+    دون حفظ الأدوار;
+  elseif (دور بنطاق غير مسموح أو مكرر\nأو مدة غير صحيحة) then (نعم)
+    #FFEBEE:رسالة الخطأ والعودة
+    إلى تعديل الأدوار;
+  elseif (التعديل يمس الحساب المؤسِّس\nأو المدير نفسه أو آخر مدير) then (نعم)
+    #FFEBEE:رسالة سبب المنع;
+  elseif (تعذّر الحفظ) then (نعم)
+    #FFEBEE:رسالة تعذر حفظ الحساب
+    حاول مرة أخرى;
+  else (لا)
+    :حذف الأدوار المزالة وحفظ المضافة
+    والمعدّلة وتحديث الدور الأساسي;
+    :مزامنة قيادة الكلية أو القسم
+    لدور العميد أو رئيس القسم;
+    :إعادة حساب صلاحيات الحساب;
+    :تسجيل الأدوار قبل التغيير وبعده
+    في سجل التدقيق;
+    #E8F5E9:رسالة بنجاح العملية;
+  endif
+  |مدير النظام|
+repeat while (لم تُحفظ الأدوار) is (نعم) not (لا)
+stop
+@enduml

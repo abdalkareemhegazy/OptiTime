@@ -1,0 +1,59 @@
+@startuml UC-86
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-86 — عرض جدول امتحاناتي وبطاقة الامتحان
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|الطالب|
+start
+:فتح امتحاناتي واختيار الفترة;
+|النظام|
+if (جدول الفترة منشور) then (لا)
+  #FFEBEE:رسالة جدول الامتحانات غير منشور;
+  end
+else (نعم)
+endif
+if (للطالب امتحانات) then (لا)
+  #FFEBEE:بيان أنه لا امتحانات له;
+  end
+else (نعم)
+endif
+:عرض الامتحانات بالقاعة والمقعد
+مع عدّ تنازلي لأقربها;
+note right
+  يظهر الامتحان المحروم منه
+  دون قاعة أو مقعد
+end note
+|الطالب|
+repeat
+  :الضغط على بطاقة الامتحان;
+  |النظام|
+  if (تعذّر إنشاء البطاقة) then (نعم)
+    #FFEBEE:بيان تعذّر إنشاء البطاقة;
+  else (لا)
+    #E8F5E9:تنزيل البطاقة بالقاعات والمقاعد
+    والمواعيد;
+  endif
+  |الطالب|
+repeat while (لم تُنزَّل البطاقة) is (نعم) not (لا)
+stop
+@enduml

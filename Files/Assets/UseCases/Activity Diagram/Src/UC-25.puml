@@ -1,0 +1,88 @@
+@startuml UC-25
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-25 — معالجة طلبات الموارد
+
+|#F1F8FE|منسق الجداول والموارد|
+|#F3FAF3|النظام|
+|منسق الجداول والموارد|
+start
+:اختيار طلب من قائمة بانتظار الرد;
+|النظام|
+:عرض لوحة المراجعة
+المحاضرة ومواعيد الطلب وسببه;
+:عرض القاعات الشاغرة من النوع المطلوب
+في كل المواعيد القادمة أو القطع المتاحة;
+if (لا قاعة شاغرة ولا قطعة متاحة) then (نعم)
+  #FFEBEE:رسالة لا قاعة من هذا النوع شاغرة
+  في كل المواعيد القادمة
+  ارفضه بكلمة أو اطلب مواعيد أخرى;
+endif
+|منسق الجداول والموارد|
+if (قرار المنسق) then (قبول الطلب)
+  repeat
+    :اختيار القاعة أو القطع المراد تخصيصها
+    وكتابة كلمة للمدرّس;
+    :الضغط على اقبله;
+    |النظام|
+    :قفل القاعة أو القطع والتحقق من أنها
+    ما زالت شاغرة في كل المواعيد القادمة;
+    if (لم يُختر شيء للتخصيص\nأو لم تعد شاغرة) then (نعم)
+      #FFEBEE:رسالة تبيّن السبب
+      وإعادة قراءة القائمة لاختيار غيرها;
+    elseif (ردّ مستخدم آخر على الطلب\nأو سحبه المدرّس) then (نعم)
+      #FFEBEE:رسالة ردّ أحد آخر على هذا الطلب
+      أعد تحميله لترى أين وصل;
+      end
+    elseif (تعذّر الحفظ) then (نعم)
+      #FFEBEE:رسالة تعذّر حفظ الطلب;
+    else (لا)
+      :تخصيص القاعة لتلك المواعيد
+      أو حجز القطع
+      وتغيير حالة الطلب إلى مقبول;
+      :تسجيل الخطوة في سجل الطلب;
+      #E8F5E9:رسالة قُبل الطلب وأُعلم المدرّس;
+    endif
+    |منسق الجداول والموارد|
+  repeat while (لم يُقبل الطلب) is (نعم) not (لا)
+  |النظام|
+  :إشعار المدرّس بالقبول مع القاعة
+  أو العدد وكلمة المنسق
+  وإبلاغ طلاب الشعبة إن انتقلت محاضراتهم;
+else (رفض الطلب)
+  |منسق الجداول والموارد|
+  #FFF3E0:كتابة سبب الرفض الإلزامي
+  ثم الضغط على ارفضه وأعلم المدرّس;
+  |النظام|
+  #FFF3E0:تغيير حالة الطلب إلى مرفوض
+  وتسجيل السبب وإشعار المدرّس به;
+endif
+|النظام|
+:عدّ الطلب المقبول منجزاً تلقائياً
+بعد انتهاء مواعيده أو بضغط المنسق
+على عُدّه منجزاً;
+note right
+  يُعلَّم الطلب المقبول إن خرجت قاعته
+  من الاستخدام أو لم تعد محاضرته
+  في الجدول
+end note
+stop
+@enduml

@@ -1,0 +1,64 @@
+@startuml UC-113
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-113 — محاكاة السيناريوهات
+
+|#F1F8FE|الإدارة العليا أو المنسق|
+|#F3FAF3|النظام|
+|الإدارة العليا أو المنسق|
+start
+:فتح المحاكي والضغط على سيناريو جديد;
+repeat
+  :الفصل الأساس ونوع التغيير وقيمته;
+  |النظام|
+  if (قيمة غير صالحة) then (نعم)
+    #FFEBEE:رسالة بعض البيانات المدخلة غير صالحة;
+  else (لا)
+    :حفظ السيناريو;
+  endif
+  |الإدارة العليا أو المنسق|
+repeat while (لم يُحفظ السيناريو) is (نعم) not (لا)
+:الضغط على تشغيل;
+|النظام|
+:إنشاء نسخة معزولة من بيانات الفصل
+وتطبيق السيناريو عليها;
+:فحص الكفاية وتشغيل محرك الجدولة
+على النسخة المعزولة مع إظهار التقدم;
+if (محرك الجدولة غير متاح) then (نعم)
+  #FFEBEE:رسالة محرك التحسين غير متاح
+  وحفظ السيناريو دون نتيجة;
+  end
+elseif (لا حل يحقق القيود الصلبة) then (نعم)
+  #FFF3E0:النتيجة متعذرة مع أسباب فحص الكفاية;
+else (لا)
+endif
+:مقارنة النتيجة بالوضع القائم
+وحفظ لقطتها;
+|الإدارة العليا أو المنسق|
+if (طلب شرح النتيجة) then (نعم)
+  :UC-108 شرح نتيجة الجدولة|
+else (لا)
+endif
+|النظام|
+#E8F5E9:عرض المقارنة دون أي تغيير
+على البيانات الحقيقية;
+stop
+@enduml

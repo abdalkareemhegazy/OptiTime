@@ -1,0 +1,58 @@
+@startuml UC-66
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-66 — نشر كتالوج التسجيل وفتح أدواره
+
+|#F1F8FE|موظف الشؤون الأكاديمية|
+|#F3FAF3|النظام|
+|#FFFBF0|الطلاب|
+|موظف الشؤون الأكاديمية|
+start
+:فتح التسجيل واختيار الفصل;
+|النظام|
+:عرض حالة الاستعداد والأدوار وطلبتها;
+|موظف الشؤون الأكاديمية|
+:الضغط على نشر الكتالوج;
+|النظام|
+if (الجدول غير منشور) then (نعم)
+  #FFEBEE:بيان أن الكتالوج يحتاج إلى جدول منشور;
+  end
+elseif (لا نافذة تسجيل) then (نعم)
+  #FFEBEE:رسالة أضف نافذة تسجيل أولاً;
+  end
+else (لا)
+endif
+:نشر الكتالوج وفتح الشعب
+وتسجيل النشر في سجل التدقيق;
+repeat
+  :انتظار لحظة بدء الدور التالي;
+  :إتاحة التسجيل لطلبة الدور;
+  |الطلاب|
+  :استلام إشعار حان دورك في التسجيل;
+  |النظام|
+repeat while (بقيت أدوار) is (نعم) not (لا)
+|موظف الشؤون الأكاديمية|
+:فتح لوحة المراقبة;
+|النظام|
+#E8F5E9:عرض التسجيلات في الدقيقة ونسب الامتلاء
+وقوائم الانتظار والأخطاء الشائعة;
+stop
+@enduml

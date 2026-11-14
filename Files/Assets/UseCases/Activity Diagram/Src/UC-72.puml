@@ -1,0 +1,77 @@
+@startuml UC-72
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-72 — تسجيل حضور الجلسة
+
+|#F1F8FE|عضو هيئة التدريس|
+|#F3FAF3|النظام|
+|#FFFBF0|الطالب|
+|عضو هيئة التدريس|
+start
+:فتح جلسات اليوم واختيار جلسة الشعبة;
+|النظام|
+if (توجد جلسة اليوم) then (لا)
+  #FFEBEE:بيان أنه لا جلسة اليوم;
+  end
+else (نعم)
+endif
+:عرض ورقة الحضور بطلاب الشعبة;
+|عضو هيئة التدريس|
+if (طريقة التحضير) then (يدوياً)
+  repeat
+    :تعليم حالة كل طالب ثم حفظ;
+    |النظام|
+    if (انتهت مهلة التعديل) then (نعم)
+      #FFEBEE:رسالة انتهت مهلة تعديل الحضور;
+      end
+    elseif (تعذّر الحفظ) then (نعم)
+      #FFEBEE:رسالة تعذّر الوصول إلى الخادم
+      مع الإبقاء على التعليمات;
+    else (لا)
+      :حفظ الحالات للطلاب المسجلين;
+    endif
+    |عضو هيئة التدريس|
+  repeat while (لم يُحفظ الحضور) is (نعم) not (لا)
+else (برمز متغير)
+  #FFF3E0:تشغيل الرمز على شاشة القاعة;
+  |الطالب|
+  repeat
+    #FFF3E0:مسح الرمز بالجوال;
+    |النظام|
+    if (رمز منتهٍ أو غير صالح\nأو طالب غير مسجّل) then (نعم)
+      #FFEBEE:رسالة رفض في جوال الطالب;
+    else (لا)
+      #FFF3E0:تعليم الطالب حاضراً
+      وإظهار اسمه للمدرّس;
+    endif
+    |الطالب|
+  repeat while (طلاب آخرون يمسحون) is (نعم) not (لا)
+  |عضو هيئة التدريس|
+  #FFF3E0:إيقاف الرمز;
+  |النظام|
+  #FFF3E0:تعليم من لم يمسح غائباً;
+endif
+|النظام|
+:تحديث نسب الغياب في المادة;
+#E8F5E9:إطلاق الإنذارات عند العتبات
+ورسالة بنجاح الحفظ;
+stop
+@enduml

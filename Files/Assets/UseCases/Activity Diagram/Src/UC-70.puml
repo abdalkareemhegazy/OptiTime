@@ -1,0 +1,65 @@
+@startuml UC-70
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-70 — السحب والإضافة
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|الطالب|
+start
+:فتح تسجيلاتي للفصل;
+|النظام|
+:عرض المقررات والشعب وحالة النافذة;
+|الطالب|
+repeat
+  :اختيار مقرر والضغط على حذف
+  أو تبديل الشعبة;
+  |النظام|
+  if (النافذة مغلقة) then (نعم)
+    #FFEBEE:رسالة انتهت فترة الحذف
+    مع إمكانية طلب الانسحاب;
+    end
+  else (لا)
+  endif
+  if (نوع الطلب) then (حذف)
+    if (ينزل تحت الحد الأدنى) then (نعم)
+      #FFEBEE:رسالة الحذف ينزل تحت الحد الأدنى;
+    else (لا)
+      :حذف التسجيل وتحرير المقعد;
+      :إشعار دائن وترقية أول المنتظرين;
+      #E8F5E9:تحديث الجدول ورسالة النجاح;
+    endif
+  else (تبديل)
+    :UC-68 التحقق من أهلية التسجيل|
+    if (فشلت قاعدة) then (نعم)
+      #FFEBEE:القاعدة الفاشلة وسببها;
+    elseif (امتلأت الشعبة الجديدة) then (نعم)
+      #FFEBEE:التراجع مع بقاء الشعبة الأصلية;
+    else (لا)
+      :حجز الجديد وتحرير القديم معاً;
+      #E8F5E9:فاتورة تعديل عند اللزوم
+      ورسالة النجاح;
+    endif
+  endif
+  |الطالب|
+repeat while (تعديل آخر) is (نعم) not (لا)
+stop
+@enduml

@@ -1,0 +1,60 @@
+@startuml UC-82
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-82 — إصدار كشف الدرجات
+
+|#F1F8FE|الطالب|
+|#F3FAF3|النظام|
+|#FFFBF0|موظف الشؤون الأكاديمية|
+|الطالب|
+start
+:فتح كشف درجاتي;
+|النظام|
+if (توجد درجات منشورة) then (لا)
+  #FFEBEE:بيان أنه لا درجات منشورة بعد;
+  end
+else (نعم)
+endif
+:عرض المقررات والمعدلات والوضع;
+|الطالب|
+:تنزيل الكشف غير الرسمي;
+|النظام|
+if (تعذّر إنشاء الملف) then (نعم)
+  #FFEBEE:بيان تعذّر إنشاء الملف;
+else (لا)
+  :إنشاء الملف موسوماً بأنه غير رسمي;
+endif
+|موظف الشؤون الأكاديمية|
+:إصدار كشف رسمي من ملف الطالب;
+|النظام|
+if (عائق مالي أو عائق مكتبة) then (نعم)
+  #FFEBEE:رفض الإصدار مع بيان العائق;
+else (لا)
+  :إنشاء الكشف برمز تحقق وتاريخ إصدار
+  وتسجيله في سجل التدقيق;
+  #E8F5E9:تنزيل الكشف الرسمي;
+  note right
+    يتحقق أي طرف خارجي من الرمز
+    دون تسجيل دخول
+  end note
+endif
+stop
+@enduml

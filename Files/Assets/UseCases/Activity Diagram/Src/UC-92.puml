@@ -1,0 +1,60 @@
+@startuml UC-92
+skinparam dpi 150
+' ===== النمط الموحّد (انسخه مع المخطط) =====
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam defaultTextAlignment center
+skinparam ArrowColor #37474F
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #546E7A
+skinparam ActivityDiamondBackgroundColor #FFF8E1
+skinparam ActivityDiamondBorderColor #FFB300
+skinparam ActivityStartColor #37474F
+skinparam ActivityEndColor #37474F
+skinparam ActivityBarColor #37474F
+skinparam NoteBackgroundColor #FFF8E1
+skinparam NoteBorderColor #FFB300
+skinparam SwimlaneBorderColor #90A4AE
+skinparam SwimlaneTitleFontSize 14
+skinparam SwimlaneTitleFontStyle bold
+' ===== المخطط =====
+title UC-92 — متابعة الإنذارات ومواعيد الإرشاد
+
+|#F1F8FE|المرشد الأكاديمي|
+|#F3FAF3|النظام|
+|#FFFBF0|الطالب|
+|النظام|
+start
+:إشعار المرشد بإنذار أحد طلابه
+أو ارتفاع مؤشر تعثّره;
+|المرشد الأكاديمي|
+:مراجعة الإنذار وتعليمه مُطّلعاً عليه
+ثم معالجاً مع ملاحظة;
+:تحديد فترات المواعيد المتاحة;
+|الطالب|
+repeat
+  :اختيار فترة وكتابة الموضوع ثم الحجز;
+  |النظام|
+  :قفل جدول المرشد وفحص الفترة;
+  if (محجوزة أو متداخلة) then (نعم)
+    #FFEBEE:بيان أن الفترة لم تعد متاحة;
+  else (لا)
+    :حجز الموعد وإشعار الطرفين وتذكيرهما;
+  endif
+  |الطالب|
+repeat while (لم يُحجز الموعد) is (نعم) not (لا)
+|المرشد الأكاديمي|
+:تعليم الموعد تمّ أو لم يحضر;
+repeat
+  :ملاحظة إرشاد واختيار مستوى رؤيتها;
+  |النظام|
+  if (الملاحظة فارغة) then (نعم)
+    #FFEBEE:رسالة بعض البيانات غير صالحة;
+  else (لا)
+    #E8F5E9:حفظ الملاحظة مشفّرة بمستوى رؤيتها;
+  endif
+  |المرشد الأكاديمي|
+repeat while (لم تُحفظ الملاحظة) is (نعم) not (لا)
+stop
+@enduml
