@@ -1,0 +1,243 @@
+@startuml fig-erd-core
+skinparam defaultFontName Tahoma
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam dpi 150
+skinparam linetype ortho
+skinparam ArrowColor #546E7A
+skinparam nodesep 28
+skinparam ranksep 50
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #546E7A
+  FontSize 12
+}
+skinparam package {
+  BackgroundColor #F7FAFC
+  BorderColor #90A4AE
+  FontSize 13
+  FontStyle bold
+}
+hide circle
+
+package "Identity" #E8EAF6 {
+  entity users {
+    * id : uuid
+    email · username
+    status
+  }
+  entity roles {
+    * id : uuid
+    code
+    scope_level
+  }
+  entity user_roles {
+    user_id · role_id
+    scope_type · scope_id
+    starts_at · ends_at
+  }
+  entity permissions {
+    * id : uuid
+    code
+  }
+}
+
+package "Organization and Calendar" #E0F2F1 {
+  entity campuses {
+    * id : uuid
+    code
+  }
+  entity buildings {
+    * id : uuid
+    campus_id · code
+  }
+  entity faculties {
+    * id : uuid
+    code · building_id
+    dean_user_id
+  }
+  entity departments {
+    * id : uuid
+    faculty_id · code
+    head_user_id
+  }
+  entity programs {
+    * id : uuid
+    department_id · code
+    grading_scheme_id
+  }
+  entity academic_years {
+    * id : uuid
+    code
+  }
+  entity semesters {
+    * id : uuid
+    academic_year_id
+    status · type
+  }
+}
+
+package "Curriculum" #FFF8E1 {
+  entity courses {
+    * id : uuid
+    department_id · code
+    credit_hours · category
+  }
+  entity course_prerequisites {
+    course_id
+    prerequisite_course_id
+    type · group_no
+  }
+  entity study_plans {
+    * id : uuid
+    program_id · status
+    effective_from_year
+  }
+  entity study_plan_courses {
+    study_plan_id · course_id
+    study_plan_group_id
+    recommended_semester
+  }
+}
+
+package "Resources" #E3F2FD {
+  entity rooms {
+    * id : uuid
+    code · building_id
+    type · capacity
+  }
+  entity equipment {
+    * id : uuid
+    asset_tag · room_id
+    status
+  }
+  entity maintenance_logs {
+    * id : uuid
+    reference · room_id
+    status · blocks_usage
+  }
+  entity resource_requests {
+    * id : uuid
+    schedule_session_id
+    status
+  }
+  entity room_reservations {
+    * id : uuid
+    room_id · user_id
+    starts_at · ends_at
+  }
+}
+
+package "Scheduling" #F3E5F5 {
+  entity instructors {
+    * id : uuid
+    user_id
+    academic_rank
+  }
+  entity instructor_availability_profiles {
+    * id : uuid
+    instructor_id
+    semester_id · status
+  }
+  entity course_offerings {
+    * id : uuid
+    course_id · semester_id
+    status
+  }
+  entity course_sections {
+    * id : uuid
+    course_offering_id
+    component · capacity
+  }
+  entity course_section_instructors {
+    section_id
+    instructor_id · role
+  }
+  entity semester_schedule_plans {
+    * id : uuid
+    semester_id · faculty_id
+    version_no · status
+  }
+  entity schedule_sessions {
+    * id : uuid
+    schedule_plan_id · room_id
+    section_instructor_id
+    day_value · start_time
+  }
+  entity schedule_generation_jobs {
+    * id : uuid
+    semester_id
+    algorithm · status
+  }
+  entity lecture_requests {
+    * id : uuid
+    schedule_session_id
+    instructor_id · status
+  }
+}
+
+package "Students and Marks" #FBE9E7 {
+  entity students {
+    * id : uuid
+    user_id · program_id
+    university_number
+  }
+  entity schedule_session_students {
+    schedule_session_id
+    student_id · total
+  }
+  entity assessment_components {
+    * id : uuid
+    course_offering_id
+    weight · max_mark
+  }
+  entity component_marks {
+    seat_id · component_id
+    mark
+  }
+}
+
+users ||--o{ user_roles
+roles ||--o{ user_roles
+roles }o--o{ permissions
+
+campuses ||--o{ buildings
+buildings ||--o{ rooms
+faculties ||--o{ departments
+departments ||--o{ programs
+academic_years ||--o{ semesters
+departments ||--o{ courses
+courses ||--o{ course_prerequisites
+programs ||--o{ study_plans
+study_plans ||--o{ study_plan_courses
+courses ||--o{ study_plan_courses
+
+rooms ||--o{ equipment
+rooms ||--o{ maintenance_logs
+rooms ||--o{ room_reservations
+users ||--o{ room_reservations
+
+users ||--o| instructors
+instructors ||--o{ instructor_availability_profiles
+semesters ||--o{ instructor_availability_profiles
+courses ||--o{ course_offerings
+semesters ||--o{ course_offerings
+course_offerings ||--o{ course_sections
+course_sections ||--o{ course_section_instructors
+instructors ||--o{ course_section_instructors
+semesters ||--o{ semester_schedule_plans
+semester_schedule_plans ||--o{ schedule_sessions
+course_section_instructors ||--o{ schedule_sessions
+rooms ||--o{ schedule_sessions
+semesters ||--o{ schedule_generation_jobs
+schedule_sessions ||--o{ lecture_requests
+schedule_sessions ||--o{ resource_requests
+
+users ||--o| students
+programs ||--o{ students
+schedule_sessions ||--o{ schedule_session_students
+students ||--o{ schedule_session_students
+course_offerings ||--o{ assessment_components
+schedule_session_students ||--o{ component_marks
+assessment_components ||--o{ component_marks
+@enduml
