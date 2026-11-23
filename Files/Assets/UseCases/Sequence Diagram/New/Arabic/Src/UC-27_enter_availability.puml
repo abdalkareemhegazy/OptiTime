@@ -32,12 +32,12 @@ hide footbox
 title UC-27 — إدخال أوقات التفرّغ
 
 actor "عضو هيئة\nالتدريس" as U
+actor "منسق الجداول\nوالموارد" as CRD
 box "الخادم" #F3FAF3
   participant "متحكم\nأوقات التفرّغ" as AC
   participant "خدمة\nأوقات التفرّغ" as AS
   participant "خدمة\nالإشعارات" as NS
 end box
-actor "منسق الجداول\nوالموارد" as CRD
 
 U -> AC : يرسل أوقات تفرّغه في الأسبوع
 AC -> AS : يطلب حفظ الأسبوع

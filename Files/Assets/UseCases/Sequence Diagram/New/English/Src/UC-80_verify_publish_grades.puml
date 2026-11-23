@@ -32,13 +32,13 @@ hide footbox
 title UC-80 — Double Entry and Publishing of Marks
 
 actor "Exams Officer" as U
+actor "Students" as R
 box "Server" #F3FAF3
   participant "Grade Sheet\nController" as GC
   participant "Verification\nService" as VS
   participant "Gradebook" as GB
   participant "Publishing Job\n(background)" as PJ
 end box
-actor "Students" as R
 
 U -> GC : Enter the final exam marks again
 GC -> VS : Compare with the instructor's entry

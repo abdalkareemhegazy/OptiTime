@@ -32,13 +32,13 @@ hide footbox
 title UC-31 — اعتماد الجدول ونشره
 
 actor "موظف الشؤون\nالأكاديمية" as U
+actor "المنسق والمدرّسون\nوالطلاب" as R
 box "الخادم" #F3FAF3
   participant "متحكم\nنسخ الجدول" as VC
   participant "خدمة\nنسخ الجدول" as VS
   participant "خدمة\nتوزيع الطلاب" as SS
   participant "خدمة\nالإشعارات" as NS
 end box
-actor "المنسق والمدرّسون\nوالطلاب" as R
 
 U -> VC : يعتمد النسخة
 VC -> VS : يطلب الاعتماد

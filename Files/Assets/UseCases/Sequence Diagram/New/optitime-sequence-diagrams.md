@@ -92,12 +92,12 @@ hide footbox
 title UC-27 — إدخال أوقات التفرّغ
 
 actor "عضو هيئة\nالتدريس" as U
+actor "منسق الجداول\nوالموارد" as CRD
 box "الخادم" #F3FAF3
   participant "متحكم\nأوقات التفرّغ" as AC
   participant "خدمة\nأوقات التفرّغ" as AS
   participant "خدمة\nالإشعارات" as NS
 end box
-actor "منسق الجداول\nوالموارد" as CRD
 
 U -> AC : يرسل أوقات تفرّغه في الأسبوع
 AC -> AS : يطلب حفظ الأسبوع
@@ -163,12 +163,12 @@ hide footbox
 title UC-27 — Enter Availability
 
 actor "Instructor" as U
+actor "Coordinator" as CRD
 box "Server" #F3FAF3
   participant "Availability\nController" as AC
   participant "Availability\nService" as AS
   participant "Notification\nService" as NS
 end box
-actor "Coordinator" as CRD
 
 U -> AC : Send the week's availability
 AC -> AS : Save the week
@@ -578,13 +578,13 @@ hide footbox
 title UC-31 — اعتماد الجدول ونشره
 
 actor "موظف الشؤون\nالأكاديمية" as U
+actor "المنسق والمدرّسون\nوالطلاب" as R
 box "الخادم" #F3FAF3
   participant "متحكم\nنسخ الجدول" as VC
   participant "خدمة\nنسخ الجدول" as VS
   participant "خدمة\nتوزيع الطلاب" as SS
   participant "خدمة\nالإشعارات" as NS
 end box
-actor "المنسق والمدرّسون\nوالطلاب" as R
 
 U -> VC : يعتمد النسخة
 VC -> VS : يطلب الاعتماد
@@ -660,13 +660,13 @@ hide footbox
 title UC-31 — Approve and Publish the Timetable
 
 actor "Academic Affairs\nOfficer" as U
+actor "Coordinator,\nInstructors, Students" as R
 box "Server" #F3FAF3
   participant "Version\nController" as VC
   participant "Version\nService" as VS
   participant "Seating\nService" as SS
   participant "Notification\nService" as NS
 end box
-actor "Coordinator,\nInstructors, Students" as R
 
 U -> VC : Approve the version
 VC -> VS : Approve
@@ -932,13 +932,13 @@ hide footbox
 title UC-84 — جدولة الامتحانات
 
 actor "موظف شؤون\nالامتحانات" as U
+actor "الطلاب\nوالمدرّسون" as R
 box "الخادم" #F3FAF3
   participant "متحكم\nالامتحانات" as EX
   participant "منشئ قائمة\nالامتحانات" as LB
   participant "محرك جدولة\nالامتحانات" as ES
   participant "خدمة\nالإشعارات" as NS
 end box
-actor "الطلاب\nوالمدرّسون" as R
 
 U -> EX : ينشئ فترة الامتحانات وفتراتها اليومية
 EX -> EX : يتحقق من التواريخ والقواعد
@@ -1010,13 +1010,13 @@ hide footbox
 title UC-84 — Schedule the Exams
 
 actor "Exams Officer" as U
+actor "Students,\nInstructors" as R
 box "Server" #F3FAF3
   participant "Exam\nController" as EX
   participant "Exam List\nBuilder" as LB
   participant "Exam\nScheduler" as ES
   participant "Notification\nService" as NS
 end box
-actor "Students,\nInstructors" as R
 
 U -> EX : Create the exam period and its slots
 EX -> EX : Validate the dates and rules
@@ -1102,13 +1102,13 @@ hide footbox
 title UC-80 — الإدخال المزدوج واعتماد الكشوف ونشرها
 
 actor "موظف شؤون\nالامتحانات" as U
+actor "الطلاب" as R
 box "الخادم" #F3FAF3
   participant "متحكم\nكشوف العلامات" as GC
   participant "خدمة\nالتحقق" as VS
   participant "دفتر\nالعلامات" as GB
   participant "مهمة النشر\nفي الخلفية" as PJ
 end box
-actor "الطلاب" as R
 
 U -> GC : يدخل علامات الامتحان النهائي ثانيةً
 GC -> VS : يطلب المقارنة بإدخال المدرّس
@@ -1181,13 +1181,13 @@ hide footbox
 title UC-80 — Double Entry and Publishing of Marks
 
 actor "Exams Officer" as U
+actor "Students" as R
 box "Server" #F3FAF3
   participant "Grade Sheet\nController" as GC
   participant "Verification\nService" as VS
   participant "Gradebook" as GB
   participant "Publishing Job\n(background)" as PJ
 end box
-actor "Students" as R
 
 U -> GC : Enter the final exam marks again
 GC -> VS : Compare with the instructor's entry

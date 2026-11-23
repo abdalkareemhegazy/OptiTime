@@ -32,12 +32,12 @@ hide footbox
 title UC-27 — Enter Availability
 
 actor "Instructor" as U
+actor "Coordinator" as CRD
 box "Server" #F3FAF3
   participant "Availability\nController" as AC
   participant "Availability\nService" as AS
   participant "Notification\nService" as NS
 end box
-actor "Coordinator" as CRD
 
 U -> AC : Send the week's availability
 AC -> AS : Save the week

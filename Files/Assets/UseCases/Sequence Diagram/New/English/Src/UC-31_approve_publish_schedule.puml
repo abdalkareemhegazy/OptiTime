@@ -32,13 +32,13 @@ hide footbox
 title UC-31 — Approve and Publish the Timetable
 
 actor "Academic Affairs\nOfficer" as U
+actor "Coordinator,\nInstructors, Students" as R
 box "Server" #F3FAF3
   participant "Version\nController" as VC
   participant "Version\nService" as VS
   participant "Seating\nService" as SS
   participant "Notification\nService" as NS
 end box
-actor "Coordinator,\nInstructors, Students" as R
 
 U -> VC : Approve the version
 VC -> VS : Approve
