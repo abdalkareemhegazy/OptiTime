@@ -32,13 +32,13 @@ hide footbox
 title UC-84 — جدولة الامتحانات
 
 actor "موظف شؤون\nالامتحانات" as U
+actor "الطلاب\nوالمدرّسون" as R
 box "الخادم" #F3FAF3
   participant "متحكم\nالامتحانات" as EX
   participant "منشئ قائمة\nالامتحانات" as LB
   participant "محرك جدولة\nالامتحانات" as ES
   participant "خدمة\nالإشعارات" as NS
 end box
-actor "الطلاب\nوالمدرّسون" as R
 
 U -> EX : ينشئ فترة الامتحانات وفتراتها اليومية
 EX -> EX : يتحقق من التواريخ والقواعد

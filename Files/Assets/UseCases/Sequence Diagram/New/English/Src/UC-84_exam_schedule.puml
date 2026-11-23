@@ -32,13 +32,13 @@ hide footbox
 title UC-84 — Schedule the Exams
 
 actor "Exams Officer" as U
+actor "Students,\nInstructors" as R
 box "Server" #F3FAF3
   participant "Exam\nController" as EX
   participant "Exam List\nBuilder" as LB
   participant "Exam\nScheduler" as ES
   participant "Notification\nService" as NS
 end box
-actor "Students,\nInstructors" as R
 
 U -> EX : Create the exam period and its slots
 EX -> EX : Validate the dates and rules

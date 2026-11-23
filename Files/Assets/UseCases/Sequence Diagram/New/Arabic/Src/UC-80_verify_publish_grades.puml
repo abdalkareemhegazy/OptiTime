@@ -32,13 +32,13 @@ hide footbox
 title UC-80 — الإدخال المزدوج واعتماد الكشوف ونشرها
 
 actor "موظف شؤون\nالامتحانات" as U
+actor "الطلاب" as R
 box "الخادم" #F3FAF3
   participant "متحكم\nكشوف العلامات" as GC
   participant "خدمة\nالتحقق" as VS
   participant "دفتر\nالعلامات" as GB
   participant "مهمة النشر\nفي الخلفية" as PJ
 end box
-actor "الطلاب" as R
 
 U -> GC : يدخل علامات الامتحان النهائي ثانيةً
 GC -> VS : يطلب المقارنة بإدخال المدرّس
