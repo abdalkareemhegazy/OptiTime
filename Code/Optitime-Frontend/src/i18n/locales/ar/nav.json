@@ -1,0 +1,26 @@
+{
+  "nav": {
+    "sidebar": {
+      "collapse": "طي القائمة",
+      "open": "فتح القائمة"
+    },
+    "topbar": {
+      "quickSearch": "بحث سريع...",
+      "languageToggle": "تبديل اللغة",
+      "notifications": "الإشعارات",
+      "markAllRead": "تعيين الكل كمقروء",
+      "viewAllNotifications": "عرض جميع الإشعارات",
+      "userMenu": "قائمة المستخدم"
+    },
+    "sections": {
+      "home": "الرئيسية",
+      "system": "النظام"
+    },
+    "items": {
+      "organization": "الهيكل التنظيمي",
+      "resources": "الموارد",
+      "rooms": "القاعات",
+      "laboratories": "المختبرات"
+    }
+  }
+}

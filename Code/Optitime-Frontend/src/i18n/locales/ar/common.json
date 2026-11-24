@@ -5,7 +5,9 @@
     "arabic": "العربية",
     "english": "English",
     "actions": {
-      "logout": "تسجيل الخروج"
+      "logout": "تسجيل الخروج",
+      "close": "إغلاق",
+      "cancel": "إلغاء"
     }
   }
 }
