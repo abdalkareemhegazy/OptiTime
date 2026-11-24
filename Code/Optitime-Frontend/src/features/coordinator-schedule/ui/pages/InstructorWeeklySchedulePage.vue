@@ -1,0 +1,157 @@
+<template>
+  <AppShell :page-title="t('routes.instructorWeeklySchedule')">
+    <section class="dashboard-card w-100">
+      <div class="mb-3">
+        <h1 class="h4 fw-bold mb-0">{{ t('pages.instructorWeeklySchedule.title') }}</h1>
+        <p class="dashboard-card__meta mb-0">{{ t('pages.instructorWeeklySchedule.subtitle') }}</p>
+        <p class="dashboard-card__meta mb-0">
+          {{ t('pages.instructorWeeklySchedule.activeSemester', { name: activeSemester?.name ?? '-' }) }}
+        </p>
+      </div>
+
+      <AppSectionPanel :title="t('pages.instructorWeeklySchedule.sections.board')">
+        <WeeklyScheduleBoard
+          :sessions="sessions"
+          :day-options="localizedDayOptions"
+          :time-slots="timeSlots"
+          :blocked-slot-starts="blockedSlotStarts"
+          :time-header="t('pages.instructorSelfAvailability.grid.time')"
+          :draggable="false"
+          @select-session="handleSelectSession"
+        />
+      </AppSectionPanel>
+    </section>
+
+    <LectureDetailsDialog
+      :open="detailsDialogOpen"
+      :lecture="selectedLecture"
+      :day-label="localizedDayLabel(selectedLecture?.day)"
+      :students="selectedLectureStudents"
+      :can-request-apology="canRequestApologyLecture"
+      :can-request-makeup="canRequestMakeupLecture"
+      @request-apology="openApologyDialog"
+      @request-makeup="openMakeupDialog"
+      @close="detailsDialogOpen = false"
+    />
+
+    <LectureApologyRequestDialog
+      :open="apologyDialogOpen"
+      :lecture-day="selectedLecture?.day"
+      :lecture-day-label="localizedDayLabel(selectedLecture?.day)"
+      @close="apologyDialogOpen = false"
+      @submit="handleApologySubmit"
+    />
+
+    <MakeupLectureRequestDialog
+      :open="makeupDialogOpen"
+      @close="makeupDialogOpen = false"
+      @submit="handleMakeupSubmit"
+    />
+  </AppShell>
+</template>
+
+<script setup>
+import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useToast } from 'vue-toastification'
+import AppSectionPanel from '@/components/common/AppSectionPanel.vue'
+import AppShell from '@/components/layout/AppShell.vue'
+import { useSelfWeeklySchedulePage } from '@/features/coordinator-schedule/model/composables/useSelfWeeklySchedulePage'
+import LectureApologyRequestDialog from '@/features/coordinator-schedule/ui/components/LectureApologyRequestDialog.vue'
+import LectureDetailsDialog from '@/features/coordinator-schedule/ui/components/LectureDetailsDialog.vue'
+import MakeupLectureRequestDialog from '@/features/coordinator-schedule/ui/components/MakeupLectureRequestDialog.vue'
+import { useLectureRequestsStore } from '@/features/lecture-requests/model/stores/lectureRequests.store'
+import WeeklyScheduleBoard from '@/features/coordinator-schedule/ui/components/WeeklyScheduleBoard.vue'
+import { useAuthStore } from '@/store/auth.store'
+
+const { t } = useI18n()
+const toast = useToast()
+const authStore = useAuthStore()
+const lectureRequestsStore = useLectureRequestsStore()
+const detailsDialogOpen = ref(false)
+const apologyDialogOpen = ref(false)
+const makeupDialogOpen = ref(false)
+const selectedLecture = ref(null)
+const canRequestApologyLecture = computed(() =>
+  authStore.hasPermission('instructorSchedule.apologyRequest.create'),
+)
+const canRequestMakeupLecture = computed(() =>
+  authStore.hasPermission('instructorSchedule.makeupRequest.create'),
+)
+
+const { activeSemester, dayOptions, timeSlots, blockedSlotStarts, sessions, getLectureStudents } =
+  useSelfWeeklySchedulePage('instructor')
+
+const localizedDayOptions = computed(() => {
+  const labels = {
+    sun: t('pages.constraintsManagement.days.sun'),
+    mon: t('pages.constraintsManagement.days.mon'),
+    tue: t('pages.constraintsManagement.days.tue'),
+    wed: t('pages.constraintsManagement.days.wed'),
+    thu: t('pages.constraintsManagement.days.thu'),
+    fri: t('pages.constraintsManagement.days.fri'),
+    sat: t('pages.constraintsManagement.days.sat'),
+  }
+  return dayOptions.value.map((item) => ({
+    ...item,
+    label: labels[item.value] ?? item.value,
+  }))
+})
+
+const selectedLectureStudents = computed(() =>
+  selectedLecture.value ? getLectureStudents(selectedLecture.value) : [],
+)
+
+function handleSelectSession(session) {
+  selectedLecture.value = session
+  detailsDialogOpen.value = true
+}
+
+function openApologyDialog(lecture) {
+  if (!canRequestApologyLecture.value) return
+  selectedLecture.value = lecture ?? selectedLecture.value
+  detailsDialogOpen.value = false
+  apologyDialogOpen.value = true
+}
+
+function openMakeupDialog(lecture) {
+  if (!canRequestMakeupLecture.value) return
+  selectedLecture.value = lecture ?? selectedLecture.value
+  detailsDialogOpen.value = false
+  makeupDialogOpen.value = true
+}
+
+function handleApologySubmit(form) {
+  if (!canRequestApologyLecture.value) return
+  const payload = buildRequestPayload('apology', form)
+  lectureRequestsStore.createRequest(payload)
+  console.info(t('pages.instructorWeeklySchedule.requests.logs.apologyPrepared'), payload)
+  toast.success(t('pages.instructorWeeklySchedule.requests.toasts.apologySubmitted'))
+  apologyDialogOpen.value = false
+}
+
+function handleMakeupSubmit(form) {
+  if (!canRequestMakeupLecture.value) return
+  const payload = buildRequestPayload('makeup', form)
+  lectureRequestsStore.createRequest(payload)
+  console.info(t('pages.instructorWeeklySchedule.requests.logs.makeupPrepared'), payload)
+  toast.success(t('pages.instructorWeeklySchedule.requests.toasts.makeupSubmitted'))
+  makeupDialogOpen.value = false
+}
+
+function buildRequestPayload(type, form) {
+  const lecture = selectedLecture.value ?? {}
+  return {
+    request_type: type,
+    schedule_session_id: lecture.id ?? null,
+    instructor_id: lecture.instructor_id ?? null,
+    requested_date: form.requested_date,
+    note: form.note,
+  }
+}
+
+function localizedDayLabel(day) {
+  const item = localizedDayOptions.value.find((entry) => entry.value === day)
+  return item?.label ?? day ?? '-'
+}
+</script>
