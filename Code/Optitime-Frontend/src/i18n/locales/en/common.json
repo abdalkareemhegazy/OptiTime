@@ -5,7 +5,9 @@
     "arabic": "Arabic",
     "english": "English",
     "actions": {
-      "logout": "Logout"
+      "logout": "Logout",
+      "close": "Close",
+      "cancel": "Cancel"
     }
   }
 }
