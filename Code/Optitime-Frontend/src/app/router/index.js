@@ -1,10 +1,58 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/store/auth.store'
-import { dashboardRoute, fallbackRoutes, loginRoute } from './routes/public.routes'
+import {
+  coursesManagementRoute,
+  coordinatorLectureRequestsRoute,
+  constraintsManagementRoute,
+  coordinatorWeeklyScheduleRoute,
+  dashboardRoute,
+  auditLogsRoute,
+  fallbackRoutes,
+  instructorLectureRequestsRoute,
+  instructorSelfAvailabilityRoute,
+  instructorWeeklyScheduleRoute,
+  instructorsManagementRoute,
+  loginRoute,
+  notificationsRoute,
+  organizationManagementRoute,
+  resourcesManagementRoute,
+  roomsManagementRoute,
+  rolesManagementRoute,
+  semestersManagementRoute,
+  studentWeeklyScheduleRoute,
+  specialitiesManagementRoute,
+  studentsManagementRoute,
+  userSettingsRoute,
+  usersManagementRoute,
+} from './routes/public.routes'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [loginRoute, dashboardRoute, ...fallbackRoutes],
+  routes: [
+    loginRoute,
+    dashboardRoute,
+    rolesManagementRoute,
+    organizationManagementRoute,
+    usersManagementRoute,
+    instructorsManagementRoute,
+    instructorSelfAvailabilityRoute,
+    instructorWeeklyScheduleRoute,
+    instructorLectureRequestsRoute,
+    coordinatorWeeklyScheduleRoute,
+    coordinatorLectureRequestsRoute,
+    studentWeeklyScheduleRoute,
+    studentsManagementRoute,
+    resourcesManagementRoute,
+    roomsManagementRoute,
+    coursesManagementRoute,
+    specialitiesManagementRoute,
+    semestersManagementRoute,
+    constraintsManagementRoute,
+    auditLogsRoute,
+    userSettingsRoute,
+    notificationsRoute,
+    ...fallbackRoutes,
+  ],
 })
 
 router.beforeEach((to) => {
@@ -21,6 +69,13 @@ router.beforeEach((to) => {
         : '/dashboard'
 
     return { path: redirect === '/login' ? '/dashboard' : redirect }
+  }
+
+  if (
+    to.meta?.requiredPermissions?.length &&
+    !authStore.hasAnyPermission(to.meta.requiredPermissions)
+  ) {
+    return { name: 'dashboard' }
   }
 
   return true
