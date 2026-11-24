@@ -1,13 +1,24 @@
 <template>
   <div class="app-input-field">
-    <label :for="inputId" class="app-input-field__label">{{ label }}</label>
+    <label v-if="!hideLabel" :for="inputId" class="app-input-field__label">{{ label }}</label>
     <div
       class="app-input-field__wrapper"
       :class="{ 'is-focused': focused, 'has-value': modelValue, 'is-invalid': error }"
     >
-      <i :class="[icon, 'app-input-field__icon']"></i>
+      <button
+        v-if="isDateInput"
+        type="button"
+        class="app-input-field__icon-button"
+        :disabled="disabled"
+        :aria-label="label"
+        @click="openDatePicker"
+      >
+        <i :class="[icon, 'app-input-field__icon']"></i>
+      </button>
+      <i v-else :class="[icon, 'app-input-field__icon']"></i>
       <input
         :id="inputId"
+        ref="inputRef"
         class="app-input-field__control"
         :type="inputType"
         :value="modelValue"
@@ -18,22 +29,25 @@
         @focus="$emit('focus')"
         @blur="$emit('blur')"
       />
-      <button
+      <AppIconButton
         v-if="revealable"
         class="app-input-field__toggle"
-        type="button"
+        :icon="revealed ? 'bi bi-eye-slash' : 'bi bi-eye'"
+        variant="neutral"
+        size="sm"
         :disabled="disabled"
         @click="$emit('toggle-visibility')"
-      >
-        <i :class="revealed ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
-      </button>
+      />
     </div>
     <div v-if="error" class="app-input-field__error">{{ error }}</div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed, ref } from 'vue'
+import AppIconButton from '@/components/common/AppIconButton.vue'
+
+const props = defineProps({
   inputId: {
     type: String,
     required: true,
@@ -41,6 +55,10 @@ defineProps({
   label: {
     type: String,
     required: true,
+  },
+  hideLabel: {
+    type: Boolean,
+    default: false,
   },
   modelValue: {
     type: String,
@@ -85,6 +103,21 @@ defineProps({
 })
 
 defineEmits(['update:modelValue', 'focus', 'blur', 'toggle-visibility'])
+
+const inputRef = ref(null)
+const isDateInput = computed(() => props.inputType === 'date')
+
+function openDatePicker() {
+  if (!isDateInput.value || props.disabled) return
+  const target = inputRef.value
+  if (!target) return
+  if (typeof target.showPicker === 'function') {
+    target.showPicker()
+    return
+  }
+  target.focus()
+  target.click()
+}
 </script>
 
 <style scoped>
@@ -130,6 +163,20 @@ defineEmits(['update:modelValue', 'focus', 'blur', 'toggle-visibility'])
   flex-shrink: 0;
 }
 
+.app-input-field__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.app-input-field__icon-button:disabled {
+  cursor: not-allowed;
+}
+
 .app-input-field__wrapper.is-focused .app-input-field__icon {
   color: #4361ee;
 }
@@ -150,18 +197,35 @@ defineEmits(['update:modelValue', 'focus', 'blur', 'toggle-visibility'])
   color: #c0c5cc;
 }
 
+.app-input-field__control[type='time']::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.app-input-field__control[type='date']::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.app-input-field__control[type='time'] {
+  appearance: textfield;
+}
+
+.app-input-field__control[type='date'] {
+  appearance: textfield;
+}
+
 .app-input-field__toggle {
-  background: none;
-  border: none;
   color: #9ca3af;
-  cursor: pointer;
   padding: 0;
-  font-size: 15px;
-  transition: color 0.2s ease;
+  border-color: transparent;
+  background: transparent;
 }
 
 .app-input-field__toggle:hover:not(:disabled) {
   color: #4361ee;
+  border-color: transparent;
+  background: transparent;
 }
 
 .app-input-field__error {
