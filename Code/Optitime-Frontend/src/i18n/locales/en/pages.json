@@ -62,7 +62,7 @@
       },
       "code": {
         "title": "Check your email",
-        "subtitle": "Enter the 6-digit code sent to your email address.",
+        "subtitle": "Enter the 6-digit code sent to your email address, then continue.",
         "label": "Verification code",
         "placeholder": "Enter verification code",
         "resend": "Resend code",
@@ -70,7 +70,7 @@
       },
       "reset": {
         "title": "Create a new password",
-        "subtitle": "Choose a strong password for your account.",
+        "subtitle": "Confirm the 6-digit code and choose a strong password for your account.",
         "passwordLabel": "New password",
         "passwordPlaceholder": "Enter new password",
         "confirmPasswordLabel": "Confirm new password",
@@ -78,7 +78,7 @@
       },
       "actions": {
         "sendCode": "Send code",
-        "verifyCode": "Verify code",
+        "continue": "Continue",
         "resetPassword": "Reset password",
         "backToLogin": "Back to login",
         "processing": "Processing..."
@@ -87,26 +87,120 @@
         "emailRequired": "Please enter your email",
         "emailInvalid": "Please enter a valid email address",
         "codeRequired": "Please enter the verification code",
-        "codeInvalid": "Verification code must be at least 6 characters",
+        "codeInvalid": "Verification code must be 6 digits",
         "passwordRequired": "Please enter a new password",
         "passwordMin": "Password must be at least 8 characters",
         "confirmPasswordRequired": "Please confirm your new password",
         "passwordMismatch": "Password confirmation does not match",
+        "resetFailed": "Could not reset your password. Check the code and try again.",
         "generic": "Could not complete this step. Please try again."
       },
       "toasts": {
         "codeSent": "Verification code sent to your email",
         "codeResent": "A new verification code was sent",
-        "codeVerified": "Code verified successfully",
+        "codeSaved": "Code saved. You can now create a new password.",
         "passwordResetSuccess": "Password reset successful. Please sign in."
       }
     },
     "dashboard": {
-      "title": "Dashboard placeholder",
-      "subtitle": "Auth is working. This page only exists as a protected landing point after login.",
+      "title": "Home",
+      "subtitle": "Jump to the areas you can access. System tools appear below when your role allows them.",
+      "greeting": "Welcome, {name}",
+      "greetingFallback": "there",
       "role": "Role",
       "email": "Email",
-      "permissionCount": "Granted permissions: {count}"
+      "permissionCount": "Granted permissions: {count}",
+      "managementTitle": "System administration",
+      "shortcutsTitle": "Shortcuts"
+    },
+    "managementReports": {
+      "title": "Management reports",
+      "subtitle": "Figures are based on the latest published schedule plan for the selected semester.",
+      "loadingSemesters": "Loading semesters…",
+      "loadingReports": "Loading reports…",
+      "semesterLabel": "Semester",
+      "semesterPlaceholder": "Select a semester",
+      "noSemesters": "No semesters available",
+      "pdf": {
+        "download": "Download PDF",
+        "exporting": "Building PDF…",
+        "success": "Report downloaded",
+        "failed": "Could not build the PDF. Try again or scroll to load all charts first.",
+        "needSemester": "Select a semester before exporting.",
+        "metaLine": "Semester: {semester} · Exported {generatedAt}"
+      },
+      "charts": {
+        "usedRooms": "Rooms in use",
+        "unusedRooms": "Rooms not in this plan",
+        "labDataset": "Lab metrics",
+        "classroomAria": "Chart of rooms used versus not used in the published plan",
+        "labAria": "Bar chart comparing lab session count and lab room count",
+        "studyHoursAria": "Bar chart of session counts by weekday",
+        "peakAria": "Horizontal bar chart of concurrent sections by start time",
+        "resourcesAria": "Horizontal bar chart of resource quantities",
+        "resourcesByQuantity": "Top resources by recorded quantity (inventory)."
+      },
+      "empty": {
+        "noPublishedPlan": "No published schedule for this semester yet.",
+        "noResources": "No resources found."
+      },
+      "panels": {
+        "classroom": {
+          "title": "Classroom occupancy",
+          "subtitle": "Distinct rooms used in the published plan",
+          "used": "Rooms in use",
+          "total": "Total rooms",
+          "rate": "Occupancy rate"
+        },
+        "lab": {
+          "title": "Lab utilization",
+          "subtitle": "Sessions scheduled in lab rooms",
+          "sessions": "Lab sessions",
+          "rooms": "Lab rooms",
+          "sessionsPerRoom": "Avg. sessions per lab room"
+        },
+        "studyHours": {
+          "title": "Study hours distribution",
+          "subtitle": "Session count by day of week",
+          "day": "Day",
+          "sessions": "Sessions",
+          "dayValue": "Day {day}",
+          "relative": "Relative load",
+          "scaleHint": "Bars compare each day to the busiest day in this plan.",
+          "barAria": "Relative load: {value} sessions"
+        },
+        "peak": {
+          "title": "Peak periods",
+          "subtitle": "Start times with the most concurrent sections",
+          "startTime": "Start time",
+          "concurrent": "Concurrent sections",
+          "relative": "Relative load",
+          "scaleHint": "Bars compare each slot to the peak in this list.",
+          "barAria": "Relative load: {value} concurrent sections"
+        },
+        "resources": {
+          "title": "Resources",
+          "subtitle": "Institution resource catalog (inventory)",
+          "catalogNote": "This list is the resource master data from the database. Usage on schedules is not included in this response.",
+          "name": "Name",
+          "type": "Type",
+          "quantity": "Quantity",
+          "status": "Status",
+          "location": "Location"
+        },
+        "compliance": {
+          "title": "Schedule compliance",
+          "subtitle": "Room and instructor overlap checks on the published plan",
+          "ok": "No overlapping conflicts detected",
+          "issues": "Overlaps detected",
+          "violationCount": "Violations: {count}",
+          "sessionIds": "Schedule sessions: {ids}",
+          "types": {
+            "room_overlap": "Room double-booking",
+            "instructor_overlap": "Instructor double-booking"
+          }
+        }
+      }
     },
     "rolesManagement": {
       "title": "Roles management",
@@ -334,6 +428,7 @@
     "instructorSelfAvailability": {
       "title": "My availability",
       "subtitle": "Set your preferred teaching days and time window.",
+      "loading": "Loading your availability…",
       "weeklyHoursRange": "Weekly chosen hours: {current}h (required {min}h - {max}h)",
       "sections": {
         "days": "Availability grid"
@@ -354,7 +449,8 @@
       },
       "errors": {
         "invalidForm": "Please set valid day intervals within configured working hours and slot boundaries.",
-        "minWeeklyHoursRequired": "You must keep at least {min} chosen hours per week."
+        "minWeeklyHoursRequired": "You must keep at least {min} chosen hours per week.",
+        "saveFailed": "Could not save availability. Please try again."
       },
       "toasts": {
         "saved": "Your availability has been saved"
@@ -483,6 +579,12 @@
       "title": "My weekly schedule",
       "subtitle": "View your assigned lectures for the current semester.",
       "activeSemester": "Active semester: {name}",
+      "actions": {
+        "exportPdf": "Download PDF"
+      },
+      "errors": {
+        "pdfFailed": "Could not download the schedule PDF."
+      },
       "sections": {
         "board": "My weekly board"
       },
@@ -502,7 +604,8 @@
         },
         "toasts": {
           "apologySubmitted": "Apology request submitted successfully.",
-          "makeupSubmitted": "Makeup lecture request submitted successfully."
+          "makeupSubmitted": "Makeup lecture request submitted successfully.",
+          "createFailed": "Could not submit the request. Check the session and date, then try again."
         },
         "logs": {
           "apologyPrepared": "Lecture apology request prepared:",
@@ -523,22 +626,64 @@
     },
     "instructorLectureRequests": {
       "title": "My lecture requests",
-      "subtitle": "Track apology and makeup requests submitted from your schedule.",
+      "subtitle": "Track apology and makeup requests submitted from your schedule. You can update or delete requests while they are still pending.",
       "empty": "No lecture requests submitted yet.",
+      "errors": {
+        "loadFailed": "Could not load lecture requests.",
+        "updateFailed": "Could not update the request. It may no longer be pending.",
+        "deleteFailed": "Could not delete the request. It may no longer be pending."
+      },
       "columns": {
         "note": "Reason"
       }
     },
     "coordinatorLectureRequests": {
       "title": "Lecture requests management",
-      "subtitle": "Check, modify, and delete instructor lecture requests."
+      "subtitle": "Review instructor apology and makeup requests (approve or reject).",
+      "apiHint": "Connected to the server: use Review to set status and coordinator notes. Editing dates or deleting requests is only available in demo mode until the API supports it.",
+      "empty": "No lecture requests yet.",
+      "errors": {
+        "loadFailed": "Could not load lecture requests.",
+        "reviewFailed": "Could not save the review. Check permissions and try again."
+      }
     },
     "studentWeeklySchedule": {
       "title": "My weekly schedule",
       "subtitle": "View your lecture schedule for the current semester.",
       "activeSemester": "Active semester: {name}",
+      "actions": {
+        "exportPdf": "Download PDF"
+      },
+      "errors": {
+        "pdfFailed": "Could not download the schedule PDF."
+      },
       "sections": {
         "board": "My weekly board"
+      }
+    },
+    "examsDashboard": {
+      "title": "Exams dashboard",
+      "subtitle": "Overview of exam sessions linked to the published schedule for the selected semester.",
+      "semesterLabel": "Semester",
+      "semesterPlaceholder": "Select a semester",
+      "loadingSessions": "Loading exam sessions…",
+      "quickActions": "Quick actions",
+      "sectionsList": "Exam sessions",
+      "kpi": {
+        "sections": "Sections with sessions",
+        "sessions": "Exam sessions",
+        "done": "Marked done",
+        "pending": "Pending"
+      },
+      "actions": {
+        "enterGrades": "Enter session grades",
+        "noGradePermission": "You can view this overview; grade entry requires the exam grades permission."
+      },
+      "table": {
+        "course": "Course",
+        "section": "Section",
+        "session": "Schedule session",
+        "status": "Status"
       }
     },
     "examsSessionGrades": {
@@ -566,7 +711,8 @@
       "actions": {
         "save": "Save",
         "markDone": "Mark as done",
-        "reopen": "Reopen"
+        "reopen": "Reopen",
+        "downloadPdf": "Download PDF"
       },
       "status": {
         "done": "Session marked as done",
@@ -581,7 +727,10 @@
         "saved": "Grades saved successfully.",
         "saveFailed": "Could not save grades.",
         "markedDone": "Session marked as done.",
-        "reopened": "Session reopened for editing."
+        "reopened": "Session reopened for editing.",
+        "reopenNotAvailable": "Reopening is not available for live data; the server only supports marking a section as done.",
+        "pdfDownloaded": "PDF downloaded.",
+        "pdfFailed": "Could not download the grades PDF."
       }
     },
     "studentGrades": {
@@ -988,7 +1137,7 @@
     },
     "constraintsManagement": {
       "title": "Constraints management",
-      "subtitle": "Configure global timetable constraints using local presets.",
+      "subtitle": "Configure global scheduling rules. Changes are saved to the server.",
       "sections": {
         "general": "General settings",
         "hardConstraints": "Hard constraints",
@@ -1039,6 +1188,9 @@
         "avoid_back_to_back": "Avoid back-to-back lectures",
         "morning_preference": "Prefer morning times",
         "department_proximity": "Department lecture proximity",
+        "max_daily_lectures": "Daily lecture limit (soft)",
+        "instructor_availability": "Instructor availability windows",
+        "capacity_threshold": "Room capacity threshold",
         "prayer_noon": "Noon break",
         "prayer_asr": "Afternoon break",
         "lunch_break": "Lunch break",
@@ -1056,6 +1208,9 @@
         "room_capacity": "Ensure room seats cover enrolled students.",
         "lab_for_lab": "Place lab sessions in lab-capable rooms only.",
         "working_hours": "Keep sessions inside configured working hours.",
+        "max_daily_lectures": "Prefer schedules that respect the maximum lectures per instructor per day.",
+        "instructor_availability": "Only place sessions when the instructor has marked availability.",
+        "capacity_threshold": "Apply rules when room occupancy approaches the configured threshold.",
         "instructor_pref": "Prefer instructor availability and time choices.",
         "load_balance": "Distribute teaching load fairly across staff.",
         "student_gap": "Reduce large gaps between student classes.",
@@ -1065,8 +1220,7 @@
         "match_type": "Keep each course in the correct room type.",
         "room_proximity": "Group department sessions in nearby rooms/buildings.",
         "avoid_floor_scatter": "Avoid consecutive sessions on different floors.",
-        "equipment_match": "Ensure required equipment exists in selected rooms."
-        ,
+        "equipment_match": "Ensure required equipment exists in selected rooms.",
         "max_occupancy_threshold": "Respect the configured maximum room occupancy ratio."
       },
       "days": {
@@ -1151,7 +1305,10 @@
         "weakPassword": "New password must be at least 8 characters.",
         "samePassword": "New password must be different from current password.",
         "passwordUpdateFailed": "Unable to update password.",
-        "notificationsSaveFailed": "Unable to save notification settings."
+        "notificationsSaveFailed": "Unable to save notification settings.",
+        "notificationsSaveNeedLogin": "Cannot save: your session has no API token. Log out, sign in again, then retry.",
+        "notificationsSaveForbidden": "You do not have permission to update notification settings.",
+        "notificationsSaveServer": "Could not reach the API. Ensure the Laravel server is running and VITE_API_BASE_URL matches it (e.g. http://localhost:8000/api)."
       },
       "toasts": {
         "profileSaved": "Profile updated",
@@ -1172,7 +1329,12 @@
       "types": {
         "schedule": "Schedule",
         "announcement": "Announcement",
-        "reminder": "Reminder"
+        "reminder": "Reminder",
+        "schedule_published": "Schedule",
+        "schedule_updated": "Schedule",
+        "lecture_request_submitted": "Lecture request",
+        "lecture_request_reviewed": "Lecture request",
+        "grade_posted": "Grades"
       },
       "priority": {
         "high": "High",
