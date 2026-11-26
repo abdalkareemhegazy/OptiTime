@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from '@/api/config'
 import { getStoredToken } from '@/lib/authSession'
+import { useLoadingStore } from '@/store/loading.store'
 
 /**
  * @param {string} path - e.g. `/auth/login` or `auth/login`
@@ -7,8 +8,17 @@ import { getStoredToken } from '@/lib/authSession'
  * @returns {Promise<Response>}
  */
 export async function apiFetch(path, options = {}) {
-  const base = getApiBaseUrl()
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const loadingStore = useLoadingStore()
+  const shouldTrackLoading = options.skipLoading !== true
+  if (shouldTrackLoading) {
+    loadingStore.beginRequest()
+  }
+  const base = getApiBaseUrl().replace(/\/+$/, '')
+  let normalizedPath = path.startsWith('/') ? path : `/${path}`
+  // Base already ends with /api; strip a duplicate /api prefix from the path (avoids /api/api/... → 404).
+  if (/^\/api(\/|$)/.test(normalizedPath) && base.toLowerCase().endsWith('/api')) {
+    normalizedPath = normalizedPath.replace(/^\/api(?=\/|$)/, '') || '/'
+  }
   const url = `${base}${normalizedPath}`
 
   const headers = new Headers(options.headers ?? {})
@@ -17,7 +27,7 @@ export async function apiFetch(path, options = {}) {
     headers.set('Accept', 'application/json')
   }
 
-  const { json: jsonBody, ...rest } = options
+  const { json: jsonBody, skipLoading: _skipLoading, ...rest } = options
   let body = rest.body
   if (jsonBody !== undefined) {
     body = JSON.stringify(jsonBody)
@@ -31,11 +41,17 @@ export async function apiFetch(path, options = {}) {
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  return fetch(url, {
-    ...rest,
-    headers,
-    body,
-  })
+  try {
+    return await fetch(url, {
+      ...rest,
+      headers,
+      body,
+    })
+  } finally {
+    if (shouldTrackLoading) {
+      loadingStore.endRequest()
+    }
+  }
 }
 
 /**
