@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/store/auth.store'
+import { useLoadingStore } from '@/store/loading.store'
 import {
   coursesManagementRoute,
   coordinatorLectureRequestsRoute,
@@ -16,6 +17,7 @@ import {
   instructorWeeklyScheduleRoute,
   instructorsManagementRoute,
   loginRoute,
+  managementReportsRoute,
   notificationsRoute,
   organizationManagementRoute,
   resourcesManagementRoute,
@@ -26,6 +28,7 @@ import {
   specialitiesManagementRoute,
   studentsManagementRoute,
   studentGradesRoute,
+  examsDashboardRoute,
   examsSessionGradesRoute,
   userSettingsRoute,
   usersManagementRoute,
@@ -39,6 +42,7 @@ const router = createRouter({
     forgotPasswordCodeRoute,
     forgotPasswordResetRoute,
     dashboardRoute,
+    managementReportsRoute,
     rolesManagementRoute,
     organizationManagementRoute,
     usersManagementRoute,
@@ -50,6 +54,7 @@ const router = createRouter({
     coordinatorLectureRequestsRoute,
     studentWeeklyScheduleRoute,
     studentGradesRoute,
+    examsDashboardRoute,
     examsSessionGradesRoute,
     studentsManagementRoute,
     resourcesManagementRoute,
@@ -65,7 +70,19 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach((to, from) => {
+  const loadingStore = useLoadingStore()
+  if (
+    loadingStore.shouldBlockLeaving &&
+    to.fullPath !== from.fullPath &&
+    typeof window !== 'undefined'
+  ) {
+    const confirmed = window.confirm(
+      'Schedule generation is still running. Leaving this page may interrupt your tracking view. Do you want to leave anyway?',
+    )
+    if (!confirmed) return false
+  }
+
   const authStore = useAuthStore()
 
   if (to.meta?.requiresAuth && !authStore.user) {

@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { authService } from '@/features/auth/api/auth.service'
+import { useResourcesStore } from '@/features/resources/model/stores/resources.store'
+import { useRoomsStore } from '@/features/rooms/model/stores/rooms.store'
 import { loadAuthSession, saveAuthSession } from '@/lib/authSession'
 
 function normalizePermissions(permissions) {
@@ -50,14 +52,19 @@ export const useAuthStore = defineStore('auth', () => {
   const passwordRecovery = ref({
     email: '',
     code: '',
-    isCodeVerified: false,
     codeSentAt: 0,
   })
+
+  function clearEntityCaches() {
+    useRoomsStore().resetCache()
+    useResourcesStore().resetCache()
+  }
 
   function setUser(userData) {
     if (!userData) {
       user.value = null
       saveAuthSession(null, null)
+      clearEntityCaches()
       return
     }
 
@@ -82,20 +89,23 @@ export const useAuthStore = defineStore('auth', () => {
     return permissionList.some((permission) => hasPermission(permission))
   }
 
-  async function login(credentials) {
-    const { token, user: loggedInUser } = await authService.login(credentials)
-    const normalizedUser = normalizeUser(loggedInUser)
+  function applyAuthenticatedUser(token, userData) {
+    const normalizedUser = normalizeUser(userData)
     user.value = normalizedUser
     saveAuthSession(token, normalizedUser)
     return normalizedUser
   }
 
+  async function login(credentials) {
+    clearEntityCaches()
+    const { token, user: loggedInUser } = await authService.login(credentials)
+    return applyAuthenticatedUser(token, loggedInUser)
+  }
+
   async function loginAsDemoRole(roleKey) {
+    clearEntityCaches()
     const { token, user: loggedInUser } = await authService.loginAsDemoRole(roleKey)
-    const normalizedUser = normalizeUser(loggedInUser)
-    user.value = normalizedUser
-    saveAuthSession(token, normalizedUser)
-    return normalizedUser
+    return applyAuthenticatedUser(token, loggedInUser)
   }
 
   /**
@@ -127,7 +137,6 @@ export const useAuthStore = defineStore('auth', () => {
     passwordRecovery.value = {
       email: '',
       code: '',
-      isCodeVerified: false,
       codeSentAt: 0,
     }
   }
@@ -141,7 +150,6 @@ export const useAuthStore = defineStore('auth', () => {
     passwordRecovery.value = {
       email: normalizedEmail,
       code: '',
-      isCodeVerified: false,
       codeSentAt: Date.now(),
     }
     return true
@@ -157,32 +165,35 @@ export const useAuthStore = defineStore('auth', () => {
       ...passwordRecovery.value,
       code: '',
       codeSentAt: Date.now(),
-      isCodeVerified: false,
     }
     return true
   }
 
-  async function verifyPasswordResetCode(code) {
+  function savePasswordResetCode(code) {
     const email = passwordRecovery.value.email
     if (!email) {
       throw { code: 'MISSING_EMAIL' }
     }
-    await authService.verifyPasswordResetCode({ email, code })
     passwordRecovery.value = {
       ...passwordRecovery.value,
       code: String(code ?? '').trim(),
-      isCodeVerified: true,
     }
     return true
   }
 
-  async function resetPassword(password) {
-    const { email, code, isCodeVerified } = passwordRecovery.value
-    if (!email || !code || !isCodeVerified) {
+  async function resetPassword({ code, password }) {
+    const email = passwordRecovery.value.email
+    const normalizedCode = String(code ?? passwordRecovery.value.code ?? '').trim()
+    if (!email || !normalizedCode) {
       throw { code: 'RESET_NOT_ALLOWED' }
     }
 
-    await authService.resetPassword({ email, code, password })
+    passwordRecovery.value = {
+      ...passwordRecovery.value,
+      code: normalizedCode,
+    }
+
+    await authService.resetPassword({ email, otp: normalizedCode, password })
     clearPasswordRecovery()
     return true
   }
@@ -191,6 +202,7 @@ export const useAuthStore = defineStore('auth', () => {
     await authService.logout()
     user.value = null
     saveAuthSession(null, null)
+    clearEntityCaches()
   }
 
   return {
@@ -211,7 +223,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearPasswordRecovery,
     requestPasswordReset,
     resendPasswordResetCode,
-    verifyPasswordResetCode,
+    savePasswordResetCode,
     resetPassword,
     logout,
   }
