@@ -92,6 +92,12 @@ const DEMO_USERS = Object.freeze({
     id: 'demo-instructor',
     name: 'Demo Instructor',
     email: DEMO_CREDENTIALS.email,
+    instructor: {
+      id: 'demo-instructor-profile',
+      user_id: 'demo-instructor',
+      min_work_hours_per_week: 10,
+      max_work_hours_per_week: 40,
+    },
     role: {
       key: 'instructor',
       name: 'Instructor',
@@ -111,6 +117,8 @@ const DEMO_USERS = Object.freeze({
       'instructor.schedule.export',
       'instructor.requests.view',
       'instructor.requests.create',
+      'instructor.requests.update',
+      'instructor.requests.delete',
     ],
   },
   student: {
@@ -196,7 +204,7 @@ function createAuthError(code, message) {
   return { code, message }
 }
 
-const resetCodeStore = new Map()
+const forgotPasswordOtpStore = new Map()
 
 function normalizeEmail(email) {
   return String(email ?? '')
@@ -204,17 +212,29 @@ function normalizeEmail(email) {
     .toLowerCase()
 }
 
-function getOrCreateResetEntry(email) {
+function getOrCreateForgotPasswordEntry(email) {
   const normalizedEmail = normalizeEmail(email)
-  const existing = resetCodeStore.get(normalizedEmail)
+  const existing = forgotPasswordOtpStore.get(normalizedEmail)
   if (existing) return existing
 
   const created = {
     code: '123456',
-    verified: false,
   }
-  resetCodeStore.set(normalizedEmail, created)
+  forgotPasswordOtpStore.set(normalizedEmail, created)
   return created
+}
+
+function mapApiInstructorToApp(apiInstructor) {
+  if (!apiInstructor || typeof apiInstructor !== 'object') return null
+  const id = apiInstructor.id
+  const userId = apiInstructor.user_id
+  if (!id || !userId) return null
+  return {
+    id: String(id),
+    user_id: String(userId),
+    min_work_hours_per_week: Number(apiInstructor.min_work_hours_per_week),
+    max_work_hours_per_week: Number(apiInstructor.max_work_hours_per_week),
+  }
 }
 
 /**
@@ -247,6 +267,8 @@ export function mapApiUserToAppUser(apiUser) {
           color: '#334155',
         }
 
+  const instructor = mapApiInstructorToApp(apiUser.instructor)
+
   return {
     id: apiUser.id,
     name: apiUser.full_name ?? apiUser.name ?? '',
@@ -254,7 +276,17 @@ export function mapApiUserToAppUser(apiUser) {
     avatar_url: apiUser.avatar_url ?? '',
     role,
     permissions: [...new Set(permissionCodes)],
+    ...(instructor ? { instructor } : {}),
   }
+}
+
+function mapAuthPayload(data) {
+  const token = data?.token
+  const user = mapApiUserToAppUser(data?.user)
+  if (!token || !user) {
+    throw createAuthError('INVALID_CREDENTIALS', 'Invalid response')
+  }
+  return { token, user }
 }
 
 export const authService = {
@@ -263,7 +295,7 @@ export const authService = {
   async login(credentials) {
     if (isAuthDemoEnabled()) {
       await sleep(getDelay())
-      const email = credentials.email.trim().toLowerCase()
+      const email = normalizeEmail(credentials.email)
       const password = credentials.password
       if (email === DEMO_CREDENTIALS.email && password === DEMO_CREDENTIALS.password) {
         return { token: 'demo-token', user: { ...DEMO_USERS.admin, name: 'Demo User' } }
@@ -278,14 +310,7 @@ export const authService = {
         password: credentials.password,
       },
     })
-
-    const token = data?.token
-    const user = mapApiUserToAppUser(data?.user)
-    if (!token || !user) {
-      throw createAuthError('INVALID_CREDENTIALS', 'Invalid response')
-    }
-
-    return { token, user }
+    return mapAuthPayload(data)
   },
 
   async loginAsDemoRole(role) {
@@ -332,42 +357,52 @@ export const authService = {
   },
 
   async requestPasswordReset(email) {
-    await sleep(getDelay())
-    getOrCreateResetEntry(email)
-    return { delivered: true }
+    if (isAuthDemoEnabled()) {
+      await sleep(getDelay())
+      getOrCreateForgotPasswordEntry(email)
+      return { delivered: true }
+    }
+
+    const { data } = await apiJson('/auth/forgot-password/request-otp', {
+      method: 'POST',
+      json: {
+        email: String(email ?? '').trim(),
+      },
+    })
+
+    return { delivered: true, data }
   },
 
-  async verifyPasswordResetCode({ email, code }) {
-    await sleep(getDelay())
+  async resetPassword({ email, otp, password }) {
+    if (isAuthDemoEnabled()) {
+      await sleep(getDelay())
 
-    const normalizedEmail = normalizeEmail(email)
-    const entry = resetCodeStore.get(normalizedEmail)
-    const normalizedCode = String(code ?? '').trim()
+      const normalizedEmail = normalizeEmail(email)
+      const entry = forgotPasswordOtpStore.get(normalizedEmail)
+      const normalizedCode = String(otp ?? '').trim()
 
-    if (!entry || normalizedCode !== entry.code) {
-      throw createAuthError('INVALID_RESET_CODE', 'Invalid reset code')
+      if (!entry || normalizedCode !== entry.code) {
+        throw createAuthError('RESET_NOT_ALLOWED', 'Reset password request is invalid')
+      }
+
+      if (typeof password !== 'string' || password.length < 8) {
+        throw createAuthError('WEAK_PASSWORD', 'Password is too weak')
+      }
+
+      forgotPasswordOtpStore.delete(normalizedEmail)
+      return { success: true }
     }
 
-    entry.verified = true
-    return { verified: true }
-  },
+    const { data } = await apiJson('/auth/forgot-password/reset', {
+      method: 'POST',
+      json: {
+        email: String(email ?? '').trim(),
+        otp: String(otp ?? '').trim(),
+        password,
+        password_confirmation: password,
+      },
+    })
 
-  async resetPassword({ email, code, password }) {
-    await sleep(getDelay())
-
-    const normalizedEmail = normalizeEmail(email)
-    const entry = resetCodeStore.get(normalizedEmail)
-    const normalizedCode = String(code ?? '').trim()
-
-    if (!entry || !entry.verified || normalizedCode !== entry.code) {
-      throw createAuthError('RESET_NOT_ALLOWED', 'Reset password request is invalid')
-    }
-
-    if (typeof password !== 'string' || password.length < 8) {
-      throw createAuthError('WEAK_PASSWORD', 'Password is too weak')
-    }
-
-    resetCodeStore.delete(normalizedEmail)
-    return { success: true }
+    return { success: true, data }
   },
 }
