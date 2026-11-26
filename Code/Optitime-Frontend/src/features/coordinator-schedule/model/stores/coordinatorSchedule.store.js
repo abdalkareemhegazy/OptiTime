@@ -1,14 +1,21 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { useConstraintsStore } from '@/features/constraints/model/stores/constraints.store'
-import { coordinatorScheduleService } from '@/features/coordinator-schedule/api/coordinatorSchedule.service'
+import {
+  coordinatorScheduleService,
+} from '@/features/coordinator-schedule/api/coordinatorSchedule.service'
+import { scheduleBoardService } from '@/features/coordinator-schedule/api/scheduleBoard.service'
+import {
+  boardSessionsToGenerateBaseSessions,
+  deriveWeeklyBoardGrid,
+  mapCoordinatorPlanToDraftShape,
+} from '@/features/coordinator-schedule/api/weeklyScheduleMappers'
 import { useCoursesStore } from '@/features/courses/model/stores/courses.store'
 import { useInstructorsStore } from '@/features/instructors/model/stores/instructors.store'
 import { useRoomsStore } from '@/features/rooms/model/stores/rooms.store'
 import { useSemestersStore } from '@/features/semesters/model/stores/semesters.store'
 import { useStudentsStore } from '@/features/students/model/stores/students.store'
+import { useLoadingStore } from '@/store/loading.store'
 
-const VALID_DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 const PRIORITY_STUDENT_IDS = new Set(['student-4', 'student-6', 'student-8'])
 
 function ensureArray(value) {
@@ -38,6 +45,12 @@ function cloneDraft(draft) {
     semester_id: draft?.semester_id ?? '',
     sessions: ensureArray(draft?.sessions).map((item) => ({ ...item })),
   }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 function buildCourseEnrollmentPlan({ course, students }) {
@@ -144,54 +157,31 @@ export const useCoordinatorScheduleStore = defineStore('coordinatorSchedule', ()
   const generatedDraft = ref(null)
   const validationErrors = ref([])
   const conflictSessionIds = ref([])
+  const activePlanId = ref('')
+  const planStatus = ref('draft')
+  /** @type {import('vue').Ref<Record<string, unknown>|null>} */
+  const lastGenerationRequest = ref(null)
+  /** @type {import('vue').Ref<Record<string, unknown>|null>} */
+  const scheduleBoardContext = ref(null)
 
-  const constraintsStore = useConstraintsStore()
   const coursesStore = useCoursesStore()
   const instructorsStore = useInstructorsStore()
   const roomsStore = useRoomsStore()
   const semestersStore = useSemestersStore()
   const studentsStore = useStudentsStore()
+  const loadingStore = useLoadingStore()
 
   const activeSemester = computed(
     () => semestersStore.semesters.find((item) => item.is_active) ?? null,
   )
 
-  const enabledStudyDayValues = computed(() => {
-    const days = constraintsStore.activeSettings?.study_days ?? []
-    return days.filter((item) => item.enabled).map((item) => item.value).filter((item) => VALID_DAYS.includes(item))
-  })
+  const boardGrid = computed(() => deriveWeeklyBoardGrid(scheduleBoardContext.value))
 
-  const timeSlots = computed(() => {
-    const settings = constraintsStore.activeSettings
-    const dayStartMinutes = toMinutes(settings?.day_start || '08:00')
-    const dayEndMinutes = toMinutes(settings?.day_end || '16:00')
-    const slotMinutes = Math.max(1, Number(settings?.slot_minutes) || 60)
-    const gapMinutes = Math.max(0, Number(settings?.gap_minutes) || 0)
-    const breaks = (settings?.break_times ?? []).filter((item) => item?.enabled)
+  const enabledStudyDayValues = computed(() => boardGrid.value.enabledStudyDayValues)
 
-    if (!Number.isFinite(dayStartMinutes) || !Number.isFinite(dayEndMinutes) || dayEndMinutes <= dayStartMinutes) {
-      return []
-    }
+  const timeSlots = computed(() => boardGrid.value.timeSlots)
 
-    const cycle = slotMinutes + gapMinutes
-    const slots = []
-    for (let start = dayStartMinutes; start + slotMinutes <= dayEndMinutes; start += cycle) {
-      const end = start + slotMinutes
-      const blocked = breaks.some((item) =>
-        overlaps(start, end, toMinutes(item.start), toMinutes(item.end)),
-      )
-      slots.push({
-        start: toTime(start),
-        end: toTime(end),
-        blocked,
-      })
-    }
-    return slots
-  })
-
-  const blockedSlotStarts = computed(() =>
-    timeSlots.value.filter((item) => item.blocked).map((item) => item.start),
-  )
+  const blockedSlotStarts = computed(() => boardGrid.value.blockedSlotStarts)
 
   const unblockedSlotSet = computed(() => {
     const entries = timeSlots.value
@@ -405,24 +395,7 @@ export const useCoordinatorScheduleStore = defineStore('coordinatorSchedule', ()
   }
 
   function getLectureStudents(session) {
-    const courseId = `${session?.course_id || ''}`.trim()
-    const sectionId = `${session?.section_id || ''}`.trim()
-    if (!courseId || !sectionId) return []
-
-    const plan = enrollmentPlan.value.find((item) => item.course_id === courseId)
-    const sectionPlan = plan?.sections?.find((item) => item.section_id === sectionId)
-    const studentsById = new Map(studentsStore.students.map((item) => [item.id, item]))
-    const ids = Array.isArray(sectionPlan?.assigned_student_ids) ? sectionPlan.assigned_student_ids : []
-    return ids
-      .map((id) => studentsById.get(id))
-      .filter(Boolean)
-      .map((student) => ({
-        id: student.id,
-        name: student.name,
-        university_number: student.university_number,
-        year_level: student.year_level,
-        study_status: student.study_status,
-      }))
+    return Array.isArray(session?.students) ? session.students : []
   }
 
   function getInstructorSessionsForUser(user) {
@@ -520,24 +493,55 @@ export const useCoordinatorScheduleStore = defineStore('coordinatorSchedule', ()
   async function ensureInitialized() {
     if (initialized.value) return
     loading.value = true
-    constraintsStore.ensureInitialized()
-    await Promise.all([
-      semestersStore.ensureInitialized(),
-      roomsStore.ensureInitialized(),
-      instructorsStore.ensureInitialized(),
-      studentsStore.ensureInitialized(),
-      coursesStore.ensureInitialized(),
-    ])
-    const semesterId = activeSemester.value?.id ?? ''
-    const fetched = await coordinatorScheduleService.getCurrentSemesterSchedule(semesterId)
-    const normalizedFetched = sanitizeDraft(enrichDraftRelations(fetched))
-    editableDraft.value = cloneDraft(normalizedFetched)
-    validateDraft(editableDraft.value)
-    initialized.value = true
-    loading.value = false
+    try {
+      try {
+        scheduleBoardContext.value = await scheduleBoardService.getCoordinatorScheduleBoardContext()
+      } catch {
+        scheduleBoardContext.value = null
+      }
+      await Promise.all([
+        semestersStore.ensureInitialized(),
+        roomsStore.ensureInitialized(),
+        instructorsStore.ensureInitialized(),
+        studentsStore.ensureInitialized(),
+        coursesStore.ensureInitialized(),
+      ])
+      const semesterId = activeSemester.value?.id ?? ''
+      if (!semesterId) {
+        editableDraft.value = cloneDraft({ semester_id: '', sessions: [] })
+        activePlanId.value = ''
+        planStatus.value = 'draft'
+        validateDraft(editableDraft.value)
+        initialized.value = true
+        return
+      }
+
+      try {
+        const resolved = await coordinatorScheduleService.resolveOrCreateDraftPlan(semesterId)
+        activePlanId.value = resolved.planId
+        planStatus.value = resolved.status || 'draft'
+        const normalizedFetched = sanitizeDraft(
+          enrichDraftRelations({
+            semester_id: resolved.semester_id || semesterId,
+            sessions: resolved.sessions,
+          }),
+        )
+        editableDraft.value = cloneDraft(normalizedFetched)
+        validateDraft(editableDraft.value)
+      } catch {
+        activePlanId.value = ''
+        planStatus.value = 'draft'
+        editableDraft.value = cloneDraft({ semester_id: semesterId, sessions: [] })
+        validateDraft(editableDraft.value)
+      }
+    } finally {
+      loading.value = false
+      initialized.value = true
+    }
   }
 
   function moveSession(sessionId, nextDay, nextStart) {
+    if (`${planStatus.value}` === 'published') return false
     const slot = timeSlots.value.find((item) => item.start === nextStart && !item.blocked)
     if (!slot) return false
     editableDraft.value = {
@@ -550,44 +554,183 @@ export const useCoordinatorScheduleStore = defineStore('coordinatorSchedule', ()
   }
 
   async function saveEditableDraft() {
+    if (`${planStatus.value}` === 'published') return false
+    if (!activePlanId.value) return false
     editableDraft.value = enrichDraftRelations(editableDraft.value)
     editableDraft.value = sanitizeDraft(editableDraft.value)
     if (!validateDraft(editableDraft.value)) return false
     if (!activeSemester.value?.id) return false
     saving.value = true
-    const saved = await coordinatorScheduleService.updateCurrentSemesterSchedule(
-      activeSemester.value.id,
-      editableDraft.value,
-    )
-    editableDraft.value = cloneDraft(saved)
-    saving.value = false
-    return true
+    try {
+      const synced = await coordinatorScheduleService.syncPlanSessions(
+        activePlanId.value,
+        editableDraft.value.sessions,
+      )
+      const mapped = mapCoordinatorPlanToDraftShape(synced)
+      planStatus.value = mapped.status || planStatus.value
+      const normalized = sanitizeDraft(
+        enrichDraftRelations({
+          semester_id: mapped.semester_id || activeSemester.value.id,
+          sessions: mapped.sessions,
+        }),
+      )
+      editableDraft.value = cloneDraft(normalized)
+      validateDraft(editableDraft.value)
+      return true
+    } catch {
+      return false
+    } finally {
+      saving.value = false
+    }
   }
 
   async function generateSchedule(algorithm) {
     if (!activeSemester.value?.id) return false
     generating.value = true
-    const generated = await coordinatorScheduleService.generateSchedule({
-      semesterId: activeSemester.value.id,
-      algorithm,
-      baseDraft: editableDraft.value,
-    })
-    generatedDraft.value = sanitizeDraft(enrichDraftRelations(generated))
-    generating.value = false
-    return validateDraft(generatedDraft.value)
+    try {
+      const algo = algorithm === 'backtracking' ? 'backtracking' : 'genetic'
+      loadingStore.startGenerationTracking(algo)
+      const seed = Math.floor(Math.random() * 2147483647)
+      const baseSessions = boardSessionsToGenerateBaseSessions(editableDraft.value.sessions)
+      /** @type {Record<string, unknown>} */
+      const body = {
+        algorithm: algo,
+        semester_id: activeSemester.value.id,
+        seed,
+        baseDraft: { sessions: baseSessions },
+      }
+      const settingsId = scheduleBoardContext.value?.settings_id
+      if (settingsId) {
+        body.settings_id = settingsId
+      }
+      lastGenerationRequest.value = { ...body }
+
+      const { ok, data } = await coordinatorScheduleService.generateSchedule(body)
+      const jobId = `${data?.job_id || ''}`.trim()
+      if (!ok || !jobId) {
+        loadingStore.finishGenerationTracking()
+        lastGenerationRequest.value = null
+        return false
+      }
+      loadingStore.updateGenerationTracking({
+        jobId,
+        status: `${data?.status || 'queued'}`.toLowerCase(),
+        progress: Number(data?.progress ?? 0),
+      })
+
+      const maxPollRounds = 900
+      let rounds = 0
+      let finalResult = null
+      while (rounds < maxPollRounds) {
+        rounds += 1
+        await sleep(2000)
+        const polled = await coordinatorScheduleService.getScheduleGenerationJob(jobId)
+        if (!polled.ok || !polled.data) continue
+        const status = `${polled.data.status || ''}`.toLowerCase()
+        loadingStore.updateGenerationTracking({
+          jobId,
+          status,
+          progress: Number(polled.data.progress ?? 0),
+        })
+        if (status === 'completed') {
+          finalResult = polled.data.result
+          loadingStore.updateGenerationTracking({
+            jobId,
+            status: 'completed',
+            progress: 100,
+          })
+          break
+        }
+        if (status === 'failed') {
+          loadingStore.finishGenerationTracking()
+          lastGenerationRequest.value = null
+          return false
+        }
+      }
+
+      if (!finalResult || finalResult.success !== true || !Array.isArray(finalResult.sessions)) {
+        loadingStore.finishGenerationTracking()
+        lastGenerationRequest.value = null
+        return false
+      }
+
+      generatedDraft.value = {
+        ...sanitizeDraft(
+          enrichDraftRelations({
+            semester_id: activeSemester.value.id,
+            sessions: finalResult.sessions,
+          }),
+        ),
+        meta: finalResult.meta && typeof finalResult.meta === 'object' ? { ...finalResult.meta } : {},
+      }
+      loadingStore.finishGenerationTracking()
+      return validateDraft(generatedDraft.value)
+    } finally {
+      if (loadingStore.generationState.active) {
+        loadingStore.finishGenerationTracking()
+      }
+      generating.value = false
+    }
   }
 
   function clearGeneratedDraft() {
     generatedDraft.value = null
+    lastGenerationRequest.value = null
   }
 
   async function confirmAndSaveGeneratedSchedule() {
-    if (!generatedDraft.value) return false
-    editableDraft.value = cloneDraft(generatedDraft.value)
-    const saved = await saveEditableDraft()
-    if (!saved) return false
-    generatedDraft.value = null
-    return true
+    if (!generatedDraft.value || !lastGenerationRequest.value) return false
+    if (!activeSemester.value?.id) return false
+    generating.value = true
+    try {
+      // Persist exactly the previewed generated sessions as published,
+      // instead of triggering a second generation on publish.
+      const publishedPlan = await coordinatorScheduleService.createPlan({
+        semester_id: activeSemester.value.id,
+        status: 'draft',
+      })
+      const publishedId = publishedPlan?.id
+      if (!publishedId) return false
+      await coordinatorScheduleService.syncPlanSessions(
+        publishedId,
+        generatedDraft.value.sessions,
+      )
+      await coordinatorScheduleService.updatePlanMetadata(publishedId, {
+        status: 'published',
+      })
+
+      // Keep the existing UX: open a fresh editable draft populated
+      // with the same generated sessions.
+      const editablePlan = await coordinatorScheduleService.createPlan({
+        semester_id: activeSemester.value.id,
+        status: 'draft',
+      })
+      const editableId = editablePlan?.id
+      if (!editableId) return false
+      const synced = await coordinatorScheduleService.syncPlanSessions(
+        editableId,
+        generatedDraft.value.sessions,
+      )
+      const mapped = mapCoordinatorPlanToDraftShape(synced)
+      activePlanId.value = mapped.planId
+      planStatus.value = mapped.status || 'draft'
+      editableDraft.value = cloneDraft(
+        sanitizeDraft(
+          enrichDraftRelations({
+            semester_id: mapped.semester_id || activeSemester.value.id,
+            sessions: mapped.sessions,
+          }),
+        ),
+      )
+      validateDraft(editableDraft.value)
+      generatedDraft.value = null
+      lastGenerationRequest.value = null
+      return true
+    } catch {
+      return false
+    } finally {
+      generating.value = false
+    }
   }
 
   const kpis = computed(() => {
@@ -639,6 +782,8 @@ export const useCoordinatorScheduleStore = defineStore('coordinatorSchedule', ()
     generating,
     editableDraft,
     generatedDraft,
+    activePlanId,
+    planStatus,
     activeSemester,
     enabledStudyDayValues,
     timeSlots,
